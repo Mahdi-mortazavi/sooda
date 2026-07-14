@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create and release (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -13,11 +19,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract release notes from CHANGELOG
-        id: notes
+      - name: Resolve tag
+        id: tag
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          awk -v ver="$TAG" '
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag if missing (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA"
+          fi
+
+      - name: Extract release notes from CHANGELOG
+        env:
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          VER="${TAG#v}"
+          awk -v ver="$VER" '
             $0 ~ "^## \\[" ver "\\]" { grab = 1; next }
             grab && /^## \[/ { exit }
             grab { print }
@@ -29,8 +56,13 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.name }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Sooda $GITHUB_REF_NAME" \
-            --notes-file release-notes.md
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — skipping."
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Sooda $TAG" \
+              --notes-file release-notes.md
+          fi
