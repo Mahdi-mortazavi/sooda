@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "Sooda",
+    "tagline": "Profit math, crystal clear."
+  },
+  "modes": {
+    "profit": "Profit %",
+    "sell": "Sell price",
+    "discount": "Discount"
+  },
+  "fields": {
+    "purchasePrice": "Purchase price",
+    "desiredProfitPercent": "Desired profit",
+    "sellingPrice": "Selling price",
+    "originalPrice": "Original price",
+    "discountPercent": "Discount",
+    "amountPlaceholder": "0",
+    "percentPlaceholder": "0",
+    "percentUnit": "%"
+  },
+  "actions": {
+    "calculate": "Calculate",
+    "copy": "Copy result",
+    "copied": "Copied!",
+    "close": "Close",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete all",
+    "exportCsv": "Export CSV",
+    "clearAll": "Clear all",
+    "areYouSure": "Are you sure?"
+  },
+  "results": {
+    "title": "Result",
+    "sellingPrice": "Selling price",
+    "profitAmount": "Profit",
+    "lossAmount": "Loss",
+    "profitPercent": "Profit margin",
+    "lossPercent": "Loss margin",
+    "finalPrice": "Final price",
+    "savedAmount": "You save",
+    "lossNotice": "You'd be selling at a loss.",
+    "breakEven": "Break-even — no profit, no loss."
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalid": "Enter a valid number",
+    "negative": "Can't be negative",
+    "notPositive": "Must be greater than zero",
+    "tooLarge": "That number is too large",
+    "discountRange": "Discount must be between 0 and 100"
+  },
+  "history": {
+    "title": "History",
+    "open": "Open history",
+    "searchPlaceholder": "Search history…",
+    "empty": {
+      "title": "Nothing here yet",
+      "body": "Your calculations will appear here — saved privately on this device."
+    },
+    "noMatches": "No matches for your search.",
+    "deleteEntry": "Delete entry",
+    "csvHeaders": ["Date", "Mode", "Input 1", "Input 2", "Result 1", "Result 2"]
+  },
+  "settings": {
+    "title": "Settings",
+    "open": "Open settings",
+    "language": "Language",
+    "theme": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "Auto",
+    "toggleTheme": "Toggle dark mode",
+    "clearData": "Erase all data",
+    "clearDataHint": "Removes your calculation history from this device.",
+    "about": "About",
+    "version": "Version",
+    "privacy": "Everything stays on your device. No server, no tracking, no analytics.",
+    "sourceCode": "Source code on GitHub"
+  }
+}

@@ -1,0 +1,50 @@
+name: 🐛 Bug report
+description: Something isn't working correctly
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a bug! گزارش به فارسی هم پذیرفته می‌شود.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Clear description of the bug, including what you expected instead.
+      placeholder: 'When I enter ۲۵٪ in discount mode…'
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: App language
+      options: [English, فارسی (Persian), Both]
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options: [Light, Dark, Auto/System]
+  - type: input
+    id: environment
+    attributes:
+      label: Device & browser
+      placeholder: 'iPhone 15, iOS 26, Safari (installed as PWA)'
+    validations:
+      required: true
+  - type: checkboxes
+    id: offline
+    attributes:
+      label: Context
+      options:
+        - label: The bug happens while offline
+        - label: The bug happens in the installed (home-screen) app

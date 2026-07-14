@@ -1,0 +1,258 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/Inter-Variable.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Vazirmatn Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/Vazirmatn-Variable.woff2') format('woff2-variations');
+}
+
+@theme {
+  --font-sans:
+    'Inter Variable', 'Vazirmatn Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', ui-sans-serif, system-ui,
+    sans-serif;
+
+  /* Emerald/teal accent family */
+  --color-accent-50: hsl(165 60% 95%);
+  --color-accent-100: hsl(165 62% 88%);
+  --color-accent-200: hsl(165 64% 76%);
+  --color-accent-300: hsl(165 68% 62%);
+  --color-accent-400: hsl(165 72% 50%);
+  --color-accent-500: hsl(165 70% 45%);
+  --color-accent-600: hsl(165 80% 34%);
+  --color-accent-700: hsl(166 85% 26%);
+  --color-accent-800: hsl(167 85% 20%);
+  --color-accent-900: hsl(168 80% 15%);
+
+  --color-loss-500: hsl(3 85% 56%);
+  --color-loss-600: hsl(3 75% 44%);
+  --color-loss-400: hsl(3 95% 68%);
+}
+
+:root {
+  --bg: #f2f2f7;
+  --text-primary: #111114;
+  --text-secondary: rgba(50, 52, 60, 0.82);
+  --text-tertiary: rgba(60, 60, 67, 0.6);
+  --accent-text: hsl(166 90% 24%);
+  --accent-fill: hsl(165 78% 38%);
+  --accent-fill-strong: hsl(166 90% 27%);
+  --glass-fill: rgba(255, 255, 255, 0.52);
+  --glass-fill-strong: rgba(255, 255, 255, 0.72);
+  --glass-fill-sheet: rgba(248, 248, 252, 0.86);
+  --glass-border-top: rgba(255, 255, 255, 0.9);
+  --glass-border-bottom: rgba(255, 255, 255, 0.25);
+  --glass-edge: rgba(20, 40, 35, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 12px 40px rgba(24, 39, 35, 0.12), 0 2px 8px rgba(24, 39, 35, 0.06);
+  --input-fill: rgba(255, 255, 255, 0.65);
+  --separator: rgba(60, 60, 67, 0.14);
+}
+
+.dark {
+  --bg: #000000;
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(235, 235, 245, 0.72);
+  --text-tertiary: rgba(235, 235, 245, 0.55);
+  --accent-text: hsl(165 75% 62%);
+  --accent-fill: hsl(165 75% 42%);
+  --accent-fill-strong: hsl(165 85% 58%);
+  --glass-fill: rgba(28, 28, 32, 0.55);
+  --glass-fill-strong: rgba(38, 38, 44, 0.66);
+  --glass-fill-sheet: rgba(22, 22, 26, 0.88);
+  --glass-border-top: rgba(255, 255, 255, 0.22);
+  --glass-border-bottom: rgba(255, 255, 255, 0.05);
+  --glass-edge: rgba(255, 255, 255, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
+  --input-fill: rgba(58, 58, 64, 0.5);
+  --separator: rgba(84, 84, 88, 0.55);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  transition: background-color 0.45s ease, color 0.45s ease;
+}
+
+:root:lang(fa) body,
+:root:lang(fa) button,
+:root:lang(fa) input {
+  font-family:
+    'Vazirmatn Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer components {
+  /* ---------- Liquid glass surfaces ---------- */
+
+  .glass {
+    position: relative;
+    background: var(--glass-fill);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 0 0 1px var(--glass-edge),
+      var(--glass-shadow);
+  }
+
+  .glass-strong {
+    position: relative;
+    background: var(--glass-fill-strong);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 0 0 1px var(--glass-edge),
+      var(--glass-shadow);
+  }
+
+  .glass-sheet {
+    position: relative;
+    background: var(--glass-fill-sheet);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 0 0 1px var(--glass-edge),
+      0 -12px 48px rgba(0, 0, 0, 0.18);
+  }
+
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .glass,
+    .glass-strong {
+      -webkit-backdrop-filter: blur(28px) saturate(1.7);
+      backdrop-filter: blur(28px) saturate(1.7);
+    }
+    .glass-sheet {
+      -webkit-backdrop-filter: blur(40px) saturate(1.8);
+      backdrop-filter: blur(40px) saturate(1.8);
+    }
+  }
+
+  /* Gradient 1px border overlay */
+  .glass-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(165deg, var(--glass-border-top), var(--glass-border-bottom) 45%, var(--glass-border-top) 120%);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ---------- Ambient background blobs ---------- */
+
+  .ambient-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(70px);
+    will-change: transform;
+  }
+
+  @keyframes blob-drift-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(6vw, -4vh) scale(1.12); }
+    66% { transform: translate(-4vw, 5vh) scale(0.95); }
+  }
+
+  @keyframes blob-drift-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40% { transform: translate(-6vw, 6vh) scale(1.08); }
+    75% { transform: translate(4vw, -5vh) scale(0.92); }
+  }
+
+  @keyframes blob-drift-c {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(5vw, 6vh) scale(1.15); }
+  }
+
+  .animate-blob-a { animation: blob-drift-a 26s ease-in-out infinite; }
+  .animate-blob-b { animation: blob-drift-b 32s ease-in-out infinite; }
+  .animate-blob-c { animation: blob-drift-c 38s ease-in-out infinite; }
+
+  /* ---------- Refraction shine on result card ---------- */
+
+  @keyframes shine-sweep {
+    0% { transform: translateX(-160%) skewX(-18deg); }
+    100% { transform: translateX(260%) skewX(-18deg); }
+  }
+
+  .shine-streak {
+    animation: shine-sweep 5.5s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
+    animation-delay: 1.2s;
+  }
+
+  [dir='rtl'] .shine-streak {
+    animation-name: shine-sweep-rtl;
+  }
+
+  @keyframes shine-sweep-rtl {
+    0% { transform: translateX(160%) skewX(18deg); }
+    100% { transform: translateX(-260%) skewX(18deg); }
+  }
+}
+
+/* ---------- Focus & interaction ---------- */
+
+:focus-visible {
+  outline: 2.5px solid var(--accent-fill);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+input {
+  color: var(--text-primary);
+}
+
+input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Hide number input spinners just in case */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent-fill) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

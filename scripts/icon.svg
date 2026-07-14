@@ -1,0 +1,38 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0e5b4a"/>
+      <stop offset="0.5" stop-color="#0f7a5f"/>
+      <stop offset="1" stop-color="#16a37e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#7fe8c8" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="#7fe8c8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="drop" x1="256" y1="86" x2="256" y2="446" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.62"/>
+      <stop offset="0.45" stop-color="#e8fff7" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#baf5e2" stop-opacity="0.42"/>
+    </linearGradient>
+    <linearGradient id="dropedge" x1="256" y1="86" x2="256" y2="446" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="115" fill="url(#glow)"/>
+
+  <!-- glass droplet -->
+  <path d="M256 86 C 256 86 122 244 122 332 A 134 134 0 0 0 390 332 C 390 244 256 86 256 86 Z"
+        fill="url(#drop)" stroke="url(#dropedge)" stroke-width="7"/>
+  <!-- specular highlight -->
+  <ellipse cx="205" cy="212" rx="34" ry="58" transform="rotate(24 205 212)" fill="#ffffff" opacity="0.5"/>
+
+  <!-- percent mark -->
+  <g stroke="#ffffff" stroke-width="26" stroke-linecap="round">
+    <line x1="206" y1="392" x2="306" y2="272"/>
+    <circle cx="211" cy="285" r="27" fill="none"/>
+    <circle cx="301" cy="379" r="27" fill="none"/>
+  </g>
+</svg>

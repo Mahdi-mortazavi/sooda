@@ -1,0 +1,35 @@
+name: ✨ Feature request
+description: Suggest an idea for Sooda
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the suggestion! پیشنهاد به فارسی هم پذیرفته می‌شود.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      placeholder: "As a seller, I need to… because…"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How should it work? Sketches and examples welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Fit with Sooda's principles
+      options:
+        - label: This feature can work fully offline (no server needed)
+          required: true
+        - label: This feature respects privacy (no tracking/analytics)
+          required: true

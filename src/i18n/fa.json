@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "سودا",
+    "tagline": "سود و قیمت، شفاف مثل شیشه"
+  },
+  "modes": {
+    "profit": "درصد سود",
+    "sell": "قیمت فروش",
+    "discount": "تخفیف"
+  },
+  "fields": {
+    "purchasePrice": "قیمت خرید",
+    "desiredProfitPercent": "سود دلخواه",
+    "sellingPrice": "قیمت فروش",
+    "originalPrice": "قیمت اصلی",
+    "discountPercent": "تخفیف",
+    "amountPlaceholder": "۰",
+    "percentPlaceholder": "۰",
+    "percentUnit": "٪"
+  },
+  "actions": {
+    "calculate": "محاسبه کن",
+    "copy": "کپی نتیجه",
+    "copied": "کپی شد!",
+    "close": "بستن",
+    "delete": "حذف",
+    "cancel": "انصراف",
+    "confirmDelete": "حذف همه",
+    "exportCsv": "خروجی CSV",
+    "clearAll": "پاک کردن همه",
+    "areYouSure": "مطمئن هستید؟"
+  },
+  "results": {
+    "title": "نتیجه",
+    "sellingPrice": "قیمت فروش",
+    "profitAmount": "مبلغ سود",
+    "lossAmount": "مبلغ زیان",
+    "profitPercent": "درصد سود",
+    "lossPercent": "درصد زیان",
+    "finalPrice": "قیمت نهایی",
+    "savedAmount": "صرفه‌جویی شما",
+    "lossNotice": "با این قیمت ضرر می‌کنید.",
+    "breakEven": "سر به سر — نه سود، نه زیان."
+  },
+  "errors": {
+    "required": "این فیلد لازم است",
+    "invalid": "یک عدد معتبر وارد کنید",
+    "negative": "نمی‌تواند منفی باشد",
+    "notPositive": "باید بزرگ‌تر از صفر باشد",
+    "tooLarge": "این عدد خیلی بزرگ است",
+    "discountRange": "تخفیف باید بین ۰ تا ۱۰۰ باشد"
+  },
+  "history": {
+    "title": "تاریخچه",
+    "open": "بازکردن تاریخچه",
+    "searchPlaceholder": "جست‌وجو در تاریخچه…",
+    "empty": {
+      "title": "هنوز خبری نیست",
+      "body": "محاسبه‌های شما این‌جا نمایش داده می‌شوند — به‌صورت خصوصی روی همین دستگاه."
+    },
+    "noMatches": "نتیجه‌ای مطابق جست‌وجو پیدا نشد.",
+    "deleteEntry": "حذف این مورد",
+    "csvHeaders": ["تاریخ", "حالت", "ورودی ۱", "ورودی ۲", "نتیجه ۱", "نتیجه ۲"]
+  },
+  "settings": {
+    "title": "تنظیمات",
+    "open": "بازکردن تنظیمات",
+    "language": "زبان",
+    "theme": "پوسته",
+    "themeLight": "روشن",
+    "themeDark": "تیره",
+    "themeSystem": "خودکار",
+    "toggleTheme": "تغییر حالت تیره",
+    "clearData": "پاک‌کردن همه داده‌ها",
+    "clearDataHint": "تاریخچه محاسبه‌ها از این دستگاه حذف می‌شود.",
+    "about": "درباره",
+    "version": "نسخه",
+    "privacy": "همه‌چیز روی دستگاه شما می‌ماند؛ بدون سرور، بدون ردیابی، بدون آنالیتیکس.",
+    "sourceCode": "کد منبع در گیت‌هاب"
+  }
+}
