@@ -1,13 +1,20 @@
 /** Pure calculation engine for Sooda's three modes. All money results rounded to 2 decimals. */
 
-export type Mode = 'profit' | 'sell' | 'discount'
+export type Mode = 'profit' | 'sell' | 'discount' | 'rdiscount'
 
-export const MODES: readonly Mode[] = ['profit', 'sell', 'discount'] as const
+export const MODES: readonly Mode[] = ['profit', 'sell', 'discount', 'rdiscount'] as const
 
 /** Maximum sensible magnitude for any money/percent input. */
 export const MAX_VALUE = 999_999_999_999
 
-export type ValidationError = 'required' | 'invalid' | 'negative' | 'notPositive' | 'tooLarge' | 'discountRange'
+export type ValidationError =
+  | 'required'
+  | 'invalid'
+  | 'negative'
+  | 'notPositive'
+  | 'tooLarge'
+  | 'discountRange'
+  | 'reverseDiscountRange'
 
 /** Round to 2 decimal places, avoiding floating point artifacts (e.g. 0.1+0.2). */
 export function round2(value: number): number {
@@ -52,6 +59,18 @@ export function calcDiscount(originalPrice: number, discountPercent: number): Di
   return { finalPrice, savedAmount }
 }
 
+export interface ReverseDiscountResult {
+  originalPrice: number
+  savedAmount: number
+}
+
+/** Mode 4 — final (discounted) price + discount % → original price and amount saved. */
+export function calcReverseDiscount(finalPrice: number, discountPercent: number): ReverseDiscountResult {
+  const originalPrice = round2(finalPrice / (1 - discountPercent / 100))
+  const savedAmount = round2(originalPrice - finalPrice)
+  return { originalPrice, savedAmount }
+}
+
 export interface FieldRule {
   /** value must be strictly greater than 0 */
   positive?: boolean
@@ -59,6 +78,8 @@ export interface FieldRule {
   nonNegative?: boolean
   /** value must be within [0, 100] */
   percentRange?: boolean
+  /** value must be within [0, 100) — reverse discount is undefined at exactly 100% */
+  percentBelow100?: boolean
 }
 
 /** Validate a parsed input value against a rule set. Returns null when valid. */
@@ -66,6 +87,7 @@ export function validateValue(value: number, rule: FieldRule, rawEmpty: boolean)
   if (rawEmpty) return 'required'
   if (!Number.isFinite(value)) return 'invalid'
   if (rule.percentRange && (value < 0 || value > 100)) return 'discountRange'
+  if (rule.percentBelow100 && (value < 0 || value >= 100)) return 'reverseDiscountRange'
   if (rule.positive && value <= 0) return 'notPositive'
   if (rule.nonNegative && value < 0) return 'negative'
   if (Math.abs(value) > MAX_VALUE) return 'tooLarge'
@@ -77,4 +99,5 @@ export const MODE_RULES: Record<Mode, [FieldRule, FieldRule]> = {
   profit: [{ positive: true }, { nonNegative: true }],
   sell: [{ positive: true }, { nonNegative: true }],
   discount: [{ positive: true }, { percentRange: true }],
+  rdiscount: [{ positive: true }, { percentBelow100: true }],
 }

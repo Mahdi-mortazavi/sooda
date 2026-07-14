@@ -6,7 +6,8 @@
   "modes": {
     "profit": "Profit %",
     "sell": "Sell price",
-    "discount": "Discount"
+    "discount": "Discount",
+    "rdiscount": "Reverse discount"
   },
   "fields": {
     "purchasePrice": "Purchase price",
@@ -16,7 +17,8 @@
     "discountPercent": "Discount",
     "amountPlaceholder": "0",
     "percentPlaceholder": "0",
-    "percentUnit": "%"
+    "percentUnit": "%",
+    "finalPrice": "Final price"
   },
   "actions": {
     "calculate": "Calculate",
@@ -28,7 +30,9 @@
     "confirmDelete": "Delete all",
     "exportCsv": "Export CSV",
     "clearAll": "Clear all",
-    "areYouSure": "Are you sure?"
+    "areYouSure": "Are you sure?",
+    "share": "Share result link",
+    "linkCopied": "Link copied!"
   },
   "results": {
     "title": "Result",
@@ -40,7 +44,8 @@
     "finalPrice": "Final price",
     "savedAmount": "You save",
     "lossNotice": "You'd be selling at a loss.",
-    "breakEven": "Break-even — no profit, no loss."
+    "breakEven": "Break-even — no profit, no loss.",
+    "originalPrice": "Original price"
   },
   "errors": {
     "required": "This field is required",
@@ -48,7 +53,8 @@
     "negative": "Can't be negative",
     "notPositive": "Must be greater than zero",
     "tooLarge": "That number is too large",
-    "discountRange": "Discount must be between 0 and 100"
+    "discountRange": "Discount must be between 0 and 100",
+    "reverseDiscountRange": "Discount must be from 0 up to (not including) 100"
   },
   "history": {
     "title": "History",
@@ -60,7 +66,15 @@
     },
     "noMatches": "No matches for your search.",
     "deleteEntry": "Delete entry",
-    "csvHeaders": ["Date", "Mode", "Input 1", "Input 2", "Result 1", "Result 2"]
+    "csvHeaders": [
+      "Date",
+      "Mode",
+      "Input 1",
+      "Input 2",
+      "Result 1",
+      "Result 2",
+      "Unit"
+    ]
   },
   "settings": {
     "title": "Settings",
@@ -76,6 +90,24 @@
     "about": "About",
     "version": "Version",
     "privacy": "Everything stays on your device. No server, no tracking, no analytics.",
-    "sourceCode": "Source code on GitHub"
+    "sourceCode": "Source code on GitHub",
+    "unit": "Currency unit"
+  },
+  "discountDirection": {
+    "forward": "Find final price",
+    "reverse": "Find original price"
+  },
+  "install": {
+    "title": "Install Sooda",
+    "body": "Works fully offline — right from your home screen.",
+    "install": "Install",
+    "later": "Not now",
+    "guide": "How to install",
+    "iosTitle": "Install on iPhone & iPad",
+    "iosIntro": "Sooda installs straight from Safari — no App Store needed.",
+    "iosStep1": "Tap the Share button in Safari’s toolbar",
+    "iosStep2": "Scroll and choose “Add to Home Screen”",
+    "iosStep3": "Tap “Add” — done! Sooda now works offline like a native app.",
+    "dismiss": "Dismiss install prompt"
   }
 }

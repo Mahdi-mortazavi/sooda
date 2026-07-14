@@ -33,10 +33,15 @@ A liquid-glass profit, price & discount calculator — offline-first, bilingual,
 - **🔒 Privacy-first** — no server, no tracking, no analytics; your data never leaves the device
 - **🌐 Bilingual & RTL-native** — English and Persian (فارسی) with instant switching; layout, animations and icons mirror correctly
 - **۱۲۳ Persian digits** — type Persian/Arabic digits anywhere; numbers display with proper fa-IR / en-US formatting
+- **🔄 Reverse discount** — recover the original price from a discounted one
+- **💱 Currency presets** — Toman (تومان), Rial (ریال), $ or € on every result
+- **🔗 Shareable links** — send any calculation as a deep link; it opens pre-computed, even offline
+- **📲 Delightful install flow** — native install prompt + illustrated iOS Add-to-Home-Screen guide, and a language picker on first launch
 - **🕘 History** — every calculation saved locally (IndexedDB), searchable, exportable to CSV
 - **💎 Liquid-glass design** — backdrop blur & saturation, gradient hairline borders, refraction shine, ambient color blobs, spring physics everywhere
 - **🌗 Light / Dark / Auto** themes with animated toggle
 - **♿ Accessible** — Lighthouse 100 accessibility, `aria-live` results, full keyboard support, `prefers-reduced-motion` respected
+- **⚡ Instant** — static boot shell + inlined critical CSS: Lighthouse mobile Performance 99, first paint ≈ 0.8 s on throttled 4G
 
 ## 📲 Install as an app
 
@@ -77,9 +82,12 @@ Other scripts: `npm run assets` (regenerate icons), `npm run screenshots` (Playw
 - [x] Bilingual EN/FA with RTL
 - [x] Offline-first PWA with full precache
 - [x] History with search, delete & CSV export
-- [ ] Currency/unit presets (تومان, ریال, $, €)
-- [ ] Reverse-discount mode (final price → original price)
-- [ ] Shareable calculation links
+- [x] Currency/unit presets (تومان, ریال, $, €)
+- [x] Reverse-discount mode (final price → original price)
+- [x] Shareable calculation links
+- [x] First-run language onboarding + polished PWA install flow
+- [ ] Multi-item basket mode (sum several calculations)
+- [ ] Home-screen widgets via PWA shortcuts
 
 ## 🤝 Contributing
 

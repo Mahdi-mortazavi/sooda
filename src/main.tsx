@@ -8,7 +8,13 @@ import type { AppLanguage } from './lib/numbers'
 
 applyDocumentLanguage(i18n.language as AppLanguage)
 
-registerSW({ immediate: true })
+// Register the service worker after the page is fully loaded so precaching
+// never competes with first-paint resources.
+if (document.readyState === 'complete') {
+  registerSW({ immediate: true })
+} else {
+  window.addEventListener('load', () => registerSW({ immediate: true }), { once: true })
+}
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>

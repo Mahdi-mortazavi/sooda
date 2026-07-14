@@ -7,7 +7,7 @@
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./assets/fonts/Inter-Variable.woff2') format('woff2-variations');
+  src: url('/sooda/fonts/Inter-Variable.woff2') format('woff2-variations');
 }
 
 @font-face {
@@ -15,7 +15,7 @@
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./assets/fonts/Vazirmatn-Variable.woff2') format('woff2-variations');
+  src: url('/sooda/fonts/Vazirmatn-Variable.woff2') format('woff2-variations');
 }
 
 @theme {
@@ -219,7 +219,29 @@ body {
   }
 }
 
+/* ---------- Pre-paint boot shell ---------- */
+
+/* Bilingual boot text: show the Persian variant only when the stored language is fa. */
+.boot-fa { display: none; }
+:root:lang(fa) .boot-fa { display: inline; }
+:root:lang(fa) .boot-en { display: none; }
+
+/* The static welcome card renders only on a true first run (no stored language). */
+:root[data-boot='app'] #boot-welcome { display: none; }
+
 /* ---------- Focus & interaction ---------- */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role='tab'],
+a {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
 
 :focus-visible {
   outline: 2.5px solid var(--accent-fill);

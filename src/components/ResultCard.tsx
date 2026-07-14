@@ -4,13 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { vibrate } from '../lib/haptics'
 import type { AppLanguage } from '../lib/numbers'
 import { formatNumber } from '../lib/numbers'
+import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { CountUp } from './CountUp'
-import { IconCheck, IconCopy } from './Icons'
+import { IconCheck, IconCopy, IconLink } from './Icons'
 
 export interface ResultDisplay {
   key: string
   primaryLabel: string
   primaryValue: number
+  /** Set for percentage results (the ٪/% sign); money results use the active unit instead. */
   primaryUnit?: string
   secondaryLabel: string
   secondaryValue: number
@@ -44,15 +46,31 @@ function RefractionShine() {
   )
 }
 
-export function ResultCard({ result, lang }: { result: ResultDisplay; lang: AppLanguage }) {
+interface ResultCardProps {
+  result: ResultDisplay
+  lang: AppLanguage
+  unit: Unit
+  shareUrl: string | null
+}
+
+export function ResultCard({ result, lang, unit, shareUrl }: ResultCardProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const [copied, setCopied] = useState(false)
+  const [shared, setShared] = useState(false)
   const copyTimer = useRef<ReturnType<typeof setTimeout>>()
+  const shareTimer = useRef<ReturnType<typeof setTimeout>>()
 
-  useEffect(() => () => clearTimeout(copyTimer.current), [])
+  useEffect(
+    () => () => {
+      clearTimeout(copyTimer.current)
+      clearTimeout(shareTimer.current)
+    },
+    [],
+  )
   useEffect(() => {
     setCopied(false)
+    setShared(false)
   }, [result.key])
 
   const onCopy = async () => {
@@ -63,12 +81,38 @@ export function ResultCard({ result, lang }: { result: ResultDisplay; lang: AppL
       clearTimeout(copyTimer.current)
       copyTimer.current = setTimeout(() => setCopied(false), 1800)
     } catch {
-      // Clipboard unavailable (permissions/insecure context) — nothing to do.
+      // Clipboard unavailable — nothing to do.
+    }
+  }
+
+  const onShare = async () => {
+    if (!shareUrl) return
+    vibrate()
+    const payload = { title: 'Sooda', text: result.copyText, url: shareUrl }
+    try {
+      if (navigator.share && (!navigator.canShare || navigator.canShare(payload))) {
+        await navigator.share(payload)
+        return
+      }
+    } catch {
+      // user cancelled the native share sheet, or share failed — fall through to copy
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setShared(true)
+      clearTimeout(shareTimer.current)
+      shareTimer.current = setTimeout(() => setShared(false), 1800)
+    } catch {
+      // Clipboard unavailable — nothing to do.
     }
   }
 
   const lossClass = 'text-loss-600 dark:text-loss-400'
-  const fmt = (v: number) => formatNumber(v, lang)
+  // Percent values render plain numbers + sign; money values carry the active unit.
+  const fmtPrimary = (v: number) =>
+    result.primaryUnit ? formatNumber(v, lang) : formatAmountWithUnit(v, lang, unit)
+  const fmtSecondary = (v: number) =>
+    result.secondaryUnit ? formatNumber(v, lang) : formatAmountWithUnit(v, lang, unit)
 
   return (
     <motion.section
@@ -89,30 +133,43 @@ export function ResultCard({ result, lang }: { result: ResultDisplay; lang: AppL
         <div className="min-w-0">
           <p className="text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{result.primaryLabel}</p>
           <p
-            className={`mt-0.5 truncate text-[40px] font-bold leading-tight tracking-tight tabular-nums ${
+            className={`mt-0.5 text-[38px] font-bold leading-tight tracking-tight tabular-nums ${
               result.isLoss ? lossClass : 'text-[var(--accent-text)]'
             }`}
           >
-            <CountUp value={result.primaryValue} format={fmt} />
-            {result.primaryUnit ? <span className="ms-1 text-[26px] font-semibold">{result.primaryUnit}</span> : null}
+            <CountUp value={result.primaryValue} format={fmtPrimary} />
+            {result.primaryUnit ? <span className="ms-1 text-[25px] font-semibold">{result.primaryUnit}</span> : null}
           </p>
         </div>
-        <motion.button
-          type="button"
-          onClick={onCopy}
-          whileTap={reducedMotion ? undefined : { scale: 0.92 }}
-          aria-label={copied ? t('actions.copied') : t('actions.copy')}
-          className="glass glass-ring mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)]"
-        >
-          {copied ? <IconCheck className="text-[var(--accent-text)]" /> : <IconCopy />}
-        </motion.button>
+        <div className="mt-1 flex shrink-0 gap-2">
+          <motion.button
+            type="button"
+            onClick={() => void onShare()}
+            whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+            aria-label={shared ? t('actions.linkCopied') : t('actions.share')}
+            title={t('actions.share')}
+            className="glass glass-ring flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-secondary)]"
+          >
+            {shared ? <IconCheck className="text-[var(--accent-text)]" /> : <IconLink />}
+          </motion.button>
+          <motion.button
+            type="button"
+            onClick={() => void onCopy()}
+            whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+            aria-label={copied ? t('actions.copied') : t('actions.copy')}
+            title={t('actions.copy')}
+            className="glass glass-ring flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-secondary)]"
+          >
+            {copied ? <IconCheck className="text-[var(--accent-text)]" /> : <IconCopy />}
+          </motion.button>
+        </div>
       </div>
 
       <div className="relative mt-4 border-t border-[var(--separator)] pt-3.5">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-[15px] font-medium text-[var(--text-secondary)]">{result.secondaryLabel}</p>
-          <p className={`text-[22px] font-bold tabular-nums ${result.isLoss ? lossClass : 'text-[var(--text-primary)]'}`}>
-            <CountUp value={result.secondaryValue} format={fmt} />
+          <p className={`text-[21px] font-bold tabular-nums ${result.isLoss ? lossClass : 'text-[var(--text-primary)]'}`}>
+            <CountUp value={result.secondaryValue} format={fmtSecondary} />
             {result.secondaryUnit ? <span className="ms-0.5 text-[15px] font-semibold">{result.secondaryUnit}</span> : null}
           </p>
         </div>
