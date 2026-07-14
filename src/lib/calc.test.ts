@@ -4,6 +4,7 @@ import {
   MODE_RULES,
   calcDiscount,
   calcFromProfitPercent,
+  calcReverseDiscount,
   calcFromSellingPrice,
   round2,
   validateValue,
@@ -96,6 +97,28 @@ describe('validateValue', () => {
     expect(validateValue(0, { percentRange: true }, false)).toBeNull()
   })
   it('has rules for every mode', () => {
-    expect(Object.keys(MODE_RULES).sort()).toEqual(['discount', 'profit', 'sell'])
+    expect(Object.keys(MODE_RULES).sort()).toEqual(['discount', 'profit', 'rdiscount', 'sell'])
+  })
+})
+
+describe('calcReverseDiscount (mode 4)', () => {
+  it('recovers the original price from the final price', () => {
+    expect(calcReverseDiscount(170, 15)).toEqual({ originalPrice: 200, savedAmount: 30 })
+  })
+  it('handles 0% (no discount)', () => {
+    expect(calcReverseDiscount(59.9, 0)).toEqual({ originalPrice: 59.9, savedAmount: 0 })
+  })
+  it('round-trips with calcDiscount', () => {
+    const { finalPrice } = calcDiscount(89.99, 30)
+    const { originalPrice } = calcReverseDiscount(finalPrice, 30)
+    expect(Math.abs(originalPrice - 89.99)).toBeLessThan(0.02)
+  })
+  it('handles fractional discounts', () => {
+    expect(calcReverseDiscount(87.5, 12.5)).toEqual({ originalPrice: 100, savedAmount: 12.5 })
+  })
+  it('rejects 100% via validation rule', () => {
+    expect(validateValue(100, { percentBelow100: true }, false)).toBe('reverseDiscountRange')
+    expect(validateValue(99.99, { percentBelow100: true }, false)).toBeNull()
+    expect(validateValue(-1, { percentBelow100: true }, false)).toBe('reverseDiscountRange')
   })
 })

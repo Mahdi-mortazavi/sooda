@@ -60,7 +60,64 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <script>
+      // Pre-paint boot: apply stored theme, language direction, and first-run flag
+      // before anything renders — no dark-mode or RTL flash, instant first paint.
+      ;(function () {
+        try {
+          var t = localStorage.getItem('sooda:theme')
+          if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+            var metas = document.querySelectorAll('meta[name="theme-color"]')
+            for (var i = 0; i < metas.length; i++) metas[i].content = '#000000'
+          }
+          var l = localStorage.getItem('sooda:lang')
+          if (l === 'fa') {
+            document.documentElement.lang = 'fa'
+            document.documentElement.dir = 'rtl'
+          }
+          document.documentElement.dataset.boot = l === 'fa' || l === 'en' ? 'app' : 'welcome'
+        } catch (e) {
+          document.documentElement.dataset.boot = 'app'
+        }
+      })()
+    </script>
+    <div id="root">
+      <!-- Static shell: painted from HTML alone, replaced by React with identical pixels. -->
+      <div class="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
+        <header class="mb-6 flex items-start justify-between">
+          <div>
+            <h1 class="text-[34px] font-bold leading-tight tracking-tight">
+              <span class="boot-en">Sooda</span><span class="boot-fa">سودا</span>
+            </h1>
+            <p class="mt-0.5 text-[13px] font-medium text-[var(--text-secondary)]">
+              <span class="boot-en">Profit math, crystal clear.</span><span class="boot-fa">سود و قیمت، شفاف مثل شیشه</span>
+            </p>
+          </div>
+          <div class="mt-1 flex gap-2.5" aria-hidden="true">
+            <span class="glass glass-ring flex h-11 w-11 rounded-full"></span>
+            <span class="glass glass-ring flex h-11 w-11 rounded-full"></span>
+            <span class="glass glass-ring flex h-11 w-11 rounded-full"></span>
+          </div>
+        </header>
+        <footer class="mt-auto pt-10 text-center text-[12px] text-[var(--text-tertiary)]">
+          <p>
+            <span class="boot-en">Everything stays on your device. No server, no tracking, no analytics.</span
+            ><span class="boot-fa">همه‌چیز روی دستگاه شما می‌ماند؛ بدون سرور، بدون ردیابی، بدون آنالیتیکس.</span>
+          </p>
+        </footer>
+      </div>
+      <div id="boot-welcome" class="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--bg)]/60 p-6 backdrop-blur-2xl">
+        <div class="glass-strong glass-ring w-full max-w-[360px] rounded-[32px] p-7 text-center">
+          <h2 class="mt-1 text-[26px] font-bold tracking-tight">Sooda <span style="color: var(--accent-text)">·</span> سودا</h2>
+          <p class="mt-1 text-[14px] leading-relaxed text-[var(--text-secondary)]">Choose your language<br />زبان خود را انتخاب کنید</p>
+          <div class="mt-6 flex flex-col gap-3">
+            <button type="button" lang="fa" dir="rtl" onclick="localStorage.setItem('sooda:lang','fa')" class="w-full rounded-2xl bg-[var(--accent-fill-strong)] py-3.5 text-[17px] font-bold text-white dark:text-[hsl(168_90%_8%)]">فارسی</button>
+            <button type="button" lang="en" dir="ltr" onclick="localStorage.setItem('sooda:lang','en')" class="glass glass-ring w-full rounded-2xl py-3.5 text-[17px] font-bold text-[var(--text-primary)]">English</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

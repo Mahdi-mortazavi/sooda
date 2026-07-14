@@ -16,6 +16,7 @@ export function buildHistoryCsv(entries: HistoryEntry[], headers: string[], mode
         String(e.inputs[1]),
         String(e.results[0]),
         String(e.results[1]),
+        e.unit && e.unit !== 'none' ? e.unit : '',
       ]
         .map(escapeCell)
         .join(','),

@@ -146,3 +146,47 @@ export function IconGitHub(props: IconProps) {
     </svg>
   )
 }
+
+export function IconShareUp(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 14.5V3.5M8.5 6.5 12 3l3.5 3.5" />
+      <path d="M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1" />
+    </svg>
+  )
+}
+
+export function IconPlusSquare(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+      <path d="M12 8v8M8 12h8" />
+    </svg>
+  )
+}
+
+export function IconLink(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10.5 13.5a4 4 0 0 0 6 .4l2.6-2.6a4 4 0 1 0-5.7-5.7l-1.3 1.3" />
+      <path d="M13.5 10.5a4 4 0 0 0-6-.4l-2.6 2.6a4 4 0 1 0 5.7 5.7l1.3-1.3" />
+    </svg>
+  )
+}
+
+export function IconSwap(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7 4.5 3.5 8 7 11.5M3.5 8h13M17 12.5 20.5 16 17 19.5M20.5 16h-13" />
+    </svg>
+  )
+}
+
+export function IconTagReverse(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M20.5 12.6V5.2a1.7 1.7 0 0 0-1.7-1.7h-7.4a2 2 0 0 0-1.4.6L3.4 10.7a2 2 0 0 0 0 2.8l6.2 6.2a2 2 0 0 0 2.8 0l7.5-7.5a1.7 1.7 0 0 0 .6-1.6Z" />
+      <circle cx="15.7" cy="8.3" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}

@@ -7,13 +7,15 @@ import { buildHistoryCsv, downloadCsv } from '../lib/csv'
 import { clearHistory, db, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, normalizeDigits, type AppLanguage } from '../lib/numbers'
-import { IconClock, IconDownload, IconPercent, IconScale, IconSearch, IconTag, IconTrash } from './Icons'
+import { formatAmountWithUnit } from '../lib/units'
+import { IconClock, IconDownload, IconPercent, IconScale, IconSearch, IconTag, IconTagReverse, IconTrash } from './Icons'
 import { Sheet } from './Sheet'
 
 const MODE_ICONS: Record<Mode, typeof IconPercent> = {
   profit: IconPercent,
   sell: IconScale,
   discount: IconTag,
+  rdiscount: IconTagReverse,
 }
 
 interface HistorySheetProps {
@@ -34,6 +36,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
     profit: t('modes.profit'),
     sell: t('modes.sell'),
     discount: t('modes.discount'),
+    rdiscount: t('modes.rdiscount'),
   }
 
   const filtered = useMemo(() => {
@@ -53,7 +56,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
       return haystack.includes(q) || normalizeDigits(haystack).includes(q)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, query, lang, modeLabels.profit, modeLabels.sell, modeLabels.discount])
+  }, [entries, query, lang, modeLabels.profit, modeLabels.sell, modeLabels.discount, modeLabels.rdiscount])
 
   const dateFormatter = useMemo(
     () => new Intl.DateTimeFormat(lang === 'fa' ? 'fa-IR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }),
@@ -189,6 +192,7 @@ function HistoryItem({
   const { t } = useTranslation()
   const Icon = MODE_ICONS[entry.mode]
   const fmt = (v: number) => formatNumber(v, lang)
+  const fmtU = (v: number) => formatAmountWithUnit(v, lang, entry.unit ?? 'none')
   const pct = t('fields.percentUnit')
   // The summary line renders dir=ltr, so the arrow always points forward.
   const arrow = '→'
@@ -197,14 +201,17 @@ function HistoryItem({
   let isLoss = false
   switch (entry.mode) {
     case 'profit':
-      summary = `${fmt(entry.inputs[0])} + ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmt(entry.results[0])}`
+      summary = `${fmt(entry.inputs[0])} + ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
       break
     case 'sell':
       isLoss = entry.results[1] < 0
       summary = `${fmt(entry.inputs[0])} ${arrow} ${fmt(entry.inputs[1])} = ${fmt(entry.results[0])}${pct}`
       break
     case 'discount':
-      summary = `${fmt(entry.inputs[0])} − ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmt(entry.results[0])}`
+      summary = `${fmt(entry.inputs[0])} − ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
+      break
+    case 'rdiscount':
+      summary = `${fmt(entry.inputs[0])} @ ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
       break
   }
 

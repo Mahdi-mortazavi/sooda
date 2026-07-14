@@ -51,15 +51,21 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--force-prefers-reduced-motion=no'],
 })
 
-async function shot(name, { lang, theme, setup }) {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })
-  await page.addInitScript(
-    ([l, t]) => {
-      localStorage.setItem('sooda:lang', l)
-      localStorage.setItem('sooda:theme', t)
-    },
-    [lang, theme],
-  )
+async function shot(name, { lang, theme, setup, ua }) {
+  const page = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    ...(ua ? { userAgent: ua } : {}),
+  })
+  if (lang) {
+    await page.addInitScript(
+      ([l, t]) => {
+        localStorage.setItem('sooda:lang', l)
+        localStorage.setItem('sooda:theme', t)
+      },
+      [lang, theme],
+    )
+  }
   await page.goto(`http://localhost:${PORT}${BASE}`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(700)
   if (setup) await setup(page)
@@ -161,6 +167,35 @@ await shot('en-light-empty-history', {
   theme: 'light',
   setup: async (page) => {
     await page.getByRole('button', { name: /Open history/ }).click()
+    await page.waitForTimeout(900)
+  },
+})
+await shot('welcome-language', { lang: null, theme: null })
+await shot('fa-dark-rdiscount-toman', {
+  lang: 'fa',
+  theme: 'dark',
+  setup: async (page) => {
+    await page.evaluate(() => localStorage.setItem('sooda:unit', 'toman'))
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    await page.locator('[role="tablist"]').first().locator('[role="tab"]').nth(2).click()
+    await page.waitForTimeout(700)
+    await page.getByRole('tab', { name: /قیمت اصلی/ }).click()
+    await page.waitForTimeout(1000)
+    const inputs = page.locator('main input')
+    await inputs.nth(0).fill('۸۵۰۰۰')
+    await inputs.nth(1).fill('۱۵')
+    await page.getByRole('button', { name: /محاسبه/ }).first().click()
+    await page.waitForTimeout(1500)
+  },
+})
+await shot('install-guide-ios', {
+  lang: 'en',
+  theme: 'light',
+  ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1',
+  setup: async (page) => {
+    await page.waitForTimeout(2600)
+    await page.getByRole('button', { name: /How to install/ }).click()
     await page.waitForTimeout(900)
   },
 })

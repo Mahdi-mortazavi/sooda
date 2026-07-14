@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { Mode } from './calc'
+import type { Unit } from './units'
 
 export interface HistoryEntry {
   id: number
@@ -8,6 +9,8 @@ export interface HistoryEntry {
   inputs: [number, number]
   /** [primary result, secondary result] */
   results: [number, number]
+  /** Currency/unit preset active when the calculation was made (absent = none). */
+  unit?: Unit
   createdAt: number
 }
 

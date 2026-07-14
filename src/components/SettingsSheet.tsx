@@ -4,6 +4,7 @@ import type { ThemePreference } from '../hooks/useTheme'
 import { clearHistory } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import type { AppLanguage } from '../lib/numbers'
+import { UNITS, unitShortLabel, type Unit } from '../lib/units'
 import { IconGitHub, IconMoon, IconSparkle, IconSun, IconTrash } from './Icons'
 import { SegmentedControl } from './SegmentedControl'
 import { Sheet } from './Sheet'
@@ -17,6 +18,8 @@ interface SettingsSheetProps {
   onLanguageChange: (lang: AppLanguage) => void
   themePreference: ThemePreference
   onThemeChange: (pref: ThemePreference) => void
+  unit: Unit
+  onUnitChange: (unit: Unit) => void
 }
 
 export function SettingsSheet({
@@ -26,6 +29,8 @@ export function SettingsSheet({
   onLanguageChange,
   themePreference,
   onThemeChange,
+  unit,
+  onUnitChange,
 }: SettingsSheetProps) {
   const { t } = useTranslation()
   const [confirmingErase, setConfirmingErase] = useState(false)
@@ -84,6 +89,20 @@ export function SettingsSheet({
                 ),
               },
             ]}
+          />
+        </section>
+
+        <section aria-label={t('settings.unit')}>
+          <h3 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+            {t('settings.unit')}
+          </h3>
+          <SegmentedControl<Unit>
+            layoutId="settings-unit"
+            ariaLabel={t('settings.unit')}
+            value={unit}
+            onChange={onUnitChange}
+            size="sm"
+            options={UNITS.map((u) => ({ value: u, label: unitShortLabel(u, lang) }))}
           />
         </section>
 

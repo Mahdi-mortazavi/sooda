@@ -15,6 +15,13 @@ const page = await context.newPage()
 console.log(`→ loading ${url}`)
 await page.goto(url, { waitUntil: 'networkidle' })
 
+// First run shows the language picker — choose English to proceed.
+const langButton = page.getByRole('button', { name: 'English' })
+if (await langButton.count()) {
+  await langButton.last().click()
+  await page.waitForTimeout(600)
+}
+
 const swState = await page.evaluate(async () => {
   const reg = await navigator.serviceWorker.ready
   return { scope: reg.scope, active: !!reg.active }
