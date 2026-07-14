@@ -6,7 +6,7 @@ import type { AppLanguage } from '../lib/numbers'
 import { formatNumber } from '../lib/numbers'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { CountUp } from './CountUp'
-import { IconCheck, IconCopy, IconLink } from './Icons'
+import { IconBasketPlus, IconCheck, IconCopy, IconLink } from './Icons'
 
 export interface ResultDisplay {
   key: string
@@ -51,27 +51,40 @@ interface ResultCardProps {
   lang: AppLanguage
   unit: Unit
   shareUrl: string | null
+  onAddToBasket: () => Promise<void>
 }
 
-export function ResultCard({ result, lang, unit, shareUrl }: ResultCardProps) {
+export function ResultCard({ result, lang, unit, shareUrl, onAddToBasket }: ResultCardProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const [copied, setCopied] = useState(false)
   const [shared, setShared] = useState(false)
+  const [basketed, setBasketed] = useState(false)
   const copyTimer = useRef<ReturnType<typeof setTimeout>>()
   const shareTimer = useRef<ReturnType<typeof setTimeout>>()
+  const basketTimer = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(
     () => () => {
       clearTimeout(copyTimer.current)
       clearTimeout(shareTimer.current)
+      clearTimeout(basketTimer.current)
     },
     [],
   )
   useEffect(() => {
     setCopied(false)
     setShared(false)
+    setBasketed(false)
   }, [result.key])
+
+  const onBasket = async () => {
+    vibrate()
+    await onAddToBasket()
+    setBasketed(true)
+    clearTimeout(basketTimer.current)
+    basketTimer.current = setTimeout(() => setBasketed(false), 1800)
+  }
 
   const onCopy = async () => {
     vibrate()
@@ -142,6 +155,16 @@ export function ResultCard({ result, lang, unit, shareUrl }: ResultCardProps) {
           </p>
         </div>
         <div className="mt-1 flex shrink-0 gap-2">
+          <motion.button
+            type="button"
+            onClick={() => void onBasket()}
+            whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+            aria-label={basketed ? t('basket.added') : t('basket.add')}
+            title={t('basket.add')}
+            className="glass glass-ring flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-secondary)]"
+          >
+            {basketed ? <IconCheck className="text-[var(--accent-text)]" /> : <IconBasketPlus />}
+          </motion.button>
           <motion.button
             type="button"
             onClick={() => void onShare()}

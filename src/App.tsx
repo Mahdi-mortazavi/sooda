@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from 'react-i18next'
 import { AmbientBackground } from './components/AmbientBackground'
 import {
+  IconBasket,
   IconClock,
   IconGear,
   IconMoon,
@@ -17,6 +18,7 @@ import { NumberField } from './components/NumberField'
 import { ResultCard, type ResultDisplay } from './components/ResultCard'
 import { SegmentedControl } from './components/SegmentedControl'
 import { WelcomeLanguage } from './components/WelcomeLanguage'
+import { useBasketCount } from './hooks/useBasketCount'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useTheme } from './hooks/useTheme'
 import { LANG_STORAGE_KEY, setLanguage } from './i18n'
@@ -31,6 +33,7 @@ import {
   type ValidationError,
 } from './lib/calc'
 import { vibrate } from './lib/haptics'
+import { TELEGRAM_URL } from './lib/links'
 import { MODE_FIELD_KEYS, MODE_SECOND_IS_PERCENT, SEGMENT_MODES, segmentIndexOf } from './lib/modes'
 import { formatNumber, parseAmount, type AppLanguage } from './lib/numbers'
 import { buildShareQuery, parseShareQuery } from './lib/share'
@@ -39,9 +42,16 @@ import { formatAmountWithUnit, readStoredUnit, storeUnit, type Unit } from './li
 // Sheets (and Dexie behind them) load on demand to keep the initial bundle lean.
 const HistorySheet = lazy(() => import('./components/HistorySheet').then((m) => ({ default: m.HistorySheet })))
 const SettingsSheet = lazy(() => import('./components/SettingsSheet').then((m) => ({ default: m.SettingsSheet })))
+const BasketSheet = lazy(() => import('./components/BasketSheet').then((m) => ({ default: m.BasketSheet })))
 
 type FieldErrors = [ValidationError | null, ValidationError | null]
 type SegmentMode = (typeof SEGMENT_MODES)[number]
+
+interface ComputedSnapshot {
+  inputs: [number, number]
+  results: [number, number]
+  unit: Unit
+}
 
 function hasStoredLanguage(): boolean {
   try {
@@ -58,8 +68,10 @@ export default function App() {
   const { preference, isDark, setPreference, toggle } = useTheme()
   const reducedMotion = useReducedMotion()
   const install = useInstallPrompt()
+  const basketCount = useBasketCount()
 
-  // A shared calculation link (?m=…&a=…&b=…) pre-fills and auto-computes.
+  // A shared calculation link (?m=…&a=…&b=…) pre-fills and auto-computes;
+  // mode-only links (?m=…) from PWA shortcuts just open the right calculator.
   const shared = useMemo(() => parseShareQuery(window.location.search), [])
   const sharedRan = useRef(false)
 
@@ -74,7 +86,7 @@ export default function App() {
       discount: ['', ''],
       rdiscount: ['', ''],
     }
-    if (shared) empty[shared.mode] = [String(shared.a), String(shared.b)]
+    if (shared && shared.a !== null && shared.b !== null) empty[shared.mode] = [String(shared.a), String(shared.b)]
     return empty
   })
   const [errors, setErrors] = useState<Record<Mode, FieldErrors>>({
@@ -89,11 +101,20 @@ export default function App() {
     discount: null,
     rdiscount: null,
   })
+  // Raw numbers behind the latest result per mode, for add-to-basket.
+  const lastComputed = useRef<Record<Mode, ComputedSnapshot | null>>({
+    profit: null,
+    sell: null,
+    discount: null,
+    rdiscount: null,
+  })
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [basketOpen, setBasketOpen] = useState(false)
   // Once a sheet has been opened we keep it mounted so its exit animation can play.
   const [historyMounted, setHistoryMounted] = useState(false)
   const [settingsMounted, setSettingsMounted] = useState(false)
+  const [basketMounted, setBasketMounted] = useState(false)
 
   const rtl = lang === 'fa'
   const segmentIndex = segmentIndexOf(mode)
@@ -110,8 +131,10 @@ export default function App() {
     (next: SegmentMode) => {
       setPrevSegment(segmentIndexOf(mode))
       setMode(next)
+      // Keep the viewport anchored — prevents the page-jump feel on mobile.
+      if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
     },
-    [mode],
+    [mode, reducedMotion],
   )
 
   const onDiscountDirectionChange = useCallback((next: Mode) => {
@@ -206,6 +229,7 @@ export default function App() {
       }
 
       setResults((prev) => ({ ...prev, [mode]: display }))
+      lastComputed.current[mode] = { inputs: [a, b], results: stored, unit }
       if (saveToHistory) {
         const { addHistoryEntry } = await import('./lib/db')
         await addHistoryEntry({ mode, inputs: [a, b], results: stored, unit, createdAt: Date.now() })
@@ -214,11 +238,18 @@ export default function App() {
     [inputs, mode, t, fmtMoney, pct, lang, unit],
   )
 
+  const addToBasket = useCallback(async () => {
+    const snap = lastComputed.current[mode]
+    if (!snap) return
+    const { addBasketItem } = await import('./lib/db')
+    await addBasketItem({ mode, inputs: snap.inputs, results: snap.results, unit: snap.unit, createdAt: Date.now() })
+  }, [mode])
+
   // Auto-compute a shared link once (after the language is known), then clean the URL.
   useEffect(() => {
     if (!shared || sharedRan.current || needsLang) return
     sharedRan.current = true
-    void calculate(false)
+    if (shared.a !== null && shared.b !== null) void calculate(false)
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
   }, [shared, needsLang, calculate])
 
@@ -305,7 +336,7 @@ export default function App() {
           <h1 className="text-[34px] font-bold leading-tight tracking-tight">{t('app.name')}</h1>
           <p className="mt-0.5 text-[13px] font-medium text-[var(--text-secondary)]">{t('app.tagline')}</p>
         </div>
-        <div className="mt-1 flex gap-2.5">
+        <div className="mt-1 flex gap-1.5">
           <HeaderButton onClick={toggle} label={t('settings.toggleTheme')}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
@@ -319,6 +350,23 @@ export default function App() {
                 {isDark ? <IconMoon /> : <IconSun />}
               </motion.span>
             </AnimatePresence>
+          </HeaderButton>
+          <HeaderButton
+            onClick={() => {
+              setBasketMounted(true)
+              setBasketOpen(true)
+            }}
+            label={t('basket.open')}
+          >
+            <IconBasket />
+            {basketCount > 0 && (
+              <span
+                aria-hidden
+                className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-fill-strong)] px-1 text-[11px] font-bold leading-none text-white dark:text-[hsl(168_90%_8%)]"
+              >
+                {formatNumber(basketCount, lang, 0)}
+              </span>
+            )}
           </HeaderButton>
           <HeaderButton
             onClick={() => {
@@ -372,59 +420,91 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-          <motion.div
-            key={mode}
-            custom={direction}
-            initial={reducedMotion ? false : { opacity: 0, x: 36 * direction }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -36 * direction }}
-            transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-            className="flex flex-col gap-4"
-          >
-            <div className="glass glass-ring rounded-3xl">
-              <NumberField
-                id={`${mode}-a`}
-                label={t(fieldKeyA)}
-                value={inputs[mode][0]}
-                onChange={(v) => setInput(0, v)}
-                placeholder={t('fields.amountPlaceholder')}
-                error={fieldError(0)}
-              />
-              <div aria-hidden className="mx-5 border-t border-[var(--separator)]" />
-              <NumberField
-                id={`${mode}-b`}
-                label={t(fieldKeyB)}
-                value={inputs[mode][1]}
-                onChange={(v) => setInput(1, v)}
-                placeholder={secondIsPercent ? t('fields.percentPlaceholder') : t('fields.amountPlaceholder')}
-                unit={secondIsPercent ? pct : undefined}
-                error={fieldError(1)}
-              />
-            </div>
-
-            <motion.button
-              type="button"
-              onClick={() => void calculate()}
-              whileTap={reducedMotion ? undefined : { scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              className="w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white shadow-[0_10px_30px_-6px_hsl(165_80%_30%/0.55),inset_0_1px_0_rgba(255,255,255,0.25)] dark:text-[hsl(168_90%_8%)] dark:shadow-[0_10px_34px_-6px_hsl(165_85%_45%/0.4),inset_0_1px_0_rgba(255,255,255,0.4)]"
+        {/* overflow-x is clipped here so the slide transition can never widen the page (mobile shake fix) */}
+        <div className="relative -mx-5 overflow-x-clip px-5">
+          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+            <motion.div
+              key={mode}
+              custom={direction}
+              initial={reducedMotion ? false : { opacity: 0, x: 28 * direction }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -28 * direction }}
+              transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+              className="flex flex-col gap-4"
             >
-              {t('actions.calculate')}
-            </motion.button>
+              <div className="glass glass-ring rounded-3xl">
+                <NumberField
+                  id={`${mode}-a`}
+                  label={t(fieldKeyA)}
+                  value={inputs[mode][0]}
+                  onChange={(v) => setInput(0, v)}
+                  placeholder={t('fields.amountPlaceholder')}
+                  lang={lang}
+                  error={fieldError(0)}
+                />
+                <div aria-hidden className="mx-5 border-t border-[var(--separator)]" />
+                <NumberField
+                  id={`${mode}-b`}
+                  label={t(fieldKeyB)}
+                  value={inputs[mode][1]}
+                  onChange={(v) => setInput(1, v)}
+                  placeholder={secondIsPercent ? t('fields.percentPlaceholder') : t('fields.amountPlaceholder')}
+                  lang={lang}
+                  unit={secondIsPercent ? pct : undefined}
+                  error={fieldError(1)}
+                />
+              </div>
 
-            {result && <ResultCard result={result} lang={lang} unit={unit} shareUrl={shareUrl} />}
-          </motion.div>
-        </AnimatePresence>
+              <motion.button
+                type="button"
+                onClick={() => void calculate()}
+                whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className="w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white shadow-[0_10px_30px_-6px_hsl(165_80%_30%/0.55),inset_0_1px_0_rgba(255,255,255,0.25)] dark:text-[hsl(168_90%_8%)] dark:shadow-[0_10px_34px_-6px_hsl(165_85%_45%/0.4),inset_0_1px_0_rgba(255,255,255,0.4)]"
+              >
+                {t('actions.calculate')}
+              </motion.button>
+
+              {result && (
+                <ResultCard result={result} lang={lang} unit={unit} shareUrl={shareUrl} onAddToBasket={addToBasket} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </main>
 
-      <footer className="mt-auto pt-10 text-center text-[12px] text-[var(--text-tertiary)]">
-        <p>{t('settings.privacy')}</p>
+      <footer className="mt-auto pb-2 pt-10 text-center">
+        <p className="text-[12px] text-[var(--text-tertiary)]">{t('settings.privacy')}</p>
+        <div className="mt-4 flex items-center justify-center gap-2.5">
+          <img
+            src={`${import.meta.env.BASE_URL}avatar-mahdi.png`}
+            alt={t('dev.name')}
+            width={28}
+            height={28}
+            loading="lazy"
+            className="h-7 w-7 rounded-full object-cover ring-1 ring-[var(--separator)]"
+          />
+          <span className="text-[13px] font-medium text-[var(--text-secondary)]">
+            {t('dev.craftedBy')}{' '}
+            <a
+              href={TELEGRAM_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="font-bold text-[var(--accent-text)] underline-offset-2 hover:underline"
+            >
+              {t('dev.name')}
+            </a>
+          </span>
+        </div>
+        <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">{t('dev.blessing')}</p>
       </footer>
 
       <Suspense fallback={null}>
         {(historyOpen || historyMounted) && (
           <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} lang={lang} />
+        )}
+        {(basketOpen || basketMounted) && (
+          <BasketSheet open={basketOpen} onClose={() => setBasketOpen(false)} lang={lang} />
         )}
         {(settingsOpen || settingsMounted) && (
           <SettingsSheet
@@ -466,7 +546,7 @@ function HeaderButton({
       whileTap={reducedMotion ? undefined : { scale: 0.9 }}
       aria-label={label}
       title={label}
-      className="glass glass-ring flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-primary)]"
+      className="glass glass-ring relative flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-primary)]"
     >
       {children}
     </motion.button>

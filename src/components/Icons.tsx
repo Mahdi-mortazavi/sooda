@@ -190,3 +190,38 @@ export function IconTagReverse(props: IconProps) {
     </svg>
   )
 }
+
+export function IconBasket(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6.3 9.5 5 20.2a1.6 1.6 0 0 0 1.6 1.8h10.8a1.6 1.6 0 0 0 1.6-1.8L17.7 9.5Z" />
+      <path d="M8.5 12V6.5a3.5 3.5 0 0 1 7 0V12" />
+    </svg>
+  )
+}
+
+export function IconBasketPlus(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6.3 9.5 5 20.2a1.6 1.6 0 0 0 1.6 1.8h10.8a1.6 1.6 0 0 0 1.6-1.8L17.7 9.5Z" />
+      <path d="M8.5 12V6.5a3.5 3.5 0 0 1 7 0V12" />
+      <path d="M12 13.6v4M10 15.6h4" />
+    </svg>
+  )
+}
+
+export function IconSigma(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M17.5 7V4.5h-11L12 12l-5.5 7.5h11V17" />
+    </svg>
+  )
+}
+
+export function IconTelegram(props: IconProps) {
+  return (
+    <svg {...base(props)} fill="currentColor" stroke="none">
+      <path d="M21.6 3.3 2.9 10.6c-1 .4-1 1.8 0 2.2l4.6 1.7 1.8 5.6c.3.9 1.4 1.1 2 .4l2.6-2.7 4.8 3.6c.8.6 2 .2 2.2-.9l3-15.7c.2-1.1-.9-2-2.3-1.5ZM8.4 13.9l9.7-6.2c.4-.3.9.3.5.7l-7.7 7.3-.3 3-1.6-4.8-.6-.9Z" />
+    </svg>
+  )
+}

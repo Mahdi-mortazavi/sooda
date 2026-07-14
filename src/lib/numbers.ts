@@ -66,3 +66,48 @@ export function formatNumber(value: number, lang: AppLanguage, maxFractionDigits
 export function formatPercentValue(value: number, lang: AppLanguage): string {
   return formatNumber(value, lang, 2)
 }
+
+const FA_DIGIT_CHARS = '۰۱۲۳۴۵۶۷۸۹'
+
+function toPersianDigits(value: string): string {
+  return value.replace(/\d/g, (d) => FA_DIGIT_CHARS[Number(d)] as string)
+}
+
+/**
+ * Canonicalize live keyboard input: Persian/Arabic digits → ASCII, grouping stripped,
+ * decimal separators normalized. Returns null when the text can't be a partial number.
+ */
+export function sanitizeNumericInput(text: string): string | null {
+  const cleaned = normalizeDigits(text).replace(GROUPING_RE, '')
+  if (cleaned === '') return ''
+  if (!/^-?\d*\.?\d*$/.test(cleaned)) return null
+  return cleaned
+}
+
+/**
+ * Format a canonical raw input string (possibly partial, e.g. "1234." or "-")
+ * for live display: 3-digit grouping + localized digits and separators.
+ */
+export function formatLiveInput(raw: string, lang: AppLanguage): string {
+  if (raw === '') return ''
+  const negative = raw.startsWith('-')
+  const body = negative ? raw.slice(1) : raw
+  const dotIndex = body.indexOf('.')
+  const intPart = dotIndex === -1 ? body : body.slice(0, dotIndex)
+  const fracPart = dotIndex === -1 ? null : body.slice(dotIndex + 1)
+  const groupSep = lang === 'fa' ? '٬' : ','
+  const decimalSep = lang === 'fa' ? '٫' : '.'
+  let out = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, groupSep)
+  if (fracPart !== null) out += decimalSep + fracPart
+  if (negative) out = `-${out}`
+  return lang === 'fa' ? toPersianDigits(out) : out
+}
+
+/** Count numeral-ish characters (digits in any script, sign, decimal point) up to a position. */
+export function countSignificantChars(text: string): number {
+  let count = 0
+  for (const ch of normalizeDigits(text)) {
+    if (/[\d.-]/.test(ch)) count++
+  }
+  return count
+}

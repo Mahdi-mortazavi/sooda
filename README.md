@@ -1,66 +1,101 @@
 <div align="center">
 
-[🇮🇷 نسخهٔ فارسی](./README.fa.md)
+[🇮🇷 **نسخهٔ فارسی**](./README.fa.md)
 
-<img src="public/pwa-192x192.png" width="110" alt="Sooda app icon — a glass droplet with a percent mark" />
+<br />
 
-# Sooda · سودا
+<img src="public/pwa-192x192.png" width="120" alt="Sooda app icon — a liquid-glass droplet holding a percent mark" />
 
-**Profit math, crystal clear.**
+# Sooda
 
-A liquid-glass profit, price & discount calculator — offline-first, bilingual, private.
+### Profit math, crystal clear. 💎
+
+**The liquid-glass calculator for sellers & smart shoppers** — know your profit, price and discount in one tap.
+Works 100% offline. Speaks English & فارسی. Tracks nothing.
+
+<br />
+
+<a href="https://mahdi-mortazavi.github.io/sooda/"><img src="https://img.shields.io/badge/▶%20Open%20Sooda-mahdi--mortazavi.github.io%2Fsooda-0f7a5f?style=for-the-badge" alt="Open Sooda" /></a>
 
 [![Deploy](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-10b981.svg)](./LICENSE)
-[![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8.svg)](https://mahdi-mortazavi.github.io/sooda/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg)](./tsconfig.json)
+[![Lighthouse 100](https://img.shields.io/badge/Lighthouse-100%20·%20100%20·%20100%20·%20100-brightgreen)](https://mahdi-mortazavi.github.io/sooda/)
+[![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8)](https://mahdi-mortazavi.github.io/sooda/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10b981)](./LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)](./tsconfig.json)
 
-### ✨ [**Open the app →**](https://mahdi-mortazavi.github.io/sooda/) ✨
+<br />
 
-<img src="docs/screenshots/hero.png" width="720" alt="Sooda in light and dark mode" />
+<img src="docs/screenshots/hero.png" width="760" alt="Sooda in light and dark mode" />
 
 </div>
 
----
+<br />
 
-## ✨ Features
+## 🧮 What can it do?
 
-- **Three calculators, one tap apart**
-  - **Profit %** — purchase price + desired profit % → selling price & profit amount
-  - **Sell price** — purchase price + selling price → profit % & amount (losses shown clearly in red)
-  - **Discount** — original price + discount % → final price & amount saved
-- **📴 100% offline** — a full PWA: after the first visit everything works in airplane mode
-- **🔒 Privacy-first** — no server, no tracking, no analytics; your data never leaves the device
-- **🌐 Bilingual & RTL-native** — English and Persian (فارسی) with instant switching; layout, animations and icons mirror correctly
-- **۱۲۳ Persian digits** — type Persian/Arabic digits anywhere; numbers display with proper fa-IR / en-US formatting
-- **🔄 Reverse discount** — recover the original price from a discounted one
-- **💱 Currency presets** — Toman (تومان), Rial (ریال), $ or € on every result
-- **🔗 Shareable links** — send any calculation as a deep link; it opens pre-computed, even offline
-- **📲 Delightful install flow** — native install prompt + illustrated iOS Add-to-Home-Screen guide, and a language picker on first launch
-- **🕘 History** — every calculation saved locally (IndexedDB), searchable, exportable to CSV
-- **💎 Liquid-glass design** — backdrop blur & saturation, gradient hairline borders, refraction shine, ambient color blobs, spring physics everywhere
-- **🌗 Light / Dark / Auto** themes with animated toggle
-- **♿ Accessible** — Lighthouse 100 accessibility, `aria-live` results, full keyboard support, `prefers-reduced-motion` respected
-- **⚡ Instant** — static boot shell + inlined critical CSS: Lighthouse mobile Performance 99, first paint ≈ 0.8 s on throttled 4G
+Ask Sooda any of these — get the answer instantly, beautifully:
 
-## 📲 Install as an app
+| You know… | Sooda tells you… |
+| --- | --- |
+| 🏷 Purchase price + desired **profit %** | The **selling price** & profit amount |
+| ⚖️ Purchase price + **selling price** | Your **profit margin** (losses shown honestly, in red) |
+| 🛍 Original price + **discount %** | The **final price** & how much you save |
+| 🔄 Final price + **discount %** | The **original price** before the discount |
+| 🧺 Several deals at once | **Basket totals** — total cost, revenue, profit & overall margin |
+
+## ✨ Why you'll love it
+
+- **📴 Truly offline** — after the first visit it works in airplane mode, forever. No loading spinners, no "check your connection".
+- **🔒 Radically private** — no server, no account, no tracking, no analytics. Your numbers never leave your device.
+- **⚡ Instant** — first paint in ~0.8 s on throttled 4G; Lighthouse **100 / 100 / 100 / 100**.
+- **🌐 Persian-native** — full RTL, Persian digits everywhere (type ۲۵۰۰۰۰, see ۲۵۰٬۰۰۰), Jalali dates in history, instant EN ⇄ FA switching.
+- **💱 Your currency** — Toman, Rial, $ or € on every result, history entry and CSV export.
+- **🔢 Live 3-digit grouping** — numbers group as you type: `1250000` becomes `1,250,000`.
+- **🔗 Shareable results** — send any calculation as a link; it opens pre-computed, even offline.
+- **🧺 Basket mode** — add several calculations and see totals with the overall margin.
+- **💎 Liquid-glass design** — real backdrop blur, refraction shine, ambient color, spring physics. Feels like a native iOS app, not a website.
+- **📲 One-tap install** — native install prompt on Android/desktop, illustrated Add-to-Home-Screen guide on iPhone, home-screen shortcuts to each calculator.
+- **♿ Accessible** — screen-reader announcements, full keyboard support, `prefers-reduced-motion` respected.
+
+## 📱 Screenshots
+
+<div align="center">
+
+| Profit % | Sell price (loss) | Discount |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/en/profit-light.png" width="240" alt="Profit calculator, light theme" /> | <img src="docs/screenshots/en/sell-loss-light.png" width="240" alt="Sell price with a loss shown in red" /> | <img src="docs/screenshots/en/discount-dark.png" width="240" alt="Discount calculator, dark theme, USD" /> |
+
+| Reverse discount | Basket totals | History |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/en/rdiscount-light.png" width="240" alt="Reverse discount recovering the original price" /> | <img src="docs/screenshots/en/basket-dark.png" width="240" alt="Basket with summed totals and overall margin" /> | <img src="docs/screenshots/en/history-light.png" width="240" alt="Searchable calculation history" /> |
+
+| First launch | iOS install guide | Settings |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/welcome.png" width="240" alt="Bilingual language picker on first launch" /> | <img src="docs/screenshots/en/install-ios.png" width="240" alt="Step-by-step Add to Home Screen guide" /> | <img src="docs/screenshots/en/settings-dark.png" width="240" alt="Settings with language, theme and currency" /> |
+
+</div>
+
+## 📲 Install it like an app
 
 1. Open **[mahdi-mortazavi.github.io/sooda](https://mahdi-mortazavi.github.io/sooda/)**
-2. **iOS (Safari):** Share → *Add to Home Screen*
-3. **Android (Chrome):** menu ⋮ → *Add to Home screen* (or tap the install banner)
-4. **Desktop (Chrome/Edge):** click the install icon in the address bar
+2. **iPhone / iPad (Safari):** Share <kbd>⬆︎</kbd> → *Add to Home Screen* — the app itself shows you an illustrated guide
+3. **Android (Chrome):** tap the **Install** banner Sooda shows you, or menu ⋮ → *Add to Home screen*
+4. **Desktop (Chrome / Edge):** click the install icon in the address bar
 
-## 🛠 Tech stack
+After installing, long-press the icon for **shortcuts** straight into Profit %, Sell price or Discount. ✈️ Then try airplane mode — everything still works.
+
+## 🛠 Under the hood
 
 | Layer | Choice |
 | --- | --- |
 | Build | [Vite](https://vitejs.dev) + TypeScript (strict) |
-| UI | React 18, [Tailwind CSS v4](https://tailwindcss.com), [motion](https://motion.dev) |
-| PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app) (Workbox, full precache, auto-update) |
-| Storage | [Dexie](https://dexie.org) (IndexedDB) |
-| i18n | i18next + react-i18next |
-| Fonts | Self-hosted [Inter](https://rsms.me/inter/) & [Vazirmatn](https://rastikerdar.github.io/vazirmatn/) variable fonts |
-| Tests | Vitest (calculation engine & number normalization) |
+| UI | React 18 · [Tailwind CSS v4](https://tailwindcss.com) · [motion](https://motion.dev) spring physics |
+| PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app) — Workbox full precache, auto-update, shortcuts |
+| Storage | [Dexie](https://dexie.org) (IndexedDB) — history & basket |
+| i18n | i18next + react-i18next, RTL-first |
+| Fonts | Self-hosted [Inter](https://rsms.me/inter/) & [Vazirmatn](https://rastikerdar.github.io/vazirmatn/) variable fonts — zero CDN |
+| Speed | Static pre-paint shell, inlined critical CSS, code-split sheets, deferred SW |
+| Tests | Vitest — 71 unit tests over the calculation engine, digits, units, share links & basket totals |
 | CI/CD | GitHub Actions → GitHub Pages |
 
 ## 🧑‍💻 Local development
@@ -74,25 +109,33 @@ npm test           # run unit tests
 npm run verify     # typecheck + test + production build
 ```
 
-Other scripts: `npm run assets` (regenerate icons), `npm run screenshots` (Playwright shots into `docs/screenshots/`).
+Extras: `npm run assets` (regenerate icons), `npm run screenshots` (Playwright gallery into `docs/screenshots/`).
 
 ## 🗺 Roadmap
 
-- [x] Profit %, sell-price and discount calculators
-- [x] Bilingual EN/FA with RTL
-- [x] Offline-first PWA with full precache
-- [x] History with search, delete & CSV export
-- [x] Currency/unit presets (تومان, ریال, $, €)
-- [x] Reverse-discount mode (final price → original price)
-- [x] Shareable calculation links
-- [x] First-run language onboarding + polished PWA install flow
-- [ ] Multi-item basket mode (sum several calculations)
-- [ ] Home-screen widgets via PWA shortcuts
+- [x] Profit %, sell-price, discount & reverse-discount calculators
+- [x] Bilingual EN/FA with full RTL · Persian digits · live 3-digit grouping
+- [x] Offline-first PWA · install flow · home-screen shortcuts
+- [x] History + CSV · currency presets · shareable links · basket totals
+- [ ] Named basket items & basket export
+- [ ] Configurable rounding (e.g. round selling price to 1,000s)
 
-## 🤝 Contributing
+## 👋 Meet the maker
 
-Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md). Please also read the [Code of Conduct](./CODE_OF_CONDUCT.md).
+<div align="center">
 
-## 📄 License
+<img src="public/avatar-mahdi.png" width="96" style="border-radius: 50%" alt="Mahdi Mortazavi" />
 
-[MIT](./LICENSE) © Mahdi Mortazavi
+**Mahdi Mortazavi** · مهدی مرتضوی
+
+Creator of Sooda — always happy to hear your ideas, feedback and hellos.
+
+<a href="https://telegram.me/Mahdi_mortazavi1"><img src="https://img.shields.io/badge/Telegram-@Mahdi__mortazavi1-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Chat on Telegram" /></a>
+
+*May your work be blessed and your profit abundant 🌿✨*
+
+</div>
+
+## 🤝 Contributing & license
+
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) and the [Code of Conduct](./CODE_OF_CONDUCT.md). Licensed under [MIT](./LICENSE).

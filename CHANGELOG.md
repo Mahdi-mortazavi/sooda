@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-07-14
+
+### Added
+
+- **Basket mode (سبد محاسبه):** add any result to a basket and see live totals — total cost, revenue, profit and overall margin for sales; total original/pay/saved for purchases — grouped per currency unit, with a header badge counter.
+- **PWA home-screen shortcuts:** long-press the installed icon to jump straight into Profit %, Sell price or Discount (bilingual labels, branded icons).
+- **Live 3-digit grouping:** numbers group as you type (۱۲۵۰۰۰۰ → ۱٬۲۵۰٬۰۰۰ / 1250000 → 1,250,000) with correct caret handling and localized digits.
+- **Developer branding:** footer and Settings now feature Mahdi Mortazavi (مهدی مرتضوی) with photo, a Telegram contact button (@Mahdi_mortazavi1) and a blessing line — in both languages.
+
+### Fixed
+
+- **Mobile tab-switch shake:** mode-slide transitions are now clipped inside their container and `overflow-x: clip` is applied to the page, so switching calculators can no longer widen or shake the viewport; switching also gently re-anchors scroll.
+
+### Changed
+
+- Native-app PWA polish: manifest app name is now simply **"Sooda"**, `launch_handler: navigate-existing`, and rubber-band overscroll is contained in installed (standalone) mode.
+- Lighthouse mobile (real devtools throttling): **100 · 100 · 100 · 100** — FCP 0.9 s, LCP 0.9 s, TBT 70 ms.
+- READMEs redesigned in both languages: promotional layout, full bilingual screenshot galleries (English shots in the English README, Persian shots in the Persian one), quick-answer table, and a "meet the maker" section.
+
+[1.2.0]: https://github.com/Mahdi-mortazavi/sooda/releases/tag/v1.2.0
+
 ## [1.1.0] - 2026-07-14
 
 ### Added
