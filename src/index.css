@@ -83,6 +83,23 @@
 html,
 body {
   height: 100%;
+  /* Horizontal slide transitions must never widen the page (mobile shake fix). */
+  overflow-x: hidden;
+}
+
+@supports (overflow-x: clip) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+}
+
+/* Installed (standalone) PWA: behave like a native app — no rubber-band chaining. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: contain;
+  }
 }
 
 body {
@@ -95,7 +112,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
   transition: background-color 0.45s ease, color 0.45s ease;
 }
 

@@ -109,5 +109,36 @@
     "iosStep2": "Scroll and choose “Add to Home Screen”",
     "iosStep3": "Tap “Add” — done! Sooda now works offline like a native app.",
     "dismiss": "Dismiss install prompt"
+  },
+  "basket": {
+    "title": "Basket",
+    "open": "Open basket",
+    "add": "Add to basket",
+    "added": "Added to basket!",
+    "empty": {
+      "title": "Basket is empty",
+      "body": "Calculate something, then tap the basket button on the result to sum several items together."
+    },
+    "items": "items",
+    "deleteItem": "Remove from basket",
+    "totals": "Totals",
+    "totalCost": "Total cost",
+    "totalRevenue": "Total revenue",
+    "totalProfit": "Total profit",
+    "totalLoss": "Total loss",
+    "overallMargin": "Overall margin",
+    "totalOriginal": "Total original price",
+    "totalPay": "You pay in total",
+    "totalSaved": "Total saved",
+    "sellerSection": "Sales",
+    "shopperSection": "Purchases"
+  },
+  "dev": {
+    "craftedBy": "Crafted with 💚 by",
+    "name": "Mahdi Mortazavi",
+    "role": "Creator of Sooda",
+    "contact": "Contact & suggestions",
+    "telegram": "Telegram",
+    "blessing": "May your work be blessed and your profit abundant 🌿✨"
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatNumber, normalizeDigits, parseAmount } from './numbers'
+import { formatLiveInput, formatNumber, normalizeDigits, parseAmount, sanitizeNumericInput } from './numbers'
 
 describe('normalizeDigits', () => {
   it('converts Persian digits to ASCII', () => {
@@ -63,5 +63,46 @@ describe('formatNumber', () => {
   it('handles non-finite values gracefully', () => {
     expect(formatNumber(Number.NaN, 'en')).toBe('—')
     expect(formatNumber(Number.POSITIVE_INFINITY, 'en')).toBe('—')
+  })
+})
+
+describe('sanitizeNumericInput', () => {
+  it('canonicalizes Persian typing with grouping', () => {
+    expect(sanitizeNumericInput('۲۵۰٬۰۰۰')).toBe('250000')
+    expect(sanitizeNumericInput('1,250.75')).toBe('1250.75')
+    expect(sanitizeNumericInput('۱۲٫۵')).toBe('12.5')
+  })
+  it('keeps partial states', () => {
+    expect(sanitizeNumericInput('')).toBe('')
+    expect(sanitizeNumericInput('12.')).toBe('12.')
+    expect(sanitizeNumericInput('-')).toBe('-')
+    expect(sanitizeNumericInput('.')).toBe('.')
+  })
+  it('rejects letters and double dots', () => {
+    expect(sanitizeNumericInput('12a')).toBeNull()
+    expect(sanitizeNumericInput('1.2.3')).toBeNull()
+  })
+})
+
+describe('formatLiveInput', () => {
+  it('groups thousands live in English', () => {
+    expect(formatLiveInput('1234567', 'en')).toBe('1,234,567')
+    expect(formatLiveInput('1234.5', 'en')).toBe('1,234.5')
+    expect(formatLiveInput('1234.', 'en')).toBe('1,234.')
+  })
+  it('groups with Persian digits and separators in Farsi', () => {
+    expect(formatLiveInput('250000', 'fa')).toBe('۲۵۰٬۰۰۰')
+    expect(formatLiveInput('12.5', 'fa')).toBe('۱۲٫۵')
+    expect(formatLiveInput('12.', 'fa')).toBe('۱۲٫')
+  })
+  it('handles tiny and partial values', () => {
+    expect(formatLiveInput('', 'en')).toBe('')
+    expect(formatLiveInput('5', 'en')).toBe('5')
+    expect(formatLiveInput('.5', 'en')).toBe('.5')
+    expect(formatLiveInput('-1234', 'en')).toBe('-1,234')
+    expect(formatLiveInput('-', 'en')).toBe('-')
+  })
+  it('round-trips with sanitizeNumericInput', () => {
+    expect(sanitizeNumericInput(formatLiveInput('1234567.89', 'fa'))).toBe('1234567.89')
   })
 })

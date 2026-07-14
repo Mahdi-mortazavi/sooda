@@ -59,7 +59,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'og.png'],
       manifest: {
         id: BASE,
-        name: 'Sooda — Profit, Price & Discount Calculator',
+        name: 'Sooda',
         short_name: 'Sooda',
         description:
           'Profit math, crystal clear. Offline-first, bilingual (English/Persian) profit, price & discount calculator.',
@@ -72,11 +72,32 @@ export default defineConfig({
         lang: 'en',
         dir: 'ltr',
         categories: ['finance', 'productivity', 'utilities'],
+        launch_handler: { client_mode: 'navigate-existing' },
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: 'pwa-maskable-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: 'pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        shortcuts: [
+          {
+            name: 'Profit % · درصد سود',
+            short_name: 'Profit %',
+            url: `${BASE}?m=profit`,
+            icons: [{ src: 'shortcut-profit.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Sell price · قیمت فروش',
+            short_name: 'Sell price',
+            url: `${BASE}?m=sell`,
+            icons: [{ src: 'shortcut-sell.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Discount · تخفیف',
+            short_name: 'Discount',
+            url: `${BASE}?m=discount`,
+            icons: [{ src: 'shortcut-discount.png', sizes: '192x192', type: 'image/png' }],
+          },
         ],
       },
       workbox: {

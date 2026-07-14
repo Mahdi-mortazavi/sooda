@@ -4,8 +4,9 @@ import type { ThemePreference } from '../hooks/useTheme'
 import { clearHistory } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import type { AppLanguage } from '../lib/numbers'
+import { GITHUB_URL, TELEGRAM_URL } from '../lib/links'
 import { UNITS, unitShortLabel, type Unit } from '../lib/units'
-import { IconGitHub, IconMoon, IconSparkle, IconSun, IconTrash } from './Icons'
+import { IconGitHub, IconMoon, IconSparkle, IconSun, IconTelegram, IconTrash } from './Icons'
 import { SegmentedControl } from './SegmentedControl'
 import { Sheet } from './Sheet'
 
@@ -149,14 +150,40 @@ export function SettingsSheet({
           )}
         </section>
 
-        <section aria-label={t('settings.about')} className="glass glass-ring rounded-2xl px-4 py-3.5">
-          <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">{t('settings.privacy')}</p>
+        <section aria-label={t('settings.about')} className="glass glass-ring rounded-2xl p-4">
+          <div className="flex items-center gap-3.5">
+            <img
+              src={`${import.meta.env.BASE_URL}avatar-mahdi.png`}
+              alt={t('dev.name')}
+              width={52}
+              height={52}
+              loading="lazy"
+              className="h-13 w-13 rounded-[16px] object-cover ring-1 ring-[var(--separator)]"
+            />
+            <div className="min-w-0">
+              <p className="text-[16px] font-bold leading-tight">{t('dev.name')}</p>
+              <p className="mt-0.5 text-[13px] text-[var(--text-secondary)]">{t('dev.role')}</p>
+            </div>
+          </div>
+          <a
+            href={TELEGRAM_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-500/14 py-2.5 text-[14px] font-bold text-[var(--accent-text)] transition-colors hover:bg-accent-500/22"
+          >
+            <IconTelegram size={17} />
+            {t('dev.contact')}
+          </a>
+          <p className="mt-3 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('dev.blessing')}</p>
+          <p className="mt-3 border-t border-[var(--separator)] pt-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            {t('settings.privacy')}
+          </p>
           <div className="mt-3 flex items-center justify-between border-t border-[var(--separator)] pt-3">
             <span className="text-[13px] text-[var(--text-tertiary)]">
               {t('settings.version')} {__APP_VERSION__}
             </span>
             <a
-              href="https://github.com/Mahdi-mortazavi/sooda"
+              href={GITHUB_URL}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent-text)]"
