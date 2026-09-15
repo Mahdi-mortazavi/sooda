@@ -54,7 +54,7 @@ Ask Sooda any of these — get the answer instantly, beautifully:
 - **💳 Instalments the way the market talks** — the monthly payment, the total, and the equivalent *flat monthly rate* — plus a plain answer to "is the deal I already offer profitable?" and a customer-facing payment schedule with Jalali dates.
 - **📦 My products** — save what you sell; Sooda ages each purchase price against inflation and flags what has quietly turned unprofitable. Reprice in bulk with a preview and a 10-second undo.
 - **📴 Truly offline** — after the first visit it works in airplane mode, forever. No loading spinners, no "check your connection".
-- **🔒 Radically private** — no server, no account, no tracking, no analytics. Your numbers never leave your device.
+- **🔒 Radically private** — no server, no account, no tracking, no analytics. Your numbers never leave your device; the only thing Sooda downloads is a public rates file from its own site.
 - **⚡ Instant** — first paint in ~0.8 s on throttled 4G; Lighthouse **100 / 100 / 100 / 100**. Three whole features arrived in v1.3 for **+913 bytes** of first-paint payload.
 - **🌐 Persian-native** — full RTL, Persian digits everywhere (type ۲۵۰۰۰۰, see ۲۵۰٬۰۰۰), Jalali dates in history, instant EN ⇄ FA switching.
 - **💱 Your currency** — Toman, Rial, $ or € on every result, history entry and CSV export.
@@ -67,6 +67,30 @@ Ask Sooda any of these — get the answer instantly, beautifully:
 - **💎 Liquid-glass design** — real backdrop blur, refraction shine, ambient color, spring physics. Feels like a native iOS app, not a website.
 - **📲 One-tap install** — native install prompt on Android/desktop, illustrated Add-to-Home-Screen guide on iPhone, home-screen shortcuts to each calculator.
 - **♿ Accessible** — screen-reader announcements, full keyboard support, `prefers-reduced-motion` respected.
+
+## 📈 Smart price growth
+
+Sooda never asks you for "the inflation rate" — nobody knows it, and it isn't one number anyway.
+Phones track the dollar, clothing tracks domestic costs, food follows its own curve. So Sooda
+estimates a **monthly price-growth rate for each product** and shows its working.
+
+Three signals, blended per product:
+
+1. **Your own price history.** Every purchase price you record is a data point. Sooda fits a
+   line through them, weighting recent ones more heavily. This signal is the strongest and the
+   most private — it never leaves your phone.
+2. **Category inflation.** Your product's category is mapped to the matching official CPI
+   division, so a clothing shop is not priced off the food index.
+3. **Dollar sensitivity.** Mark a product Iranian, part-imported or fully dollar-linked, and
+   Sooda weighs a free-market USD rate accordingly.
+
+The more prices you record, the more the estimate leans on *your* shop rather than the national
+average — and the card tells you exactly how much of the number came from where. Every figure is
+labelled as an estimate, and you can always set a rate by hand.
+
+**Privacy is unchanged.** Sooda downloads one public rates file from its own site. Nothing about
+your products, prices or shop is ever uploaded — there is no server to upload it to. Automatic
+rate updates can be turned off in Settings, and the app then uses the copy bundled with it.
 
 ## 📱 Screenshots
 
