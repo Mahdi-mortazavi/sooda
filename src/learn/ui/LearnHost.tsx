@@ -16,7 +16,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from 'react-i18next'
 import '../../i18n/sheets'
 import { formatNumber, type AppLanguage } from '../../lib/numbers'
-import { emitTour, subscribeTour } from '../coach/events'
+import { emitTour } from '../coach/events'
 import type { SandboxState, TourCtx, TourDestination } from '../coach/types'
 import type { PracticeSession } from '../sandbox'
 import { Challenges } from './Challenges'
@@ -39,6 +39,9 @@ import type { Challenge } from '../lessons/types'
 import type { LearnRequest } from './entry'
 
 const Coach = lazy(() => import('../coach/Coach').then((m) => ({ default: m.Coach })))
+/* Only reached by the second miss on a challenge that names a target, so it is not worth putting
+ * in the chunk the centre loads. */
+const Spotlight = lazy(() => import('../coach/Spotlight').then((m) => ({ default: m.Spotlight })))
 
 /** Practice must never ask the browser for persistent storage: the prompt would land mid-lesson. */
 const NO_PERSIST = async (): Promise<boolean> => false
@@ -56,8 +59,8 @@ interface ActiveRun {
   summaryKey: string
   /** Its figures assume the pinned 3%/month, so the note has to be on screen while it runs. */
   showsRate: boolean
-  /** …but not from the first step. See the banner. */
-  rateNoteLater: boolean
+  /** …but not from the first step: the step id it is held back until. See the banner. */
+  rateNoteFromStep: string | null
   session: PracticeSession
   startIndex: number
 }
@@ -118,6 +121,9 @@ export function LearnHost({
   const [notice, setNotice] = useState<string | null>(null)
   /* The lesson whose questions are being asked. Practice has already been torn down by then. */
   const [quiz, setQuiz] = useState<ActiveRun | null>(null)
+  /* «کمی گیر کرده‌اید؟» — the target a challenge is pointing the learner back at. The question
+   * stays underneath and comes back the moment they dismiss it. */
+  const [pointingAt, setPointingAt] = useState<string | null>(null)
   /* Opened by what was asked for, then owned here: a tip arriving later must not open the centre,
    * and closing the centre must not depend on App clearing the request first. */
   const [centerOpen, setCenterOpen] = useState(request !== null && request.kind !== 'onboarding')
@@ -167,8 +173,8 @@ export function LearnHost({
       summaryKey: string
       /** The pinned-rate note belongs on screen for any run whose figures depend on it. */
       showsRate: boolean
-      /** Hold that note back until there is a figure for it to qualify. See the banner below. */
-      rateNoteLater?: boolean
+      /** Hold that note back until this step is on screen. See the banner below. */
+      rateNoteFromStep?: string
       suggestion?: { field: string; value: string; label: string }
     }) => {
       setNotice(null)
@@ -203,7 +209,7 @@ export function LearnHost({
         quiz: split.quiz,
         summaryKey: run.summaryKey,
         showsRate: run.showsRate,
-        rateNoteLater: run.rateNoteLater === true,
+        rateNoteFromStep: run.rateNoteFromStep ?? null,
         session,
         startIndex: stored !== null && stored.status === 'progress' ? stored.step : 0,
       })
@@ -260,7 +266,7 @@ export function LearnHost({
           replace: { value: formatNumber(Number(mission.suggestion.value), lang, 0) },
         }),
       },
-      ...(mission.rateNoteFromStep === undefined ? {} : { rateNoteLater: true }),
+      ...(mission.rateNoteFromStep === undefined ? {} : { rateNoteFromStep: mission.rateNoteFromStep }),
     })
   }, [lang, startRun, t])
 
@@ -334,20 +340,26 @@ export function LearnHost({
    * cannot — thirty seconds long, and the first thing anyone reads — which is why it sets
    * `rateNoteFromStep`.
    *
-   * The coach owns the step index and does not report it, and re-deriving it here would mean
-   * running every `expect` a second time against a snapshot the coach has already refreshed —
-   * two judges, eventually disagreeing. So the trigger is the event the named step always
-   * follows: a result on screen. For the mission, `rateNoteFromStep` is the lens step, which is
-   * the step after «حساب کن».
+   * The coach reports the step on screen through `onStep`, so this is the declared step and not
+   * an event that happens to land near it. It was approximated from the first `result:shown`
+   * until the coach gained that callback; the approximation showed the note one step early,
+   * which on a thirty-second screen is most of the difference the field exists to make.
+   *
+   * Latched rather than tracked: once the note has been earned it stays, because a banner that
+   * qualifies a figure must not vanish while the figure is still on screen.
    */
-  const [sawResult, setSawResult] = useState(false)
+  const [rateNoteDue, setRateNoteDue] = useState(false)
   useEffect(() => {
-    if (active === null || !active.rateNoteLater) return
-    setSawResult(false)
-    return subscribeTour((event) => {
-      if (event.type === 'result:shown') setSawResult(true)
-    })
+    setRateNoteDue(false)
   }, [active])
+
+  const noteStep = active?.rateNoteFromStep ?? null
+  const handleStep = useCallback(
+    (id: string) => {
+      if (noteStep !== null && id === noteStep) setRateNoteDue(true)
+    },
+    [noteStep],
+  )
 
   /* ---- the coach's context ---- */
 
@@ -464,7 +476,7 @@ export function LearnHost({
           <p className="text-[12px] font-semibold leading-snug text-[var(--text-secondary)]">
             {t('learn.practiceNotice')}
           </p>
-          {active.showsRate && (!active.rateNoteLater || sawResult) ? (
+          {active.showsRate && (active.rateNoteFromStep === null || rateNoteDue) ? (
             <p className="mt-0.5 text-[12px] leading-snug text-[var(--text-tertiary)]">{t('learn.practiceRate')}</p>
           ) : null}
         </div>
@@ -478,17 +490,19 @@ export function LearnHost({
             initialIndex={active.startIndex}
             onComplete={() => finishLesson(active, { finished: true, atStep: 0 })}
             onExit={(atIndex) => finishLesson(active, { finished: false, atStep: atIndex })}
+            onStep={handleStep}
           />
         </Suspense>
       ) : null}
 
       {quiz !== null ? (
         <Challenges
-          open
           lang={lang}
           title={quiz.id === null ? t('learn.missionTitle', { defaultValue: 'Mission 1' }) : t(`learn.lessons.${quiz.id}.title`)}
+          open={pointingAt === null}
           challenges={quiz.quiz}
           summaryKey={quiz.summaryKey}
+          onShowMe={setPointingAt}
           onPassed={() => {
             setQuiz(null)
             settle(quiz, true)
@@ -498,6 +512,23 @@ export function LearnHost({
             settle(quiz, false)
           }}
         />
+      ) : null}
+
+      {pointingAt !== null ? (
+        <Suspense fallback={null}>
+          {/* A ring and a sentence, and nothing else. Practice is over by the time a challenge is
+            * asked, so a demo that drove these controls would be typing into the shopkeeper's own
+            * calculator in the middle of a question. It points; it does not act. */}
+          <Spotlight
+            target={pointingAt}
+            stepId={`challenge-${pointingAt}`}
+            text={t('learn.challenge.hintMore')}
+            announcement={t('learn.challenge.hintMore')}
+            counter={t('learn.challenge.hint')}
+            skipLabel={t('actions.close')}
+            onSkip={() => setPointingAt(null)}
+          />
+        </Suspense>
       ) : null}
 
       <AnimatePresence>

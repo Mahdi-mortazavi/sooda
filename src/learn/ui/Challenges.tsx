@@ -242,7 +242,7 @@ export function Challenges({
         onClick={onSkip}
         className="mt-3 w-full rounded-full py-3 text-[14px] font-semibold text-[var(--text-secondary)]"
       >
-        {t('learn.skip', { defaultValue: 'Skip' })}
+        {t('learn.skip')}
       </button>
     </LearnSurface>
   )

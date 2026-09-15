@@ -20,6 +20,16 @@ export interface CoachProps {
   onExit: (atIndex: number) => void
   /** Where to resume. Out-of-range values are treated as the start. */
   initialIndex?: number
+  /**
+   * The step now on screen, announced whenever it changes.
+   *
+   * The coach owns the index, and a host that needs to know which step is showing would
+   * otherwise have to re-derive it by running every `expect` a second time — a second judge,
+   * disagreeing with the first the moment one of them is wrong. Mission 1 needs it: its
+   * pinned-rate note is declared to appear from a named step, and without this the host can
+   * only approximate that from whatever event happens to arrive near it.
+   */
+  onStep?: (id: string, index: number) => void
 }
 
 /** The brief's number: eight seconds of nothing happening and the step offers a hand. */
@@ -46,7 +56,7 @@ interface DemoFrame {
  * exercise — D3 in the plan rules those out, and a tour that advances on its own is a
  * slideshow. What timers there are only decide when to *offer help*.
  */
-export function Coach({ steps, ctx, onComplete, onExit, initialIndex = 0 }: CoachProps) {
+export function Coach({ steps, ctx, onComplete, onExit, initialIndex = 0, onStep }: CoachProps) {
   const { t, i18n } = useTranslation()
   const lang: AppLanguage = i18n.language.startsWith('fa') ? 'fa' : 'en'
   const reducedMotion = useReducedMotion()
@@ -60,6 +70,7 @@ export function Coach({ steps, ctx, onComplete, onExit, initialIndex = 0 }: Coac
 
   const step = steps[index]
   const stepsRef = useLatest(steps)
+  const onStepRef = useLatest(onStep)
   const ctxRef = useLatest(ctx)
   const indexRef = useLatest(index)
   const rtlRef = useLatest(rtl)
@@ -165,6 +176,12 @@ export function Coach({ steps, ctx, onComplete, onExit, initialIndex = 0 }: Coac
   }, [step, ctxRef])
 
   useEffect(() => cancelDemo, [index, cancelDemo])
+
+  /* Announce the step on screen. Keyed on the id rather than the index so a host that resumes
+   * mid-lesson hears about the step it actually resumed on, not about an index it cannot map. */
+  useEffect(() => {
+    if (step !== undefined) onStepRef.current?.(step.id, index)
+  }, [step, index, onStepRef])
 
   const advancedFor = useRef(-1)
   const advance = useCallback(() => {

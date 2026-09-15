@@ -232,6 +232,7 @@ export default function App() {
   }, [setTab])
 
   const closeLearn = useCallback(() => setLearnRequest(null), [])
+  const clearRequestedMode = useCallback(() => setRequestedMode(null), [])
 
   /* Leaving practice puts the real shop back, and with it the real badge: the check-in was reading
    * the demo store a moment ago, so the count on the app icon has to be recomputed from scratch. */
@@ -339,7 +340,7 @@ export default function App() {
           ready={!needsLang}
           practiceDb={practice?.db ?? null}
           requestedMode={requestedMode}
-          onModeApplied={() => setRequestedMode(null)}
+          onModeApplied={clearRequestedMode}
           /* A lesson pins both, so its figures cannot move when a maintainer updates a CPI
            * number or the shopkeeper has rounding switched off. Neither is ever stored. */
           monthlyInflationPercent={practice?.pinned?.monthlyInflationPercent ?? monthlyInflationPercent}

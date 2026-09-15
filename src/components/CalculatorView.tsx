@@ -17,7 +17,7 @@ import {
   visibleFields,
 } from '../lib/modes/registry'
 import type { ModeId, ModeState, ResultDisplay, ScheduleInfo, SegmentId, Translate } from '../lib/modes/types'
-import type { SoodaDb } from '../lib/db'
+import type { BasketItem, HistoryEntry, SoodaDb } from '../lib/db'
 import type { RatesFile } from '../lib/rates/schema'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import type { RoundingStep } from '../lib/rounding'
@@ -268,7 +268,7 @@ export function CalculatorView({
       const row = { mode, inputs: snapshot.inputs, results: snapshot.results, unit, createdAt: now }
       if (practiceDb !== null) {
         // The demo store's own history: lesson 7 opens it and exports what the learner just did.
-        await practiceDb.history.add(row as never)
+        await practiceDb.history.add(row as HistoryEntry)
         return
       }
       const { addHistoryEntry } = await import('../lib/db')
@@ -285,7 +285,7 @@ export function CalculatorView({
     if (practiceDb !== null) {
       /* Straight to the table, not through `addBasketItem`: that helper re-publishes the header
        * badge from the real basket, and a lesson must not move the number on the app icon. */
-      await practiceDb.basket.add(row as never)
+      await practiceDb.basket.add(row as BasketItem)
       return
     }
     const { addBasketItem } = await import('../lib/db')
