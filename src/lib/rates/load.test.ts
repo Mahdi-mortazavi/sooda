@@ -179,10 +179,11 @@ describe('refreshRates', () => {
     await refreshRates(controller.signal)
     expect(calls[0]?.init).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer' })
     expect(Object.keys(calls[0]?.init ?? {}).sort()).toEqual(['credentials', 'referrerPolicy', 'signal'])
-    // The caller's signal is combined with an internal deadline, so it is no longer the same object.
-    expect(calls[0]?.init?.signal).toBeInstanceOf(AbortSignal)
+    const sent = (calls[0]?.init ?? {}) as { signal?: AbortSignal }
+    expect(sent.signal).toBeInstanceOf(AbortSignal)
+    // The caller's signal is combined with an internal deadline, so abort must still propagate.
     controller.abort()
-    expect(calls[0]?.init?.signal?.aborted).toBe(true)
+    expect(sent.signal?.aborted).toBe(true)
   })
 
   it('keeps the cached value on a 404', async () => {

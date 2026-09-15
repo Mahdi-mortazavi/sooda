@@ -102,7 +102,9 @@ export function ProductPicker({ open, onClose, products, selectedId, lang, unit,
 
         {matches.length === 0 && (
           <p className="px-1 py-6 text-center text-[13.5px] font-medium text-[var(--text-secondary)]">
-            {t('products.empty.title')}
+            {/* Search only appears above seven products, so an empty list here always means the
+              * query matched nothing — never that the shop has saved nothing. */}
+            {t('picker.noMatch')}
           </p>
         )}
       </div>

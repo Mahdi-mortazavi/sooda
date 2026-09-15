@@ -44,6 +44,9 @@ export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProd
   const [pickerOpen, setPickerOpen] = useState(false)
   // Cleared on a successful write so the prompt does not reappear for a reading already taken.
   const [recordedFor, setRecordedFor] = useState<string | null>(null)
+  /* The prompt simply vanished on success, leaving a sighted user unsure it had saved and a
+   * screen-reader user with nothing at all. This is the acknowledgement. */
+  const [confirmed, setConfirmed] = useState(false)
 
   const all = products ?? []
   const selected = all.find((p) => p.id === selectedId) ?? null
@@ -54,6 +57,9 @@ export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProd
       setSelectedId(null)
     }
   }, [products, selectedId])
+
+  // A different product, or a different cost, is a different question — so the receipt clears.
+  useEffect(() => setConfirmed(false), [selectedId, cost])
 
   const changed =
     selected !== null &&
@@ -72,6 +78,7 @@ export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProd
       source: 'calc',
     })
     setRecordedFor(`${selected.id}:${cost}`)
+    setConfirmed(true)
     onChanged()
   }
 
@@ -96,9 +103,15 @@ export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProd
           {t('picker.label')}
         </span>
         <span className="min-w-0 max-w-[55%] truncate text-[13.5px] font-semibold">
-          {selected ? selected.name : t('picker.none')}
+          {/* Not picker.none: in the list that row means "don't link it", here the slot means
+            * "nothing chosen yet", and one string cannot honestly do both. */}
+          {selected ? selected.name : t('picker.unset')}
         </span>
       </motion.button>
+
+      <p role="status" className="mt-2 px-1 text-[13px] font-semibold text-[var(--accent-text)]">
+        {confirmed ? t('recordCost.done') : ''}
+      </p>
 
       <RecordCostPrompt
         open={changed && recordedFor !== `${selected?.id}:${cost}`}

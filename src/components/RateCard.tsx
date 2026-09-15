@@ -164,8 +164,13 @@ export function RateCard({
               {rate.used.personal && personalShare >= MIN_SHARE && (
                 <li>
                   {t('rate.whyPersonal', {
-                    percent: `${formatNumber(personalShare, lang, 0)}${pct}`,
+                    // `count` picks the plural form; `n` is what is actually displayed, so the
+                    // Persian digits survive.
                     count: history.length,
+                    replace: {
+                      percent: `${formatNumber(personalShare, lang, 0)}${pct}`,
+                      n: formatNumber(history.length, lang, 0),
+                    },
                   })}
                 </li>
               )}

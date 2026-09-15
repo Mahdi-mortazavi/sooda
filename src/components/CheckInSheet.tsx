@@ -377,7 +377,7 @@ function FinishScreen({
       </div>
       <h3 className="mt-5 text-[20px] font-bold">{t('checkin.doneTitle')}</h3>
       <p className="mt-1.5 max-w-[300px] text-[15px] leading-relaxed text-[var(--text-secondary)]">
-        {raised > 0 ? t('checkin.doneBody', { n: formatNumber(raised, lang, 0) }) : t('checkin.doneNone')}
+        {raised > 0 ? t('checkin.doneBody', { count: raised, replace: { n: formatNumber(raised, lang, 0) } }) : t('checkin.doneNone')}
       </p>
       {raised > 0 && (
         <motion.button

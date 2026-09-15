@@ -111,6 +111,8 @@ export function StoreProfileSheet({ open, onClose, initial, onSave, onSkip }: St
             if (parsed !== undefined) setDependency(parsed)
           }}
           size="sm"
+          // A question, not a set of tabs.
+          as="radiogroup"
           options={IMPORT_DEPENDENCIES.map((entry) => ({
             value: String(entry),
             label: t(IMPORT_LABEL_KEYS[String(entry)] ?? 'profile.domestic'),

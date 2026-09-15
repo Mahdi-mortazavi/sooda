@@ -15,6 +15,12 @@ interface SegmentedControlProps<T extends string> {
   layoutId: string
   ariaLabel: string
   size?: 'md' | 'sm'
+  /**
+   * Tabs by default, because that is what the mode switchers are. A control that asks a
+   * question — "are your goods imported?" — is a radio group: announcing it as a tablist
+   * promises panels that do not exist and have no aria-controls to point at.
+   */
+  as?: 'tablist' | 'radiogroup'
 }
 
 /** iOS-style glass segmented control with a sliding liquid indicator. */
@@ -25,10 +31,12 @@ export function SegmentedControl<T extends string>({
   layoutId,
   ariaLabel,
   size = 'md',
+  as = 'tablist',
 }: SegmentedControlProps<T>) {
+  const radio = as === 'radiogroup'
   return (
     <div
-      role="tablist"
+      role={as}
       aria-label={ariaLabel}
       className={`glass glass-ring flex w-full rounded-2xl ${size === 'md' ? 'p-1.5' : 'p-1'}`}
     >
@@ -37,8 +45,8 @@ export function SegmentedControl<T extends string>({
         return (
           <button
             key={opt.value}
-            role="tab"
-            aria-selected={selected}
+            role={radio ? 'radio' : 'tab'}
+            {...(radio ? { 'aria-checked': selected } : { 'aria-selected': selected })}
             aria-label={opt.ariaLabel}
             onClick={() => {
               if (!selected) {

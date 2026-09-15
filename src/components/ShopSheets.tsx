@@ -81,7 +81,10 @@ export function ShopSheets({
       {profileOpen && (
         <StoreProfileSheet
           open={profileOpen}
-          onClose={onCloseProfile}
+          /* Closing by the X, the backdrop, Escape or a swipe is a dismissal like any other, so
+           * it is remembered the same way. Left as a bare close it re-asked on every visit to
+           * the products tab — which is not what "optional" means. */
+          onClose={() => void skipProfile()}
           initial={{
             categories: profile?.categories ?? ['other'],
             importDependency: profile?.importDependency ?? 0.5,

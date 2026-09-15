@@ -35,7 +35,11 @@ export function RecordCostPrompt({ open, productName, onRecord, onDismiss }: Rec
           transition={{ type: 'spring', stiffness: 440, damping: 34 }}
           className="overflow-hidden"
         >
-          <div className="glass glass-ring mt-2 flex flex-wrap items-center gap-2 rounded-[20px] px-3.5 py-3">
+          {/* The offer animates in on its own, so a screen reader needs telling it is there. */}
+          <div
+            role="status"
+            className="glass glass-ring mt-2 flex flex-wrap items-center gap-2 rounded-[20px] px-3.5 py-3"
+          >
             <span aria-hidden className="text-[var(--accent-text)]">
               <IconTrendUp size={16} />
             </span>

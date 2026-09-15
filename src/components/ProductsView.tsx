@@ -166,7 +166,7 @@ export function ProductsView({
             <IconTrendUp size={18} />
           </span>
           <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
-            {t('checkin.cardTitle', { replace: { n: formatNumber(checkInCount, lang, 0) } })}
+            {t('checkin.cardTitle', { count: checkInCount, replace: { n: formatNumber(checkInCount, lang, 0) } })}
           </span>
           <span className="shrink-0 rounded-full bg-accent-500/16 px-3 py-1.5 text-[13px] font-bold text-[var(--accent-text)]">
             {t('checkin.cardCta')}
@@ -427,7 +427,7 @@ function ProductRow({
         </div>
         {status && status.costAgeMonths >= 1 ? (
           <p className="mt-0.5 truncate text-[12px] text-[var(--text-tertiary)]">
-            {t('products.costAge', { replace: { count: formatNumber(status.costAgeMonths, lang, 0) } })}
+            {t('products.costAge', { count: status.costAgeMonths, replace: { n: formatNumber(status.costAgeMonths, lang, 0) } })}
           </p>
         ) : null}
       </button>
