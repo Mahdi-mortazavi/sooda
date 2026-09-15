@@ -308,7 +308,7 @@
       "fillBack": "A final price of 350,000 and the same 30 percent off.",
       "calculateBack": "Calculate, and see what price it was discounted from.",
       "challenge": {
-        "original": "Something came to 350,000 after 30% off. What was the original price?"
+        "original": "A sign says 360,000, after 20% off. What was the price before the discount?"
       }
     },
     "realProfit": {
@@ -320,7 +320,7 @@
       "again": "Calculate once more — now it is working from a real price, not an estimate.",
       "challenge": {
         "verdict": {
-          "prompt": "At this selling price, after three months, which is true?",
+          "prompt": "The same oil at the same selling price — but this time it sells within one month. Which is true?",
           "stillProfit": "It still makes a profit",
           "actuallyLoss": "It is actually a loss"
         }
@@ -369,10 +369,10 @@
       "rice": "A sack of rice: 2,480,000 to buy, 12 percent profit.",
       "calcRice": "Calculate.",
       "basketRice": "Add it to the basket so we can total them up later.",
-      "oil": "Now the oil: 118,000 to buy, 8 percent profit.",
+      "oilCost": "Now the oil. Replace the rice’s purchase price with 118,000.",
+      "oilMargin": "And the profit he wants on this one: 8 percent.",
       "calcOil": "Calculate again.",
       "basketOil": "Drop this one in the basket too.",
-      "share": "Want to send this result to a customer? Get a link to it.",
       "totals": "Open the basket — the bottom adds up the profit on both.",
       "csv": "And your history: “Export CSV” pulls everything out for yourself.",
       "challenge": {
