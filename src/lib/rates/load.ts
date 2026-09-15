@@ -17,6 +17,9 @@ export const RATES_ENABLED_KEY = 'sooda:rates-auto'
 /** Keeps a pathological FX series out of a ~5MB storage quota shared with drafts and products. */
 export const MAX_STORED_FX_POINTS = 400
 
+/** Long enough for a slow connection, short enough that a stalled socket does not linger. */
+export const RATES_TIMEOUT_MS = 8000
+
 /** Valid but says nothing — the shape every reader can handle, used only if even the fallback is broken. */
 const EMPTY_RATES: RatesFile = {
   schema: RATES_SCHEMA_VERSION,
@@ -95,10 +98,18 @@ function storeRates(rates: RatesFile): void {
 export async function refreshRates(signal?: AbortSignal): Promise<RatesState> {
   const cached = readCachedRates()
   if (!isAutoUpdateEnabled()) return cached
+  /* A captive portal can hold a request open for the OS timeout. Nothing waits on this — the
+   * cached value is already painted — but the socket and the worker's revalidation both sit
+   * there, so it gets its own deadline alongside the caller's unmount signal. */
+  const deadline = AbortSignal.timeout(RATES_TIMEOUT_MS)
+  const combined = signal ? AbortSignal.any([signal, deadline]) : deadline
   try {
     // RATES_URL is the only address this file may ever touch: same origin, no
     // third party, nothing about the shopkeeper leaves the device.
-    const response = await fetch(RATES_URL, { signal })
+    /* github.io is a shared origin: any other page under this account's own github.io host
+     * can set a host cookie that a default same-origin fetch would then carry. Nothing about
+     * this request should identify the device, so it carries nothing. */
+    const response = await fetch(RATES_URL, { signal: combined, credentials: 'omit', referrerPolicy: 'no-referrer' })
     if (!response.ok) return cached
     const check = validateRates(await response.json())
     // A rejected file leaves the last good value in place — half-applying a broken

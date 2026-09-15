@@ -171,11 +171,18 @@ describe('refreshRates', () => {
     expect(JSON.parse(store.get(RATES_STORAGE_KEY) ?? 'null')).toEqual(state.rates)
   })
 
-  it('passes the abort signal straight through, and no other fetch option', async () => {
+  it('carries nothing that could identify the device, and no other fetch option', async () => {
+    /* github.io is a shared origin, so a default same-origin fetch would attach any cookie
+     * another page under this account's host had set. The app promises nothing is sent. */
     const controller = new AbortController()
     useFetch(() => jsonResponse(sampleFile()))
     await refreshRates(controller.signal)
-    expect(calls[0]?.init).toEqual({ signal: controller.signal })
+    expect(calls[0]?.init).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer' })
+    expect(Object.keys(calls[0]?.init ?? {}).sort()).toEqual(['credentials', 'referrerPolicy', 'signal'])
+    // The caller's signal is combined with an internal deadline, so it is no longer the same object.
+    expect(calls[0]?.init?.signal).toBeInstanceOf(AbortSignal)
+    controller.abort()
+    expect(calls[0]?.init?.signal?.aborted).toBe(true)
   })
 
   it('keeps the cached value on a 404', async () => {

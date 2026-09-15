@@ -10,6 +10,7 @@ import {
   type StoreProfile,
 } from './db'
 import { isCategoryId, isImportDependency } from './rates/categories'
+import { RATES_STORAGE_KEY } from './rates/load'
 
 /* 2 adds `observations` and `storeProfile`. A version-1 file written by v1.3 is still a perfectly
  * good backup and must keep importing — it simply carries no price history. */
@@ -38,6 +39,10 @@ function readSettings(): Record<string, string> {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (key === null || !key.startsWith(SETTINGS_PREFIX)) continue
+      /* The cached rates file is public data the app re-fetches anyway, and at a full 400-point
+       * FX series it is by far the largest thing under this prefix. Carrying it would bloat
+       * every backup and let a restore overwrite this device's rates with another's. */
+      if (key === RATES_STORAGE_KEY) continue
       const value = localStorage.getItem(key)
       if (value !== null) out[key] = value
     }

@@ -53,6 +53,9 @@ function optionalString(value: unknown, pattern?: RegExp): value is string | nul
 function parseSource(value: unknown): RatesSource | null {
   if (!isObject(value)) return null
   if (typeof value.name !== 'string' || typeof value.url !== 'string') return null
+  /* This URL comes out of a fetched file and is destined for an href. Everything else in this
+   * guard is paranoid; a `javascript:` value slipping through would be the odd one out. */
+  if (value.url !== '' && !/^https?:\/\//i.test(value.url)) return null
   return { name: value.name, url: value.url }
 }
 

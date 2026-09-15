@@ -90,7 +90,8 @@ labelled as an estimate, and you can always set a rate by hand.
 
 **Privacy is unchanged.** Sooda downloads one public rates file from its own site. Nothing about
 your products, prices or shop is ever uploaded — there is no server to upload it to. Automatic
-rate updates can be turned off in Settings, and the app then uses the copy bundled with it.
+rate updates can be turned off in Settings, and the app then keeps using the last file it
+downloaded — or the copy bundled with it, if it never downloaded one.
 
 ## 📱 Screenshots
 

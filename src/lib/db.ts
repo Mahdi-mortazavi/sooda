@@ -164,6 +164,30 @@ export async function clearHistory(): Promise<void> {
   await db.history.clear()
 }
 
+/**
+ * Everything the shopkeeper has put into Sooda, in one transaction.
+ *
+ * The Settings control has always been labelled "Erase all data" but only cleared `history`.
+ * That was a cosmetic mismatch until v1.4 gave the database a per-product purchase-price
+ * history — the most commercially sensitive thing Sooda stores, and exactly what someone
+ * handing their phone over would expect that button to have removed.
+ *
+ * Preferences (language, theme, currency) are deliberately kept: they are settings, not data,
+ * and wiping them would leave the app looking broken rather than empty.
+ */
+export async function clearAllData(): Promise<void> {
+  await db.transaction('rw', db.history, db.basket, db.products, db.observations, db.storeProfile, async () => {
+    await Promise.all([
+      db.history.clear(),
+      db.basket.clear(),
+      db.products.clear(),
+      db.observations.clear(),
+      db.storeProfile.clear(),
+    ])
+  })
+  await broadcastBasketCount()
+}
+
 /* The basket badge in the header must not pull Dexie into the main bundle,
  * so a count mirror lives in localStorage and changes are broadcast as events. */
 export const BASKET_COUNT_KEY = 'sooda:basket-count'

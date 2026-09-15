@@ -49,7 +49,10 @@ export function useCheckIn(rates: RatesFile | null, enabled: boolean): CheckInDa
       if (!live) return
       setState(snapshot)
       void badge.setStaleBadge(snapshot.items.length)
-    })()
+    })().catch(() => {
+      /* A browser that refuses a database rejects here. There is nothing to show and nothing to
+       * retry — the products tab has its own boundary — so the badge simply never appears. */
+    })
 
     return () => {
       live = false

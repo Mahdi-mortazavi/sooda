@@ -70,7 +70,7 @@
     "themeSystem": "Auto",
     "toggleTheme": "Toggle dark mode",
     "clearData": "Erase all data",
-    "clearDataHint": "Removes your calculation history from this device.",
+    "clearDataHint": "Removes your calculation history, basket, saved products and their price history from this device. Your language, theme and currency are kept.",
     "about": "About",
     "version": "Version",
     "privacy": "Everything stays on your device — no tracking, no analytics. Sooda only downloads a public rates file from its own site; nothing from your device is ever sent.",

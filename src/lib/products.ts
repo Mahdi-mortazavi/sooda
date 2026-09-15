@@ -235,7 +235,12 @@ export function previewBulk(
 /* Deliberately duplicated from csv.ts: that module is owned by the history export and importing it
  * here would drag the history builder (and its mode labels) into the products chunk. */
 function escapeCell(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+  /* A cell beginning =, +, - or @ is a formula to Excel and LibreOffice, so a product named
+   * `=HYPERLINK(...)` would turn this export into an outbound request carrying the shop's own
+   * cost figures the moment it was opened. Prefixing an apostrophe makes it literal text.
+   * Reachable through a restored backup, which accepts any name string. */
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
 /** Build a CSV export of the price list (with UTF-8 BOM so Excel renders Persian text correctly). */

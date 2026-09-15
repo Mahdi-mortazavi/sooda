@@ -42,7 +42,10 @@ export function useRates(enabled: boolean): RatesHandle {
       if (!live) return
       setRates(fresh.rates)
       setOrigin(fresh.origin)
-    })()
+    })().catch(() => {
+      // Only reachable if the rates chunk itself fails to load; refreshRates never throws.
+      if (live) setOrigin('fallback')
+    })
 
     return () => {
       live = false

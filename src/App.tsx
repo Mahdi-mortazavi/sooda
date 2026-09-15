@@ -293,6 +293,7 @@ export default function App() {
             }}
             onAutoUpdateChange={rates.refresh}
             ratesUpdatedAt={rates.rates?.updatedAt ?? null}
+            ratesOrigin={rates.origin}
           />
         )}
         {saveOpen && (

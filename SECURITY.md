@@ -8,8 +8,12 @@ Only the latest deployed version at <https://mahdi-mortazavi.github.io/sooda/> i
 
 Sooda is a fully client-side, offline-first PWA:
 
-- **No server, no accounts, no network calls** after the initial page load — there is no backend to attack.
-- All user data (calculation history) lives in the browser's IndexedDB on the user's own device and never leaves it.
+- **No server, no accounts, no telemetry.** The only runtime network requests are same-origin
+  GETs to Sooda's own site: the app's own assets, a periodic service-worker update check, and
+  one public rates file (`data/rates.json`). No request carries any user data, and the rates
+  fetch can be turned off in Settings.
+- All user data — calculation history, basket, saved products, per-product price observations
+  and the store profile — lives in this device's IndexedDB and `localStorage` and never leaves it.
 - All assets (including fonts) are self-hosted and precached by the service worker; no third-party CDNs.
 
 ## Reporting a vulnerability

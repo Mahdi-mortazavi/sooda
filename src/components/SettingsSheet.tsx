@@ -2,10 +2,11 @@ import { motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
+import type { RatesOrigin } from '../hooks/useRates'
 import type { ThemePreference } from '../hooks/useTheme'
 import { applyBackup, backupFilename, buildBackup, validateBackup, type BackupFile } from '../lib/backup'
 import { formatDate } from '../lib/dates'
-import { clearHistory } from '../lib/db'
+import { clearAllData } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { INFLATION_DEFAULT, hasInflationOverride, inflationSourceLabel } from '../lib/inflation'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
@@ -62,6 +63,8 @@ interface SettingsSheetProps {
   onAutoUpdateChange: () => void
   /** 'YYYY-MM-DD' from the loaded file, or null when it carries no date yet. */
   ratesUpdatedAt: string | null
+  /** Where the loaded file came from — the only field that knows whether the fetch worked. */
+  ratesOrigin: RatesOrigin
 }
 
 export function SettingsSheet({
@@ -80,6 +83,7 @@ export function SettingsSheet({
   onOpenStoreProfile,
   onAutoUpdateChange,
   ratesUpdatedAt,
+  ratesOrigin,
 }: SettingsSheetProps) {
   const { t } = useTranslation()
   const [confirmingErase, setConfirmingErase] = useState(false)
@@ -274,9 +278,16 @@ export function SettingsSheet({
             {t('settings.ratesAutoHint')}
           </p>
           <p className="mt-1.5 px-1 text-[13px] text-[var(--text-tertiary)]">
-            {ratesUpdatedAt === null
+            {/* Three different states, and only `origin` can tell them apart. Keying this off the
+              * file's own date said "updates are off or not reachable" to a device that had just
+              * fetched the file successfully — it was merely an empty one. */}
+            {ratesOrigin === 'fallback'
               ? t('settings.ratesOffline')
-              : t('settings.ratesUpdated', { replace: { date: formatDate(Date.parse(`${ratesUpdatedAt}T00:00:00Z`), lang) } })}
+              : ratesUpdatedAt === null
+                ? t('settings.ratesMissing')
+                : t('settings.ratesUpdated', {
+                    replace: { date: formatDate(Date.parse(`${ratesUpdatedAt}T00:00:00Z`), lang) },
+                  })}
           </p>
 
           <button
@@ -473,7 +484,10 @@ export function SettingsSheet({
                   type="button"
                   onClick={() => {
                     vibrate()
-                    void clearHistory().then(() => setConfirmingErase(false))
+                    void clearAllData()
+                      // The badge counts products to check; with no products it must go too.
+                      .then(() => import('../lib/badge').then((b) => b.clearBadge()))
+                      .then(() => setConfirmingErase(false))
                   }}
                   className="rounded-xl bg-loss-600 px-4 py-2 text-[14px] font-semibold text-white"
                 >
