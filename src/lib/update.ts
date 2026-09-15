@@ -76,6 +76,25 @@ export function storeLastSeenVersion(version: string): void {
 }
 
 /** False on a first install (nothing stored) and when the versions match — What's New must not show then. */
+/*
+ * v1.2.0 never wrote sooda:last-version, so an upgrading user looks identical to a
+ * fresh install if you only check that key. Any other Sooda key means they were
+ * already here, and those are exactly the people What's New is for.
+ */
+const PRE_V13_MARKER_KEYS = ['sooda:lang', 'sooda:theme', 'sooda:unit', 'sooda:basket-count']
+export const PRE_V13_VERSION = '1.2.0'
+
+/** The stored version, inferred as pre-1.3 when an older install left other keys behind. */
+export function resolveLastSeenVersion(): string | null {
+  const stored = readLastSeenVersion()
+  if (stored !== null) return stored
+  try {
+    return PRE_V13_MARKER_KEYS.some((key) => localStorage.getItem(key) !== null) ? PRE_V13_VERSION : null
+  } catch {
+    return null
+  }
+}
+
 export function shouldShowWhatsNew(current: string, stored: string | null): boolean {
   if (stored === null || stored === '') return false
   return compareVersions(current, stored) > 0

@@ -1,7 +1,6 @@
 /** Instalment plans: what a "no interest, just 3% a month" offer really costs, in today's money. */
 
 import { round2 } from './calc'
-import { addMonths } from './dates'
 
 /** Plan lengths Iranian shops actually quote. */
 export const INSTALLMENT_COUNTS = [3, 6, 9, 12, 18, 24] as const
@@ -79,19 +78,4 @@ export function validateInstallment(cashPrice: number, downPayment: number, n: n
   if (downPayment >= cashPrice) return 'downPaymentTooHigh'
   if (!Number.isInteger(n) || n <= 0) return 'installmentCountInvalid'
   return null
-}
-
-export interface ScheduleRow {
-  index: number
-  dueAt: number
-  amount: number
-}
-
-/** n due dates, the first a whole Persian month after `startAt`. */
-export function buildSchedule(installment: number, n: number, startAt: number): ScheduleRow[] {
-  const rows: ScheduleRow[] = []
-  for (let i = 1; i <= n; i++) {
-    rows.push({ index: i, dueAt: addMonths(startAt, i), amount: round2(installment) })
-  }
-  return rows
 }

@@ -4,11 +4,11 @@ import { monthlyRateFromPercent } from './inflation'
 import {
   INSTALLMENT_COUNTS,
   annuityFactor,
-  buildSchedule,
   calcInstallmentForward,
   calcInstallmentReverse,
   validateInstallment,
 } from './installment'
+import { buildSchedule } from './schedule'
 
 const r40 = monthlyRateFromPercent(40)
 const P = 10_000_000
@@ -146,7 +146,7 @@ describe('buildSchedule', () => {
   })
   it('amounts sum to n × instalment', () => {
     const rows = buildSchedule(1836418.28, 6, startAt)
-    const sum = rows.reduce((acc, row) => acc + row.amount, 0)
+    const sum = rows.reduce((acc: number, row) => acc + row.amount, 0)
     expect(sum).toBeCloseTo(6 * 1836418.28, 2)
   })
   it('returns no rows for a zero-length plan', () => {

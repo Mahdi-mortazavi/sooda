@@ -137,7 +137,10 @@
     "explainer": "This much only keeps you from losing; your profit is in the cash price.",
     "realGain": "Real gain vs. a cash sale",
     "realLoss": "Real loss vs. a cash sale",
-    "presentValue": "What this money is worth today"
+    "presentValue": "What this money is worth today",
+    "schedule": {
+      "open": "See schedule"
+    }
   },
   "tabs": {
     "calculator": "Calculator",
@@ -150,5 +153,17 @@
     "contact": "Contact & suggestions",
     "telegram": "Telegram",
     "blessing": "May your work be blessed and your profit abundant 🌿✨"
+  },
+  "basket": {
+    "open": "Open basket",
+    "add": "Add to basket",
+    "added": "Added to basket!"
+  },
+  "history": {
+    "open": "Open history"
+  },
+  "products": {
+    "save": "Save to my products",
+    "saved": "Saved!"
   }
 }

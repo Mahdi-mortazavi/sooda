@@ -1,7 +1,6 @@
 {
   "history": {
     "title": "History",
-    "open": "Open history",
     "searchPlaceholder": "Search history…",
     "empty": {
       "title": "Nothing here yet",
@@ -21,9 +20,6 @@
   },
   "basket": {
     "title": "Basket",
-    "open": "Open basket",
-    "add": "Add to basket",
-    "added": "Added to basket!",
     "empty": {
       "title": "Basket is empty",
       "body": "Calculate something, then tap the basket button on the result to sum several items together."
@@ -43,11 +39,9 @@
     "shopperSection": "Purchases"
   },
   "products": {
-    "save": "Save to my products",
     "saveTitle": "Name this product",
     "name": "Name",
     "namePlaceholder": "Rice, 10 kg",
-    "saved": "Saved!",
     "title": "My products",
     "empty": {
       "title": "No products yet",
@@ -104,7 +98,6 @@
   },
   "installment": {
     "schedule": {
-      "open": "See schedule",
       "title": "Payment schedule",
       "row": "Installment {{index}}",
       "copy": "Copy schedule",

@@ -1,23 +1,76 @@
 import { validateValue, type Mode, type ValidationError } from '../calc'
 import { parseAmount } from '../numbers'
 import { discountMode } from './discount'
+import { INSTALLMENT_BASE_FIELDS, INSTALLMENT_REVERSE_FIELDS } from './installmentFields'
 import { profitMode } from './profit'
 import { reverseDiscountMode } from './rdiscount'
 import { sellMode } from './sell'
-import type { CalcContext, ModeId, ModeSnapshot, ModeSpec, ModeState, PresentContext, ResultDisplay, SegmentId } from './types'
+import {
+  isDeferred,
+  type CalcContext,
+  type ModeBehaviour,
+  type ModeId,
+  type ModeSnapshot,
+  type ModeState,
+  type PresentContext,
+  type RegisteredMode,
+  type ResultDisplay,
+  type SegmentId,
+} from './types'
 
 /** Every calculator the app can run, keyed by its stable id. */
-export const MODE_REGISTRY: Record<ModeId, ModeSpec> = {
+export const MODE_REGISTRY: Record<ModeId, RegisteredMode> = {
+  /* Declaration order matters: the first mode of a segment is the one it opens on.
+   * Instalment pricing lives behind a sub-control and carries its own annuity maths,
+   * so only its field specs are eager — the calculation itself is fetched on first use. */
   profit: profitMode,
+  installment: {
+    id: 'installment',
+    segment: 'profit',
+    fields: INSTALLMENT_BASE_FIELDS,
+    load: () => import('./installment').then((m) => m.installmentBehaviour),
+  },
+  rinstallment: {
+    id: 'rinstallment',
+    segment: 'profit',
+    fields: INSTALLMENT_REVERSE_FIELDS,
+    load: () => import('./rinstallment').then((m) => m.reverseInstallmentBehaviour),
+  },
   sell: sellMode,
   discount: discountMode,
   rdiscount: reverseDiscountMode,
 }
 
+/** Behaviours resolved so far: the eager modes are their own behaviour. */
+const behaviours = new Map<ModeId, ModeBehaviour>()
+
+/** Loads a mode's maths if it is not in memory yet. Chunks are precached, so this works offline. */
+export async function ensureBehaviour(mode: ModeId): Promise<ModeBehaviour> {
+  const cached = behaviours.get(mode)
+  if (cached) return cached
+  const spec = MODE_REGISTRY[mode]
+  const behaviour = isDeferred(spec) ? await spec.load() : spec
+  behaviours.set(mode, behaviour)
+  return behaviour
+}
+
+/** The behaviour if it is already in memory, otherwise undefined — never triggers a load. */
+export function loadedBehaviour(mode: ModeId): ModeBehaviour | undefined {
+  const spec = MODE_REGISTRY[mode]
+  return isDeferred(spec) ? behaviours.get(mode) : spec
+}
+
+/** Sibling modes a segment can switch between, in the order its sub-control shows them. */
+export function modesOfSegment(segment: SegmentId): ModeId[] {
+  return Object.values(MODE_REGISTRY)
+    .filter((spec) => spec.segment === segment)
+    .map((spec) => spec.id)
+}
+
 /** Segment order drives the sliding indicator and the slide direction. */
 export const SEGMENTS: readonly SegmentId[] = ['profit', 'sell', 'discount'] as const
 
-export function modeSpec(mode: ModeId): ModeSpec {
+export function modeSpec(mode: ModeId): RegisteredMode {
   return MODE_REGISTRY[mode]
 }
 
@@ -74,6 +127,8 @@ export function validateMode(mode: ModeId, state: ModeState): ModeValidation {
   const values: Record<string, number> = {}
   const errors: Record<string, ValidationError> = {}
   for (const field of visibleFields(mode, state)) {
+    // Toggles pick a variant rather than a quantity, so they never become a value.
+    if (field.kind === 'toggle') continue
     const raw = state[field.key] ?? ''
     const empty = raw.trim() === ''
     if (field.optional && empty) {
@@ -85,6 +140,12 @@ export function validateMode(mode: ModeId, state: ModeState): ModeValidation {
     if (error) errors[field.key] = error
     else values[field.key] = parsed
   }
+  // Cross-field rules only make sense once every field parsed — and only once the
+  // mode's maths is in memory. Callers that need them await ensureBehaviour() first.
+  const behaviour = loadedBehaviour(mode)
+  if (Object.keys(errors).length === 0 && behaviour?.validate) {
+    Object.assign(errors, behaviour.validate(values, state) ?? {})
+  }
   return { values, errors, ok: Object.keys(errors).length === 0 }
 }
 
@@ -95,14 +156,16 @@ export interface ModeRun {
 
 /** Compute and present in one step, so callers never have to hold an untyped result. */
 export function runMode(
-  mode: ModeId,
+  behaviour: ModeBehaviour,
   values: Record<string, number>,
   calcCtx: CalcContext,
   presentCtx: PresentContext,
 ): ModeRun {
-  const spec = MODE_REGISTRY[mode]
-  const result = spec.compute(values, calcCtx)
-  return { display: spec.present(result, values, presentCtx), snapshot: spec.snapshot(result, values) }
+  const result = behaviour.compute(values, calcCtx)
+  return {
+    display: behaviour.present(result, values, presentCtx),
+    snapshot: behaviour.snapshot(result, values),
+  }
 }
 
 /** Re-exported so callers can keep importing the mode union from one place. */

@@ -7,17 +7,12 @@ import type { Mode } from '../lib/calc'
 import { computeBasketTotals, type BasketTotals } from '../lib/basket'
 import { clearBasket, db, deleteBasketItem, type BasketItem } from '../lib/db'
 import { vibrate } from '../lib/haptics'
-import { at, formatNumber, type AppLanguage } from '../lib/numbers'
+import { formatNumber, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit, unitShortLabel, type Unit } from '../lib/units'
-import { IconBasket, IconPercent, IconScale, IconTag, IconTagReverse, IconTrash } from './Icons'
+import { IconBasket, IconTrash } from './Icons'
+import { MODE_ICONS } from '../lib/modes/icons'
+import { entrySummary } from '../lib/modes/summary'
 import { Sheet } from './Sheet'
-
-const MODE_ICONS: Record<Mode, typeof IconPercent> = {
-  profit: IconPercent,
-  sell: IconScale,
-  discount: IconTag,
-  rdiscount: IconTagReverse,
-}
 
 interface BasketSheetProps {
   open: boolean
@@ -39,6 +34,8 @@ export function BasketSheet({ open, onClose, lang }: BasketSheetProps) {
     sell: t('modes.sell'),
     discount: t('modes.discount'),
     rdiscount: t('modes.rdiscount'),
+    installment: t('modes.installment'),
+    rinstallment: t('modes.rinstallment'),
   }
 
   return (
@@ -199,23 +196,12 @@ function BasketRow({
   const fmt = (v: number) => formatNumber(v, lang)
   const fmtU = (v: number) => formatAmountWithUnit(v, lang, unit)
   const pct = t('fields.percentUnit')
-  const isLoss = item.mode === 'sell' && at(item.results, 1) < 0
 
-  let summary: string
-  switch (item.mode) {
-    case 'profit':
-      summary = `${fmt(at(item.inputs, 0))} + ${fmt(at(item.inputs, 1))}${pct} → ${fmtU(at(item.results, 0))}`
-      break
-    case 'sell':
-      summary = `${fmt(at(item.inputs, 0))} → ${fmt(at(item.inputs, 1))} = ${fmt(at(item.results, 0))}${pct}`
-      break
-    case 'discount':
-      summary = `${fmt(at(item.inputs, 0))} − ${fmt(at(item.inputs, 1))}${pct} → ${fmtU(at(item.results, 0))}`
-      break
-    case 'rdiscount':
-      summary = `${fmt(at(item.inputs, 0))} @ ${fmt(at(item.inputs, 1))}${pct} → ${fmtU(at(item.results, 0))}`
-      break
-  }
+  const { text: summary, isLoss } = entrySummary(item.mode, item.inputs, item.results, {
+    number: fmt,
+    money: fmtU,
+    percent: pct,
+  })
 
   return (
     <motion.li

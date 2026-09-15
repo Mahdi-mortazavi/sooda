@@ -4,7 +4,6 @@ import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import { applyDocumentLanguage, initI18n } from './i18n'
 import './index.css'
-import { startUpdateChecks } from './lib/update'
 
 // Register the service worker after the page is fully loaded so precaching
 // never competes with first-paint resources.
@@ -14,7 +13,8 @@ const register = (): void => {
     onRegisteredSW(_swUrl, registration) {
       // A long-open installed app never navigates, so nothing would re-check the
       // worker on its own — these periodic checks are what deliver new releases.
-      if (registration) startUpdateChecks(registration)
+      // Imported here so the scheduling code never sits in the first-paint bundle.
+      if (registration) void import('./lib/update').then((m) => m.startUpdateChecks(registration))
     },
   })
 }

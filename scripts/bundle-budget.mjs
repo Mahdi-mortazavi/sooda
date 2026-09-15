@@ -34,16 +34,22 @@ function measure(path) {
   return { path, raw: buf.length, gzip: gzipSync(buf, { level: 9 }).length }
 }
 
+const indexHtml = join(dist, 'index.html')
+
 const files = readdirSync(assets)
   .filter((name) => name.endsWith('.js'))
   .sort()
   .map((name) => measure(join(assets, name)))
-
-const indexHtml = join(dist, 'index.html')
 if (existsSync(indexHtml)) files.push(measure(indexHtml))
 
-const entry = files.find((f) => /[\\/]index-[^\\/]+\.js$/.test(f.path))
-if (!entry) fail('no entry chunk matched dist/assets/index-*.js')
+/* Resolve the entry from the HTML rather than by name: the build also emits small
+ * index-*.js helper chunks, and picking one of those would silently pass any budget. */
+const html = existsSync(indexHtml) ? readFileSync(indexHtml, 'utf8') : ''
+const entryHref = html.match(/src="[^"]*\/(assets\/index-[^"]+\.js)"/)?.[1]
+const entry = entryHref
+  ? files.find((f) => f.path === join(dist, entryHref))
+  : files.filter((f) => /[\\/]index-[^\\/]+\.js$/.test(f.path)).reduce((a, b) => (!a || b.gzip > a.gzip ? b : a), null)
+if (!entry) fail('could not resolve the entry chunk from dist/index.html')
 
 // One of these loads on every first paint; the biggest one is the worst case.
 const langChunks = files.filter((f) => /[\\/](en|fa)-[^\\/]+\.js$/.test(f.path))

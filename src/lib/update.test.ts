@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   LAST_SEEN_VERSION_KEY,
+  PRE_V13_VERSION,
   UPDATE_INTERVAL_MS,
   VISIBILITY_THROTTLE_MS,
   readLastSeenVersion,
+  resolveLastSeenVersion,
   shouldShowWhatsNew,
   startUpdateChecks,
   storeLastSeenVersion,
@@ -239,5 +241,47 @@ describe('last seen version storage', () => {
     expect(readLastSeenVersion()).toBe(null)
     expect(() => storeLastSeenVersion('1.3.0')).not.toThrow()
     delete globals.localStorage
+  })
+})
+
+describe('resolveLastSeenVersion', () => {
+  /** A minimal in-memory Storage, installed only for these cases. */
+  function useFakeStorage(seed: Record<string, string> = {}) {
+    const store = new Map(Object.entries(seed))
+    globals.localStorage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+      removeItem: (key: string) => void store.delete(key),
+    }
+  }
+
+  afterEach(() => {
+    delete globals.localStorage
+  })
+
+  it('returns the stored version when there is one', () => {
+    useFakeStorage({ [LAST_SEEN_VERSION_KEY]: '1.3.0' })
+    expect(resolveLastSeenVersion()).toBe('1.3.0')
+  })
+
+  it('infers a pre-1.3 install from any other Sooda key, so upgraders see What’s New', () => {
+    useFakeStorage({ 'sooda:lang': 'fa' })
+    expect(resolveLastSeenVersion()).toBe(PRE_V13_VERSION)
+    expect(shouldShowWhatsNew('1.3.0', resolveLastSeenVersion())).toBe(true)
+  })
+
+  it('treats a genuinely empty storage as a first install', () => {
+    useFakeStorage()
+    expect(resolveLastSeenVersion()).toBeNull()
+    expect(shouldShowWhatsNew('1.3.0', resolveLastSeenVersion())).toBe(false)
+  })
+
+  it('falls back to a first install when storage throws', () => {
+    globals.localStorage = {
+      getItem: () => {
+        throw new Error('blocked')
+      },
+    }
+    expect(resolveLastSeenVersion()).toBeNull()
   })
 })

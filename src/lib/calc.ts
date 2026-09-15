@@ -1,8 +1,18 @@
 /** Pure calculation engine for Sooda's three modes. All money results rounded to 2 decimals. */
 
-export type Mode = 'profit' | 'sell' | 'discount' | 'rdiscount'
+export type Mode = 'profit' | 'sell' | 'discount' | 'rdiscount' | 'installment' | 'rinstallment'
 
-export const MODES: readonly Mode[] = ['profit', 'sell', 'discount', 'rdiscount'] as const
+/** The four two-field modes that shipped before v1.3; they are the ones MODE_RULES covers. */
+export type LegacyMode = 'profit' | 'sell' | 'discount' | 'rdiscount'
+
+export const MODES: readonly Mode[] = [
+  'profit',
+  'sell',
+  'discount',
+  'rdiscount',
+  'installment',
+  'rinstallment',
+] as const
 
 /** Maximum sensible magnitude for any money/percent input. */
 export const MAX_VALUE = 999_999_999_999
@@ -15,6 +25,9 @@ export type ValidationError =
   | 'tooLarge'
   | 'discountRange'
   | 'reverseDiscountRange'
+  /* Cross-field rules a single FieldRule cannot express; raised by a mode's own validate(). */
+  | 'downPaymentTooHigh'
+  | 'installmentCountInvalid'
 
 /** Round to 2 decimal places, avoiding floating point artifacts (e.g. 0.1+0.2). */
 export function round2(value: number): number {
@@ -94,8 +107,9 @@ export function validateValue(value: number, rule: FieldRule, rawEmpty: boolean)
   return null
 }
 
-/** Per-mode validation rules for [first, second] fields. */
-export const MODE_RULES: Record<Mode, [FieldRule, FieldRule]> = {
+/** Per-mode validation rules for [first, second] fields. Modes with more fields
+ *  declare their own rules in their ModeSpec instead. */
+export const MODE_RULES: Record<LegacyMode, [FieldRule, FieldRule]> = {
   profit: [{ positive: true }, { nonNegative: true }],
   sell: [{ positive: true }, { nonNegative: true }],
   discount: [{ positive: true }, { percentRange: true }],

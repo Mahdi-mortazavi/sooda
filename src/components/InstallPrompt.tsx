@@ -1,11 +1,10 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { InstallPromptState } from '../hooks/useInstallPrompt'
 import { vibrate } from '../lib/haptics'
 import { AppIcon } from './AppIcon'
-import { IconClose, IconPlusSquare, IconShareUp } from './Icons'
-import { Sheet } from './Sheet'
+import { IconClose } from './Icons'
 
 interface InstallPromptProps {
   state: InstallPromptState
@@ -13,12 +12,18 @@ interface InstallPromptProps {
   ready: boolean
 }
 
-/** Elegant glass install banner + iOS Add-to-Home-Screen guide. */
+const InstallGuideSheet = lazy(() =>
+  import('./InstallGuideSheet').then((m) => ({ default: m.InstallGuideSheet })),
+)
+
+/** Elegant glass install banner; the iOS Add-to-Home-Screen guide loads on demand. */
 export function InstallPrompt({ state, ready }: InstallPromptProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const [visible, setVisible] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  // Keep the guide mounted once opened so its exit animation can play.
+  const [guideMounted, setGuideMounted] = useState(false)
 
   useEffect(() => {
     if (!ready || !state.available) {
@@ -35,6 +40,7 @@ export function InstallPrompt({ state, ready }: InstallPromptProps) {
       setVisible(false)
       void state.promptInstall()
     } else {
+      setGuideMounted(true)
       setGuideOpen(true)
     }
   }
@@ -84,31 +90,9 @@ export function InstallPrompt({ state, ready }: InstallPromptProps) {
         )}
       </AnimatePresence>
 
-      <Sheet open={guideOpen} onClose={() => setGuideOpen(false)} title={t('install.iosTitle')}>
-        <p className="mb-5 text-[15px] leading-relaxed text-[var(--text-secondary)]">{t('install.iosIntro')}</p>
-        <ol className="flex flex-col gap-3">
-          <GuideStep index={1} icon={<IconShareUp size={22} />} text={t('install.iosStep1')} />
-          <GuideStep index={2} icon={<IconPlusSquare size={22} />} text={t('install.iosStep2')} />
-          <GuideStep index={3} icon={<span className="text-[17px] font-bold">Add</span>} text={t('install.iosStep3')} />
-        </ol>
-        <div className="mt-6 flex justify-center pb-2">
-          <AppIcon size={64} className="rounded-[16px] opacity-90 shadow-[0_8px_24px_rgba(15,122,95,0.3)]" />
-        </div>
-      </Sheet>
+      <Suspense fallback={null}>
+        {(guideOpen || guideMounted) && <InstallGuideSheet open={guideOpen} onClose={() => setGuideOpen(false)} />}
+      </Suspense>
     </>
-  )
-}
-
-function GuideStep({ index, icon, text }: { index: number; icon: React.ReactNode; text: string }) {
-  return (
-    <li className="glass glass-ring flex items-center gap-4 rounded-2xl px-4 py-3.5">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-500/14 text-[var(--accent-text)]">
-        {icon}
-      </span>
-      <span className="text-[15px] font-medium leading-snug">
-        <span className="me-1.5 text-[var(--accent-text)]">{index}.</span>
-        {text}
-      </span>
-    </li>
   )
 }

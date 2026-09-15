@@ -1,7 +1,7 @@
 {
   "name": "sooda",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.3.0",
   "type": "module",
   "description": "Sooda — Liquid-glass profit, price & discount calculator. Offline-first PWA, bilingual (EN/FA), privacy-first.",
   "license": "MIT",
@@ -16,7 +16,9 @@
     "screenshots": "node scripts/screenshots.mjs",
     "budget": "node scripts/bundle-budget.mjs",
     "i18n:check": "node scripts/i18n-parity.mjs",
-    "verify": "npm run typecheck && npm run test && npm run build"
+    "verify": "npm run typecheck && npm run test && npm run build",
+    "smoke": "node scripts/smoke.mjs",
+    "shots:diff": "node scripts/screenshot-diff.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

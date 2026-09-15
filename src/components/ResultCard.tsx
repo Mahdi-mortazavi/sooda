@@ -1,13 +1,14 @@
-import { motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { vibrate } from '../lib/haptics'
 import type { AppLanguage } from '../lib/numbers'
 import { formatNumber } from '../lib/numbers'
-import type { ResultDisplay } from '../lib/modes/types'
+import type { ProfitStatus } from '../lib/inflation'
+import type { LensBlock, ResultDisplay } from '../lib/modes/types'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { CountUp } from './CountUp'
-import { IconBasketPlus, IconCheck, IconCopy, IconLink } from './Icons'
+import { IconAlert, IconBasketPlus, IconBookmarkPlus, IconCalendar, IconCheck, IconCopy, IconLink, IconTarget } from './Icons'
 
 /* ResultDisplay is produced by the mode registry's pure `present` functions and only
  * rendered here, so it lives with the other mode types. Re-exported for existing importers. */
@@ -43,9 +44,39 @@ interface ResultCardProps {
   unit: Unit
   shareUrl: string | null
   onAddToBasket: () => Promise<void>
+  /** Offered only when the mode produced something worth keeping as a product. */
+  onSaveProduct?: () => void
+  onOpenSchedule?: () => void
 }
 
-export function ResultCard({ result, lang, unit, shareUrl, onAddToBasket }: ResultCardProps) {
+const STATUS_STYLES: Record<ProfitStatus, { text: string; fill: string }> = {
+  healthy: { text: 'text-[var(--accent-text)]', fill: 'bg-accent-500/14' },
+  thin: { text: 'text-amber-600 dark:text-amber-400', fill: 'bg-amber-500/16' },
+  losing: { text: 'text-loss-600 dark:text-loss-400', fill: 'bg-loss-500/14' },
+}
+
+/** Colour alone never carries the verdict — the label and the glyph both say it too. */
+function StatusChip({ status, label }: { status: ProfitStatus; label: string }) {
+  const style = STATUS_STYLES[status]
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-bold ${style.fill} ${style.text}`}
+    >
+      {status === 'healthy' ? <IconTarget size={14} /> : <IconAlert size={14} />}
+      {label}
+    </span>
+  )
+}
+
+export function ResultCard({
+  result,
+  lang,
+  unit,
+  shareUrl,
+  onAddToBasket,
+  onSaveProduct,
+  onOpenSchedule,
+}: ResultCardProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const [copied, setCopied] = useState(false)
@@ -131,11 +162,18 @@ export function ResultCard({ result, lang, unit, shareUrl, onAddToBasket }: Resu
       {/* Screen readers announce the final values once, not every animation frame. */}
       <div aria-live="polite" role="status" className="sr-only">
         {result.copyText}
+        {result.lens ? ` — ${result.lens.explainer}` : ''}
+        {result.lens?.notice ? ` ${result.lens.notice}` : ''}
       </div>
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{result.primaryLabel}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{result.primaryLabel}</p>
+            {result.status && result.statusLabel ? (
+              <StatusChip status={result.status} label={result.statusLabel} />
+            ) : null}
+          </div>
           <p
             className={`mt-0.5 text-[38px] font-bold leading-tight tracking-tight tabular-nums ${
               result.isLoss ? lossClass : 'text-[var(--accent-text)]'
@@ -144,6 +182,9 @@ export function ResultCard({ result, lang, unit, shareUrl, onAddToBasket }: Resu
             <CountUp value={result.primaryValue} format={fmtPrimary} />
             {result.primaryUnit ? <span className="ms-1 text-[25px] font-semibold">{result.primaryUnit}</span> : null}
           </p>
+          {result.exactPrimary ? (
+            <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)] tabular-nums">{result.exactPrimary}</p>
+          ) : null}
         </div>
         <div className="mt-1 flex shrink-0 gap-2">
           <motion.button
@@ -187,12 +228,107 @@ export function ResultCard({ result, lang, unit, shareUrl, onAddToBasket }: Resu
             {result.secondaryUnit ? <span className="ms-0.5 text-[15px] font-semibold">{result.secondaryUnit}</span> : null}
           </p>
         </div>
+        {result.extras?.length ? (
+          <dl className="mt-3 flex flex-col gap-1.5">
+            {result.extras.map((extra) => (
+              <div key={extra.label} className="flex items-baseline justify-between gap-3">
+                <dt className="text-[13.5px] text-[var(--text-secondary)]">{extra.label}</dt>
+                <dd className="text-[14.5px] font-semibold tabular-nums">{extra.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
         {result.notice ? (
           <p className={`mt-2 text-[13px] font-semibold ${result.isLoss ? lossClass : 'text-[var(--text-secondary)]'}`}>
             {result.notice}
           </p>
         ) : null}
       </div>
+
+      <AnimatePresence initial={false}>
+        {result.lens && (
+          <motion.div
+            key="lens"
+            initial={reducedMotion ? false : { opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+            className="relative overflow-hidden"
+          >
+            <LensBlockView block={result.lens} lang={lang} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {onSaveProduct && result.product ? (
+        <motion.button
+          type="button"
+          onClick={() => {
+            vibrate()
+            onSaveProduct()
+          }}
+          whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+          className="glass glass-ring relative mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+        >
+          <IconBookmarkPlus size={18} />
+          {t('products.save')}
+        </motion.button>
+      ) : null}
+
+      {onOpenSchedule && result.schedule ? (
+        <motion.button
+          type="button"
+          onClick={() => {
+            vibrate()
+            onOpenSchedule()
+          }}
+          whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+          className="glass glass-ring relative mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+        >
+          <IconCalendar size={18} />
+          {t('installment.schedule.open')}
+        </motion.button>
+      ) : null}
     </motion.section>
+  )
+}
+
+/** Nominal versus real, and the one sentence that explains the gap. */
+function LensBlockView({ block, lang }: { block: LensBlock; lang: AppLanguage }) {
+  const { t } = useTranslation()
+  const pct = t('fields.percentUnit')
+  const statusLabel = t(
+    block.status === 'healthy' ? 'lens.statusHealthy' : block.status === 'thin' ? 'lens.statusThin' : 'lens.statusLosing',
+  )
+  const style = STATUS_STYLES[block.status]
+
+  return (
+    <div className="mt-4 border-t border-[var(--separator)] pt-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{t('lens.blockTitle')}</p>
+        <StatusChip status={block.status} label={statusLabel} />
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="text-[14px] text-[var(--text-secondary)]">{t('lens.nominalProfit')}</span>
+        <span className="text-[16px] font-semibold tabular-nums text-[var(--text-secondary)]">
+          {formatNumber(block.nominalPercent, lang)}
+          {pct}
+        </span>
+        <span aria-hidden className="text-[var(--text-tertiary)] rtl:rotate-180">
+          →
+        </span>
+        <span className="text-[14px] text-[var(--text-secondary)]">{t('lens.realProfit')}</span>
+        <span className={`text-[19px] font-bold tabular-nums ${style.text}`}>
+          {formatNumber(block.realPercent, lang)}
+          {pct}
+        </span>
+      </div>
+
+      <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">{block.explainer}</p>
+      {block.notice ? (
+        <p className="mt-1.5 text-[13px] font-semibold text-loss-600 dark:text-loss-400">{block.notice}</p>
+      ) : null}
+    </div>
   )
 }

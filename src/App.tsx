@@ -1,24 +1,43 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { lazy, Suspense, useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { AmbientBackground } from './components/AmbientBackground'
 import { CalculatorView } from './components/CalculatorView'
-import { IconBasket, IconClock, IconGear, IconMoon, IconSun } from './components/Icons'
-import { InstallPrompt } from './components/InstallPrompt'
-import { WelcomeLanguage } from './components/WelcomeLanguage'
+import { IconBasket, IconClock, IconGear } from './components/Icons'
+import type { ProductDraft } from './components/SaveProductSheet'
+import { TabBar } from './components/TabBar'
 import { useBasketCount } from './hooks/useBasketCount'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useTheme } from './hooks/useTheme'
 import { LANG_STORAGE_KEY, setLanguage } from './i18n'
+import { readDraft } from './lib/drafts'
 import { vibrate } from './lib/haptics'
+import { readAnnualInflationPercent, storeAnnualInflationPercent } from './lib/inflation'
 import { TELEGRAM_URL } from './lib/links'
 import { formatNumber, type AppLanguage } from './lib/numbers'
+import { readRoundingStep, storeRoundingStep, type RoundingStep } from './lib/rounding'
+import { parseTabQuery, type AppTab } from './lib/share'
+import { resolveLastSeenVersion, shouldShowWhatsNew, storeLastSeenVersion } from './lib/update'
 import { readStoredUnit, storeUnit, type Unit } from './lib/units'
 
-// Sheets (and Dexie behind them) load on demand to keep the initial bundle lean.
+declare const __APP_VERSION__: string
+
+// Sheets, the products tab and Dexie behind them load on demand to keep the initial bundle lean.
 const HistorySheet = lazy(() => import('./components/HistorySheet').then((m) => ({ default: m.HistorySheet })))
 const SettingsSheet = lazy(() => import('./components/SettingsSheet').then((m) => ({ default: m.SettingsSheet })))
 const BasketSheet = lazy(() => import('./components/BasketSheet').then((m) => ({ default: m.BasketSheet })))
+const ProductsView = lazy(() => import('./components/ProductsView').then((m) => ({ default: m.ProductsView })))
+const WhatsNewSheet = lazy(() => import('./components/WhatsNewSheet').then((m) => ({ default: m.WhatsNewSheet })))
+const SaveProductSheet = lazy(() =>
+  import('./components/SaveProductSheet').then((m) => ({ default: m.SaveProductSheet })),
+)
+const Toast = lazy(() => import('./components/Toast').then((m) => ({ default: m.Toast })))
+// Onboarding runs once and the install banner waits a couple of seconds either way,
+// so neither belongs in the bytes that decide first paint.
+const WelcomeLanguage = lazy(() =>
+  import('./components/WelcomeLanguage').then((m) => ({ default: m.WelcomeLanguage })),
+)
+const InstallPrompt = lazy(() => import('./components/InstallPrompt').then((m) => ({ default: m.InstallPrompt })))
 
 function hasStoredLanguage(): boolean {
   try {
@@ -32,13 +51,17 @@ function hasStoredLanguage(): boolean {
 export default function App() {
   const { t, i18n } = useTranslation()
   const lang = (i18n.language.startsWith('fa') ? 'fa' : 'en') as AppLanguage
-  const { preference, isDark, setPreference, toggle } = useTheme()
-  const reducedMotion = useReducedMotion()
+  const { preference, setPreference } = useTheme()
   const install = useInstallPrompt()
   const basketCount = useBasketCount()
 
   const [needsLang, setNeedsLang] = useState(() => !hasStoredLanguage())
   const [unit, setUnitState] = useState<Unit>(readStoredUnit)
+  const [roundingStep, setRoundingStepState] = useState<RoundingStep>(readRoundingStep)
+  const [annualInflationPercent, setAnnualInflation] = useState<number>(readAnnualInflationPercent)
+
+  // A ?tab=products shortcut wins over whatever tab the draft remembered.
+  const [tab, setTabState] = useState<AppTab>(() => parseTabQuery(window.location.search) ?? readDraft()?.tab ?? 'calculator')
 
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -48,9 +71,58 @@ export default function App() {
   const [settingsMounted, setSettingsMounted] = useState(false)
   const [basketMounted, setBasketMounted] = useState(false)
 
+  // Hold the install banner's chunk back until the first screen has settled.
+  const [installReady, setInstallReady] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setInstallReady(true), 1500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const [saveDraft, setSaveDraft] = useState<ProductDraft | null>(null)
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [savedToast, setSavedToast] = useState(false)
+  // Kept mounted after the first toast so its slide-out can play.
+  const [toastMounted, setToastMounted] = useState(false)
+
+  // A v1.2.0 install has no stored version, so it is inferred from the keys it did leave behind.
+  const [whatsNewOpen, setWhatsNewOpen] = useState(() =>
+    shouldShowWhatsNew(__APP_VERSION__, resolveLastSeenVersion()),
+  )
+  useEffect(() => {
+    storeLastSeenVersion(__APP_VERSION__)
+  }, [])
+
   const setUnit = useCallback((u: Unit) => {
     setUnitState(u)
     storeUnit(u)
+  }, [])
+
+  const setRoundingStep = useCallback((step: RoundingStep) => {
+    setRoundingStepState(step)
+    storeRoundingStep(step)
+  }, [])
+
+  const onInflationChange = useCallback((percent: number | null) => {
+    // Storage first: Settings reads hasInflationOverride() during render.
+    storeAnnualInflationPercent(percent)
+    setAnnualInflation(readAnnualInflationPercent())
+  }, [])
+
+  const setTab = useCallback((next: AppTab) => {
+    setTabState(next)
+    // Keep the URL shareable and shortcut-addressable without adding history entries.
+    const url = next === 'products' ? `${import.meta.env.BASE_URL}?tab=products` : import.meta.env.BASE_URL
+    window.history.replaceState({}, '', url)
+  }, [])
+
+  const openSettings = useCallback(() => {
+    setSettingsMounted(true)
+    setSettingsOpen(true)
+  }, [])
+
+  const onSaveProduct = useCallback((draft: ProductDraft) => {
+    setSaveDraft(draft)
+    setSaveOpen(true)
   }, [])
 
   const chooseLanguage = (l: AppLanguage) => {
@@ -58,8 +130,35 @@ export default function App() {
     setNeedsLang(false)
   }
 
+  const headerButtons = useMemo(
+    () => [
+      {
+        key: 'basket',
+        label: t('basket.open'),
+        icon: <IconBasket />,
+        badge: basketCount,
+        onClick: () => {
+          setBasketMounted(true)
+          setBasketOpen(true)
+        },
+      },
+      {
+        key: 'history',
+        label: t('history.open'),
+        icon: <IconClock />,
+        badge: 0,
+        onClick: () => {
+          setHistoryMounted(true)
+          setHistoryOpen(true)
+        },
+      },
+      { key: 'settings', label: t('settings.open'), icon: <IconGear />, badge: 0, onClick: openSettings },
+    ],
+    [t, basketCount, openSettings],
+  )
+
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pb-28 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <AmbientBackground />
 
       <header className="mb-6 flex items-start justify-between">
@@ -68,59 +167,38 @@ export default function App() {
           <p className="mt-0.5 text-[13px] font-medium text-[var(--text-secondary)]">{t('app.tagline')}</p>
         </div>
         <div className="mt-1 flex gap-1.5">
-          <HeaderButton onClick={toggle} label={t('settings.toggleTheme')}>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={isDark ? 'moon' : 'sun'}
-                initial={reducedMotion ? false : { rotate: -90, opacity: 0, scale: 0.5 }}
-                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                exit={reducedMotion ? { opacity: 0 } : { rotate: 90, opacity: 0, scale: 0.5 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                className="flex"
-              >
-                {isDark ? <IconMoon /> : <IconSun />}
-              </motion.span>
-            </AnimatePresence>
-          </HeaderButton>
-          <HeaderButton
-            onClick={() => {
-              setBasketMounted(true)
-              setBasketOpen(true)
-            }}
-            label={t('basket.open')}
-          >
-            <IconBasket />
-            {basketCount > 0 && (
-              <span
-                aria-hidden
-                className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-fill-strong)] px-1 text-[11px] font-bold leading-none text-white dark:text-[hsl(168_90%_8%)]"
-              >
-                {formatNumber(basketCount, lang, 0)}
-              </span>
-            )}
-          </HeaderButton>
-          <HeaderButton
-            onClick={() => {
-              setHistoryMounted(true)
-              setHistoryOpen(true)
-            }}
-            label={t('history.open')}
-          >
-            <IconClock />
-          </HeaderButton>
-          <HeaderButton
-            onClick={() => {
-              setSettingsMounted(true)
-              setSettingsOpen(true)
-            }}
-            label={t('settings.open')}
-          >
-            <IconGear />
-          </HeaderButton>
+          {headerButtons.map((button) => (
+            <HeaderButton key={button.key} onClick={button.onClick} label={button.label}>
+              {button.icon}
+              {button.badge > 0 && (
+                <span
+                  aria-hidden
+                  className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-fill-strong)] px-1 text-[11px] font-bold leading-none text-white dark:text-[hsl(168_90%_8%)]"
+                >
+                  {formatNumber(button.badge, lang, 0)}
+                </span>
+              )}
+            </HeaderButton>
+          ))}
         </div>
       </header>
 
-      <CalculatorView lang={lang} unit={unit} ready={!needsLang} />
+      {tab === 'calculator' ? (
+        <CalculatorView
+          lang={lang}
+          unit={unit}
+          ready={!needsLang}
+          annualInflationPercent={annualInflationPercent}
+          roundingStep={roundingStep}
+          onOpenSettings={openSettings}
+          onSaveProduct={onSaveProduct}
+          tab={tab}
+        />
+      ) : (
+        <Suspense fallback={null}>
+          <ProductsView lang={lang} unit={unit} onGoToCalculator={() => setTab('calculator')} />
+        </Suspense>
+      )}
 
       <footer className="mt-auto pb-2 pt-10 text-center">
         <p className="text-[12px] text-[var(--text-tertiary)]">{t('settings.privacy')}</p>
@@ -165,12 +243,39 @@ export default function App() {
             onThemeChange={setPreference}
             unit={unit}
             onUnitChange={setUnit}
+            roundingStep={roundingStep}
+            onRoundingChange={setRoundingStep}
+            annualInflationPercent={annualInflationPercent}
+            onInflationChange={onInflationChange}
           />
+        )}
+        {saveOpen && (
+          <SaveProductSheet
+            open={saveOpen}
+            onClose={() => setSaveOpen(false)}
+            draft={saveDraft}
+            lang={lang}
+            onSaved={() => {
+              setToastMounted(true)
+              setSavedToast(true)
+            }}
+          />
+        )}
+        {whatsNewOpen && !needsLang && (
+          <WhatsNewSheet open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} version={__APP_VERSION__} />
+        )}
+
+        {toastMounted && (
+          <Toast open={savedToast} message={t('products.saved')} onDismiss={() => setSavedToast(false)} />
         )}
       </Suspense>
 
-      <WelcomeLanguage open={needsLang} onChoose={chooseLanguage} />
-      <InstallPrompt state={install} ready={!needsLang} />
+      <TabBar value={tab} onChange={setTab} />
+
+      <Suspense fallback={null}>
+        {needsLang && <WelcomeLanguage open={needsLang} onChoose={chooseLanguage} />}
+        {installReady && <InstallPrompt state={install} ready={!needsLang} />}
+      </Suspense>
     </div>
   )
 }
