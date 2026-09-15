@@ -50,7 +50,9 @@
   --bg: #f2f2f7;
   --text-primary: #111114;
   --text-secondary: rgba(50, 52, 60, 0.82);
-  --text-tertiary: rgba(60, 60, 67, 0.6);
+  /* 0.6 composited to 3.29:1 on the light page — under AA for the 12px footer lines.
+     0.75 reads 4.82:1 with headroom for the lighter glass surfaces it also sits on. */
+  --text-tertiary: rgba(60, 60, 67, 0.75);
   --accent-text: hsl(166 90% 24%);
   --accent-fill: hsl(165 78% 38%);
   --accent-fill-strong: hsl(166 90% 27%);
