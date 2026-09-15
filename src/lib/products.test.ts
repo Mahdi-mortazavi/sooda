@@ -278,3 +278,32 @@ describe('productStatus guards', () => {
     expect(status.health).toBe('losing')
   })
 })
+
+/* v1.4 widened `Product` with three optional fields. Every pure helper on this module predates them
+ * and must keep behaving as though they were not there — the products screen still renders v1.3
+ * rows and v1.4 rows side by side. */
+describe('v1.4’s optional product fields', () => {
+  const plain = product({ id: 1, name: 'Tea', costUpdatedAt: MARCH })
+  const tagged: Product = { ...plain, category: 'food', importDependency: 1, manualMonthlyPercent: 4 }
+
+  it('does not change what productStatus computes', () => {
+    expect(productStatus(tagged, 40, SEPTEMBER)).toEqual(productStatus(plain, 40, SEPTEMBER))
+  })
+
+  it('does not change what previewBulk proposes', () => {
+    const op: BulkOp = { kind: 'costUp', percent: 12 }
+    const step: RoundingStep = 1000
+    expect(previewBulk([tagged], op, step, 40, SEPTEMBER)).toEqual(previewBulk([plain], op, step, 40, SEPTEMBER))
+  })
+
+  it('does not add columns to the CSV export', () => {
+    const headers = ['name', 'cost', 'margin', 'price', 'unit', 'note', 'costUpdatedAt', 'updatedAt']
+    expect(buildProductsCsv([tagged], headers)).toBe(buildProductsCsv([plain], headers))
+  })
+
+  it('leaves searching and sorting alone', () => {
+    expect(searchProducts([tagged], 'tea')).toEqual([tagged])
+    const statuses = new Map<number, ProductStatus>()
+    expect(sortProducts([tagged], 'name', statuses)).toEqual([tagged])
+  })
+})

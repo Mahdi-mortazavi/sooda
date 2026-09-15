@@ -239,3 +239,106 @@ describe('v1.2.0 rows read by v1.3 code', () => {
     expect(widened.every((e) => e.meta === undefined)).toBe(true)
   })
 })
+
+/* Products exactly as v1.3.0 wrote them: no `category`, no `importDependency`, no
+ * `manualMonthlyPercent`. They must satisfy the widened Product type unchanged. */
+const v3Tea: Product = {
+  id: 1,
+  name: 'Tea',
+  cost: 100_000,
+  targetMarginPercent: 30,
+  price: 130_000,
+  unit: 'toman',
+  note: 'top shelf',
+  costUpdatedAt: Date.UTC(2026, 2, 15),
+  createdAt: Date.UTC(2026, 2, 15),
+  updatedAt: Date.UTC(2026, 8, 1),
+}
+
+const v3Sugar: Product = {
+  id: 7,
+  name: 'Sugar',
+  cost: 48_500,
+  targetMarginPercent: 15,
+  price: 56_000,
+  costUpdatedAt: Date.UTC(2026, 5, 2),
+  createdAt: Date.UTC(2026, 1, 9),
+  updatedAt: Date.UTC(2026, 5, 2),
+}
+
+/* The v3 → v4 upgrade transaction itself cannot run here (no IndexedDB), so the part of it that
+ * decides what the rows LOOK LIKE is factored out into `backfillObservations` and executed for
+ * real below. What the test cannot prove is that Dexie calls it; that is covered structurally by
+ * 'carries an upgrade function on v4 only'. */
+describe('v3 → v4 backfill', () => {
+  it('writes exactly one observation per product and invents none', () => {
+    expect(backfillObservations([v3Tea, v3Sugar])).toHaveLength(2)
+    expect(backfillObservations([])).toEqual([])
+  })
+
+  it('builds each observation from the product’s own cost and costUpdatedAt', () => {
+    const [tea, sugar] = backfillObservations([v3Tea, v3Sugar])
+    expect(tea).toEqual({ productId: 1, cost: 100_000, observedAt: Date.UTC(2026, 2, 15), source: 'import' })
+    expect(sugar).toEqual({ productId: 7, cost: 48_500, observedAt: Date.UTC(2026, 5, 2), source: 'import' })
+  })
+
+  it('dates the reading when the price was true, not when the upgrade ran', () => {
+    const [tea] = backfillObservations([v3Tea])
+    // `updatedAt` moved in September when the price was retargeted; the COST is from March.
+    expect(tea!.observedAt).toBe(v3Tea.costUpdatedAt)
+    expect(tea!.observedAt).not.toBe(v3Tea.updatedAt)
+  })
+
+  it('carries no id, so Dexie mints the keys itself', () => {
+    for (const o of backfillObservations([v3Tea, v3Sugar])) {
+      expect(Object.keys(o).sort()).toEqual(['cost', 'observedAt', 'productId', 'source'])
+      expect('id' in o).toBe(false)
+    }
+  })
+
+  it('leaves the products themselves untouched', () => {
+    const before = JSON.stringify([v3Tea, v3Sugar])
+    backfillObservations([v3Tea, v3Sugar])
+    expect(JSON.stringify([v3Tea, v3Sugar])).toBe(before)
+  })
+
+  it('is safe to run twice: the same input yields the same rows, never a merged pair', () => {
+    expect(backfillObservations([v3Tea, v3Sugar])).toEqual(backfillObservations([v3Tea, v3Sugar]))
+  })
+})
+
+describe('a v1.3 backup file read by v1.4', () => {
+  /* Byte-for-byte what v1.3.0's exporter produced: version 1, and no `observations` or
+   * `storeProfile` key at all. This is the file sitting in a user's downloads folder. */
+  const v1File = {
+    app: 'sooda',
+    version: 1,
+    exportedAt: Date.UTC(2026, 5, 2),
+    products: [v3Tea, v3Sugar],
+    history: [v2Profit, v2Discount, v1Unitless],
+    basket: [v2Profit],
+    settings: { 'sooda:unit': 'toman' },
+  }
+
+  it('still validates, although the app now writes version 2', () => {
+    expect(BACKUP_VERSION).toBe(2)
+    const result = validateBackup(JSON.stringify(v1File))
+    expect(result.ok).toBe(true)
+  })
+
+  it('reads the absent collections as empty rather than as a broken file', () => {
+    const result = validateBackup(v1File)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.data.observations).toEqual([])
+    expect(result.data.storeProfile).toBeNull()
+    // …and everything v1.3 did carry comes back exactly as it went in.
+    expect(result.data.products).toEqual([v3Tea, v3Sugar])
+    expect(result.data.history).toEqual([v2Profit, v2Discount, v1Unitless])
+    expect(result.data.version).toBe(1)
+  })
+
+  it('rejects a file from a build newer than this one', () => {
+    expect(validateBackup({ ...v1File, version: 3 })).toEqual({ ok: false, problem: 'unsupportedVersion' })
+  })
+})
