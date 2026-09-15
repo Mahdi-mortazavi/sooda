@@ -91,7 +91,7 @@ export default defineConfig({
         name: 'Sooda',
         short_name: 'Sooda',
         description:
-          'Profit math, crystal clear. Offline-first, bilingual (English/Persian) profit, price & discount calculator.',
+          'Know whether your profit survives restocking. Sooda is a profit, price and discount calculator for sellers: real profit after inflation, instalment pricing, your own product list, and a smart per-product price-growth estimate. Works offline, private, bilingual English/Persian.',
         start_url: BASE,
         scope: BASE,
         display: 'standalone',

@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.3.0",
   "type": "module",
-  "description": "Sooda — Liquid-glass profit, price & discount calculator. Offline-first PWA, bilingual (EN/FA), privacy-first.",
+  "description": "Know whether your profit survives restocking. Sooda is a profit, price and discount calculator for sellers: real profit after inflation, instalment pricing, your own product list, and a smart per-product price-growth estimate. Works offline, private, bilingual English/Persian.",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

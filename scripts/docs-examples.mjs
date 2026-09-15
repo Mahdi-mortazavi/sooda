@@ -168,11 +168,18 @@ if (process.argv.includes('--check')) {
   // in the README of its own language.
   const faDoc = readFileSync('README.fa.md', 'utf8')
   const enDoc = readFileSync('README.md', 'utf8')
+  /* Compare magnitudes only. Intl prefixes a bidi mark to a negative Persian number and the
+   * prose says "۰٫۹۶٪ زیان" rather than repeating the sign, so the sign is not what we are
+   * checking — the digits are. Values with no digits at all (a status word like `thin`) are
+   * enum names, not figures, and are rendered as translated prose in each language. */
+  const magnitude = (v) => v.replace(/[\u200e\u200f\u061c]/g, '').replace(/^[-−]/, '')
   const missing = []
   for (const [id, label, f, n] of flat) {
-    if (/^[-—]$/.test(f) || f.length < 3) continue
-    if (!faDoc.includes(f)) missing.push(`README.fa.md is missing ${id} → ${label} = ${f}`)
-    if (!enDoc.includes(n)) missing.push(`README.md is missing ${id} → ${label} = ${n}`)
+    if (!/\d|[۰-۹]/.test(f)) continue
+    const fm = magnitude(f)
+    const nm = magnitude(n)
+    if (!faDoc.includes(fm)) missing.push(`README.fa.md is missing ${id} → ${label} = ${fm}`)
+    if (!enDoc.includes(nm)) missing.push(`README.md is missing ${id} → ${label} = ${nm}`)
   }
   console.log('')
   if (missing.length > 0) {
