@@ -219,6 +219,8 @@ export default function App() {
           roundingStep={roundingStep}
           onOpenSettings={openSettings}
           onSaveProduct={onSaveProduct}
+          rates={rates.rates}
+          onProductsChanged={checkIn.reload}
           tab={tab}
         />
       ) : (
