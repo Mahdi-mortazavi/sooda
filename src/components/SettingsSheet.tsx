@@ -1,13 +1,16 @@
+import { motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
+import type { RatesOrigin } from '../hooks/useRates'
 import type { ThemePreference } from '../hooks/useTheme'
 import { applyBackup, backupFilename, buildBackup, validateBackup, type BackupFile } from '../lib/backup'
 import { formatDate } from '../lib/dates'
-import { clearHistory } from '../lib/db'
+import { clearAllData } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { INFLATION_DEFAULT, hasInflationOverride, inflationSourceLabel } from '../lib/inflation'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
+import { isAutoUpdateEnabled, setAutoUpdateEnabled } from '../lib/rates/load'
 import { ROUNDING_STEPS, type RoundingStep } from '../lib/rounding'
 import { GITHUB_URL, TELEGRAM_URL } from '../lib/links'
 import { UNITS, unitShortLabel, type Unit } from '../lib/units'
@@ -54,6 +57,14 @@ interface SettingsSheetProps {
   annualInflationPercent: number
   /** null resets to the bundled default. */
   onInflationChange: (percent: number | null) => void
+  /** Opens the two-question store setup; Settings is the only place to change it later. */
+  onOpenStoreProfile: () => void
+  /** Re-reads the rates file after the toggle is switched back on. */
+  onAutoUpdateChange: () => void
+  /** 'YYYY-MM-DD' from the loaded file, or null when it carries no date yet. */
+  ratesUpdatedAt: string | null
+  /** Where the loaded file came from — the only field that knows whether the fetch worked. */
+  ratesOrigin: RatesOrigin
 }
 
 export function SettingsSheet({
@@ -69,6 +80,10 @@ export function SettingsSheet({
   onRoundingChange,
   annualInflationPercent,
   onInflationChange,
+  onOpenStoreProfile,
+  onAutoUpdateChange,
+  ratesUpdatedAt,
+  ratesOrigin,
 }: SettingsSheetProps) {
   const { t } = useTranslation()
   const [confirmingErase, setConfirmingErase] = useState(false)
@@ -81,6 +96,18 @@ export function SettingsSheet({
     setSeededPercent(annualInflationPercent)
     setInflationText(String(annualInflationPercent))
     setInflationError(null)
+  }
+
+  // Seeded from storage once. The switch is the only thing in the app that writes this key.
+  const [autoUpdate, setAutoUpdate] = useState(isAutoUpdateEnabled)
+
+  const toggleAutoUpdate = () => {
+    vibrate()
+    const next = !autoUpdate
+    setAutoUpdate(next)
+    setAutoUpdateEnabled(next)
+    // Switching it back on should fetch straight away, not wait for the next launch.
+    if (next) onAutoUpdateChange()
   }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -219,6 +246,65 @@ export function SettingsSheet({
             size="sm"
             options={UNITS.map((u) => ({ value: u, label: unitShortLabel(u, lang) }))}
           />
+        </section>
+
+        <section aria-label={t('settings.ratesAuto')}>
+          <h3 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+            {t('settings.ratesAuto')}
+          </h3>
+          <div className="glass glass-ring flex items-center gap-3 rounded-2xl px-4 py-3.5">
+            <span className="min-w-0 flex-1 text-[14.5px] font-semibold">{t('settings.ratesAuto')}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoUpdate}
+              aria-label={t('settings.ratesAuto')}
+              onClick={toggleAutoUpdate}
+              className={`relative h-[30px] w-[50px] shrink-0 rounded-full transition-colors duration-300 ${
+                autoUpdate ? 'bg-[var(--accent-fill-strong)]' : 'bg-black/16 dark:bg-white/20'
+              }`}
+            >
+              {/* Nudged with a logical inset so the knob travels the correct way in Persian too. */}
+              <motion.span
+                aria-hidden
+                layout
+                transition={{ type: 'spring', stiffness: 460, damping: 34 }}
+                className="absolute top-[3px] h-6 w-6 rounded-full bg-white shadow-sm"
+                style={autoUpdate ? { insetInlineEnd: 3 } : { insetInlineStart: 3 }}
+              />
+            </button>
+          </div>
+          <p className="mt-2 px-1 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            {t('settings.ratesAutoHint')}
+          </p>
+          <p className="mt-1.5 px-1 text-[13px] text-[var(--text-tertiary)]">
+            {/* Three different states, and only `origin` can tell them apart. Keying this off the
+              * file's own date said "updates are off or not reachable" to a device that had just
+              * fetched the file successfully — it was merely an empty one. */}
+            {ratesOrigin === 'fallback'
+              ? t('settings.ratesOffline')
+              : ratesUpdatedAt === null
+                ? t('settings.ratesMissing')
+                : t('settings.ratesUpdated', {
+                    replace: { date: formatDate(Date.parse(`${ratesUpdatedAt}T00:00:00Z`), lang) },
+                  })}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              vibrate()
+              onOpenStoreProfile()
+            }}
+            className="glass glass-ring mt-2.5 flex w-full items-center gap-2.5 rounded-2xl px-4 py-3.5 text-start"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14.5px] font-semibold">{t('profile.settings')}</span>
+              <span className="mt-0.5 block text-[12.5px] leading-snug text-[var(--text-secondary)]">
+                {t('profile.settingsHint')}
+              </span>
+            </span>
+          </button>
         </section>
 
         <section aria-label={t('settings.inflation')}>
@@ -398,7 +484,10 @@ export function SettingsSheet({
                   type="button"
                   onClick={() => {
                     vibrate()
-                    void clearHistory().then(() => setConfirmingErase(false))
+                    void clearAllData()
+                      // The badge counts products to check; with no products it must go too.
+                      .then(() => import('../lib/badge').then((b) => b.clearBadge()))
+                      .then(() => setConfirmingErase(false))
                   }}
                   className="rounded-xl bg-loss-600 px-4 py-2 text-[14px] font-semibold text-white"
                 >

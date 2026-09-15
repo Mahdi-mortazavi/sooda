@@ -1,0 +1,24 @@
+{
+  "_readme": [
+    "Which adapter supplies each signal. Adapters live in scripts/rates/sources/.",
+    "'manual' offers nothing, so the pipeline is a no-op and the file stays whatever a",
+    "human last set with `npm run rates:set` / `npm run rates:cpi`.",
+    "FX: switch \"adapter\" to \"tgju\" to pull the free-market USD close automatically.",
+    "That endpoint is verified reachable from cloud runners but is undocumented and",
+    "carries no published usage policy, so opting in is the maintainer's call.",
+    "CPI: no adapter exists. amar.org.ir and cbi.ir refuse connections from non-Iranian",
+    "IPs, so CPI is maintained by hand. See docs/rates.md for what to fill in and how."
+  ],
+  "fx": {
+    "adapter": "manual",
+    "options": {
+      "indicator": "price_dollar_rl",
+      "days": 30,
+      "timeoutMs": 15000
+    }
+  },
+  "cpi": {
+    "adapter": "manual",
+    "options": {}
+  }
+}

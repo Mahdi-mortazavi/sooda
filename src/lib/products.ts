@@ -2,26 +2,50 @@
 
 import { round2 } from './calc'
 import { monthsBetween } from './dates'
-import { db, type Product } from './db'
+import { db, type Observation, type Product } from './db'
 import { monthlyRateFromPercent, profitStatus, realProfitPercent, replacementCost } from './inflation'
 import { normalizeDigits } from './numbers'
 import { roundUpTo, type RoundingStep } from './rounding'
 
 /* ── repository ─────────────────────────────────────────────────────────── */
 
-/** Adds a product, stamping both timestamps. Returns the new id. */
+/** Adds a product with its first price observation, stamping both timestamps. Returns the new id. */
 export async function addProduct(p: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
   const now = Date.now()
-  return db.products.add({ ...p, createdAt: now, updatedAt: now })
+  return db.transaction('rw', db.products, db.observations, async () => {
+    const id = await db.products.add({ ...p, createdAt: now, updatedAt: now })
+    /* The very first save is already evidence. Dated `costUpdatedAt` rather than now, because the
+     * user may be recording a price they paid last month. */
+    const first = { productId: id, cost: p.cost, observedAt: p.costUpdatedAt, source: 'save' as const }
+    await db.observations.add(first as Observation)
+    return id
+  })
 }
 
 /** Patches a product and stamps `updatedAt`, so the "recently changed" sort stays honest. */
 export async function updateProduct(id: number, patch: Partial<Omit<Product, 'id'>>): Promise<void> {
-  await db.products.update(id, { ...patch, updatedAt: Date.now() })
+  const now = Date.now()
+  await db.transaction('rw', db.products, db.observations, async () => {
+    const before = await db.products.get(id)
+    await db.products.update(id, { ...patch, updatedAt: now })
+    /* Only a cost that actually MOVED is a new reading. Re-saving the same figure after editing a
+     * note would otherwise stack duplicate points and flatten the product's estimated growth. */
+    if (before === undefined || patch.cost === undefined || patch.cost === before.cost) return
+    await db.observations.add({
+      productId: id,
+      cost: patch.cost,
+      observedAt: patch.costUpdatedAt ?? now,
+      source: 'update',
+    } as Observation)
+  })
 }
 
+/** Deletes a product and the whole private history behind it — orphan readings help nobody. */
 export async function deleteProduct(id: number): Promise<void> {
-  await db.products.delete(id)
+  await db.transaction('rw', db.products, db.observations, async () => {
+    await db.products.delete(id)
+    await db.observations.where('productId').equals(id).delete()
+  })
 }
 
 export async function listProducts(): Promise<Product[]> {
@@ -36,25 +60,51 @@ export interface ProductChange {
   costUpdatedAt?: number
 }
 
+/** What a bulk reprice wrote, so the undo path can take back exactly that and nothing else. */
+export interface BulkApplyResult {
+  /** Ids of the observations this run created, in the order the changes were applied. */
+  observationIds: number[]
+}
+
 /** Applies every change inside ONE Dexie transaction so a bulk reprice is all-or-nothing. */
-export async function bulkApply(changes: ProductChange[]): Promise<void> {
+export async function bulkApply(changes: ProductChange[]): Promise<BulkApplyResult> {
   const now = Date.now()
-  await db.transaction('rw', db.products, async () => {
+  return db.transaction('rw', db.products, db.observations, async () => {
+    const observationIds: number[] = []
     for (const c of changes) {
+      /* Read before write: a 'retarget' run moves only the price, and a 'costUp' run can land on
+       * the figure already stored. Neither is a new reading about what the product costs. */
+      const before = await db.products.get(c.id)
       await db.products.update(c.id, {
         price: c.price,
         updatedAt: now,
         ...(c.cost === undefined ? {} : { cost: c.cost }),
         ...(c.costUpdatedAt === undefined ? {} : { costUpdatedAt: c.costUpdatedAt }),
       })
+      if (before === undefined || c.cost === undefined || c.cost === before.cost) continue
+      const id = await db.observations.add({
+        productId: c.id,
+        cost: c.cost,
+        observedAt: c.costUpdatedAt ?? now,
+        source: 'update',
+      } as Observation)
+      observationIds.push(id)
     }
+    return { observationIds }
   })
 }
 
-/** Undo path — writes the given rows back verbatim (ids and timestamps included), also in one transaction. */
-export async function restoreProducts(snapshot: Product[]): Promise<void> {
-  await db.transaction('rw', db.products, async () => {
+/**
+ * Undo path — writes the given rows back verbatim (ids and timestamps included) and deletes the
+ * observations the matching `bulkApply` created, in one transaction.
+ *
+ * The ids are passed in rather than re-derived: deleting "every observation newer than X" would
+ * also swallow a reading the user recorded by hand between the reprice and the undo.
+ */
+export async function restoreProducts(snapshot: Product[], observationIds: number[] = []): Promise<void> {
+  await db.transaction('rw', db.products, db.observations, async () => {
     await db.products.bulkPut(snapshot)
+    if (observationIds.length > 0) await db.observations.bulkDelete(observationIds)
   })
 }
 
@@ -185,7 +235,12 @@ export function previewBulk(
 /* Deliberately duplicated from csv.ts: that module is owned by the history export and importing it
  * here would drag the history builder (and its mode labels) into the products chunk. */
 function escapeCell(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+  /* A cell beginning =, +, - or @ is a formula to Excel and LibreOffice, so a product named
+   * `=HYPERLINK(...)` would turn this export into an outbound request carrying the shop's own
+   * cost figures the moment it was opened. Prefixing an apostrophe makes it literal text.
+   * Reachable through a restored backup, which accepts any name string. */
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
 /** Build a CSV export of the price list (with UTF-8 BOM so Excel renders Persian text correctly). */

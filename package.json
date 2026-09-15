@@ -1,9 +1,9 @@
 {
   "name": "sooda",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
-  "description": "Sooda — Liquid-glass profit, price & discount calculator. Offline-first PWA, bilingual (EN/FA), privacy-first.",
+  "description": "Know whether your profit survives restocking. Sooda is a profit, price and discount calculator for sellers: real profit after inflation, instalment pricing, your own product list, and a smart per-product price-growth estimate. Works offline, private, bilingual English/Persian.",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
@@ -18,7 +18,13 @@
     "i18n:check": "node scripts/i18n-parity.mjs",
     "verify": "npm run typecheck && npm run test && npm run build",
     "smoke": "node scripts/smoke.mjs",
-    "shots:diff": "node scripts/screenshot-diff.mjs"
+    "shots:diff": "node scripts/screenshot-diff.mjs",
+    "rates:update": "node scripts/rates/update.mjs",
+    "rates:set": "node scripts/rates/set.mjs",
+    "rates:cpi": "node scripts/rates/cpi.mjs",
+    "rates:fallback": "node scripts/rates/fallback.mjs",
+    "rates:test": "node --test scripts/rates/update.test.mjs",
+    "docs:examples": "node scripts/docs-examples.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

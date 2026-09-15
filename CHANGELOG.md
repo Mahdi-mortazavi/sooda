@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-09-15
+
+### Added
+
+- **Smart price growth (نرخ گرانی هوشمند):** inflation is not one number, so Sooda no longer treats it as one. It estimates a **monthly price-growth rate for each product** from three signals — the purchase prices you record yourself, the inflation figure for that product's category, and the dollar for imported goods — and shows its working. **"Why this number?"** breaks down how much of the estimate came from where, and every figure is labelled an estimate, never a fact.
+- **Store profile (مشخصات مغازه):** two questions — what you sell, and how dollar-linked your goods are — asked once, never at launch, and only the first time the answer would change a number on screen. Skipping is remembered.
+- **Price check-in (بررسی قیمت‌ها):** Sooda works out which products have most likely moved and offers to walk you through them one at a time, worst first. Record a new price, mark it unchanged, or leave it for later; a price that looks like a one-off sale is queried before it is learned from. Products that went up hand straight over to bulk reprice.
+- **Passive learning:** a purchase price typed into the calculator, or entered through a product's new-cost shortcut, can be recorded against that product in one tap. The estimate gets better the more the app is used, and nothing is written without being asked.
+- **Automatic rate updates:** a small public rates file is fetched from Sooda's own site, with an off switch in Settings. It is deliberately kept out of the installed app's cache, so a daily rate change never pushes an app update to your phone.
+- A rates pipeline (`.github/workflows/rates.yml`) with manual CLI tools, plus [`docs/rates.md`](./docs/rates.md) explaining exactly what a maintainer must fill in.
+
+### Changed
+
+- **Both READMEs rewritten for sellers rather than developers**, opening with a story and covering every part of the app in the same shape: who it is for, three steps, a worked example, a screenshot, a tip. Every example number is computed from the real engine by `npm run docs:examples`.
+- **"Erase all data" now erases all data.** It previously cleared only the calculation history, leaving saved products and their price history behind — which matters more now that Sooda stores a per-product purchase-price history.
+- Confidence in an estimate no longer collapses to "low" just because the national figures are old: a stale file costs only as much as the file contributed.
+- Project descriptions rewritten in one voice across the manifest, meta tags and package metadata.
+
+### Fixed
+
+- **A missing signal is now an abstention, not a forecast of zero.** The blend substituted 0 in log space for any signal it lacked, which is the claim "prices are flat" — so a fully-imported product with no dollar data forecast 0%/month, and a clean 5%/month personal trend came out as 4.27%. Both were the shipped default, because the rates file starts empty.
+- A manual rate override was ignored on the restock path, which could quote a cost built from a rate the card never showed.
+- The rate headline said "price rise" even when the number was negative, and the dollar line said "up" when the dollar had fallen.
+- A future-dated price reading (a skewed clock, a mistyped year) inflated how much the estimate trusted your own history.
+- The store-profile question reappeared on every visit unless dismissed with the one button that happened to be wired up.
+- English counted strings said "1 products".
+
+### Security
+
+- The rates fetch no longer sends credentials or a referrer, and has an 8-second deadline. `github.io` is a shared origin, so a default same-origin request could have carried a cookie set by an unrelated page.
+- A Content-Security-Policy with `connect-src 'self'` makes "nothing leaves your device" a rule the browser enforces rather than one that survives on code review.
+- CSV exports escape leading `=`, `+`, `-` and `@`, so a product name can no longer become a formula in Excel.
+- An error boundary replaces the blank page a browser that refuses storage used to produce, and `SECURITY.md` no longer claims the app makes no network calls.
+
 ## [1.3.0] - 2026-09-15
 
 ### Added

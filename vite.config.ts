@@ -91,7 +91,7 @@ export default defineConfig({
         name: 'Sooda',
         short_name: 'Sooda',
         description:
-          'Profit math, crystal clear. Offline-first, bilingual (English/Persian) profit, price & discount calculator.',
+          'Know whether your profit survives restocking. Sooda is a profit, price and discount calculator for sellers: real profit after inflation, instalment pricing, your own product list, and a smart per-product price-growth estimate. Works offline, private, bilingual English/Persian.',
         start_url: BASE,
         scope: BASE,
         display: 'standalone',
@@ -139,10 +139,33 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
         // version.json must always come from the network, otherwise a post-deploy
         // check would read the precached copy and never see the new release.
-        globIgnores: ['**/version.json'],
+        // data/*.json is the public rates feed. json is already outside globPatterns,
+        // but say it out loud: anything precached lands in the manifest with a content
+        // hash, so a rates refresh would rewrite sw.js and ship an app update to every
+        // installed device just to change a number. It is runtime-cached below instead.
+        globIgnores: ['**/version.json', '**/data/*.json'],
         navigateFallback: `${BASE}index.html`,
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            // A route matcher is serialized into sw.js by its source text alone, with no
+            // closure, so BASE cannot be interpolated here — the pathname is spelled out.
+            // sameOrigin plus an exact pathname match: no other request on the origin,
+            // and nothing off it, can reach this route.
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname === '/sooda/data/rates.json',
+            // Stale-while-revalidate keeps the app instant and usable offline after one
+            // successful fetch, while still picking up a fresh file in the background.
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'sooda-data',
+              // One live entry; the spare headroom just absorbs an in-flight rename.
+              expiration: { maxEntries: 4, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              // Never cache a 404 or an opaque redirect as if it were rates data.
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+        ],
       },
     }),
   ],

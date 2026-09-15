@@ -70,10 +70,10 @@
     "themeSystem": "Auto",
     "toggleTheme": "Toggle dark mode",
     "clearData": "Erase all data",
-    "clearDataHint": "Removes your calculation history from this device.",
+    "clearDataHint": "Removes your calculation history, basket, saved products and their price history from this device. Your language, theme and currency are kept.",
     "about": "About",
     "version": "Version",
-    "privacy": "Everything stays on your device. No server, no tracking, no analytics.",
+    "privacy": "Everything stays on your device — no tracking, no analytics. Sooda only downloads a public rates file from its own site; nothing from your device is ever sent.",
     "sourceCode": "Source code on GitHub",
     "unit": "Currency unit"
   },
@@ -165,5 +165,24 @@
   "products": {
     "save": "Save to my products",
     "saved": "Saved!"
+  },
+  "categories": {
+    "food": "Food",
+    "apparel": "Clothing & shoes",
+    "home": "Home goods",
+    "digital": "Phones & electronics",
+    "beauty": "Beauty & personal care",
+    "health": "Health & medicine",
+    "auto": "Car parts",
+    "stationery": "Stationery & books",
+    "other": "Other"
+  },
+  "outlier": {
+    "title": "Double-check this price?",
+    "body": "The price went from {{from}} to {{to}} — is that right?",
+    "yes": "Yes, that’s right",
+    "fix": "Fix the number",
+    "temporary": "Temporary / sale",
+    "excluded": "Saved. It won’t change the estimate."
   }
 }

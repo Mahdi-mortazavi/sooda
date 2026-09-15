@@ -1,0 +1,125 @@
+// The one impure file in src/lib/rates: everything else here is pure and takes an
+// injected clock. Fetching, localStorage and the bundled fallback all live behind
+// this door so the maths stays trivially testable.
+//
+// The rates file is deliberately NOT precached. Precaching would hash it into the
+// service worker manifest, so a rate change would ship an app update to every
+// installed device. It is served by a StaleWhileRevalidate route instead (see
+// vite.config.ts), which is why the fetch below is a plain one with no cache hints.
+
+import fallbackJson from '../../data/rates.fallback.json'
+import { RATES_SCHEMA_VERSION, validateRates, type RatesFile } from './schema'
+
+export const RATES_URL = `${import.meta.env.BASE_URL}data/rates.json`
+export const RATES_STORAGE_KEY = 'sooda:rates'
+export const RATES_ENABLED_KEY = 'sooda:rates-auto'
+
+/** Keeps a pathological FX series out of a ~5MB storage quota shared with drafts and products. */
+export const MAX_STORED_FX_POINTS = 400
+
+/** Long enough for a slow connection, short enough that a stalled socket does not linger. */
+export const RATES_TIMEOUT_MS = 8000
+
+/** Valid but says nothing — the shape every reader can handle, used only if even the fallback is broken. */
+const EMPTY_RATES: RatesFile = {
+  schema: RATES_SCHEMA_VERSION,
+  updatedAt: null,
+  cpi: { source: { name: '', url: '' }, asOf: null, overallMonthlyPercent: null, categories: {} },
+  fx: { source: { name: '', url: '' }, pair: '', series: [] },
+}
+
+/** The bundled copy, statically imported so a very first launch works offline. */
+export const FALLBACK_RATES: RatesFile = ((): RatesFile => {
+  const check = validateRates(fallbackJson)
+  // The fallback is a snapshot taken at release time by `npm run rates:fallback`, so it
+  // is usually older than the served file and may be entirely null. Either way a bad
+  // snapshot must degrade the app to "no data", never take it down on the first paint.
+  return check.ok ? check.data : EMPTY_RATES
+})()
+
+export function isAutoUpdateEnabled(): boolean {
+  try {
+    // Opt-out, not opt-in: absent means on, so a fresh install gets current rates.
+    return localStorage.getItem(RATES_ENABLED_KEY) !== 'off'
+  } catch {
+    // Private window — the preference is unreadable, so honour the default.
+    return true
+  }
+}
+
+export function setAutoUpdateEnabled(on: boolean): void {
+  try {
+    localStorage.setItem(RATES_ENABLED_KEY, on ? 'on' : 'off')
+  } catch {
+    // best-effort persistence
+  }
+}
+
+export interface RatesState {
+  rates: RatesFile
+  origin: 'network' | 'stored' | 'fallback'
+}
+
+/** Last good value from localStorage, else the bundled fallback. Never throws, never null. */
+export function readCachedRates(): RatesState {
+  try {
+    const raw = localStorage.getItem(RATES_STORAGE_KEY)
+    if (raw !== null) {
+      // Re-validated on read: a stored value written by an older schema, or by a
+      // half-finished write, must not slip past the guard just because it is ours.
+      const check = validateRates(JSON.parse(raw))
+      if (check.ok) return { rates: check.data, origin: 'stored' }
+    }
+  } catch {
+    // unreadable storage or malformed JSON — the bundled copy is always there
+  }
+  return { rates: FALLBACK_RATES, origin: 'fallback' }
+}
+
+/** The guard sorts the series ascending, so the tail is the newest data worth keeping. */
+function trimForStorage(rates: RatesFile): RatesFile {
+  if (rates.fx.series.length <= MAX_STORED_FX_POINTS) return rates
+  return { ...rates, fx: { ...rates.fx, series: rates.fx.series.slice(-MAX_STORED_FX_POINTS) } }
+}
+
+function storeRates(rates: RatesFile): void {
+  try {
+    localStorage.setItem(RATES_STORAGE_KEY, JSON.stringify(rates))
+  } catch {
+    // quota or private mode — the value still serves this session in memory
+  }
+}
+
+/**
+ * Fetches, validates, and on success stores and returns it. On ANY failure — offline,
+ * non-200, unparseable, or a file the guard rejects — returns the cached state unchanged.
+ * Never throws. No-ops (returning the cached state) when auto-update is off.
+ */
+export async function refreshRates(signal?: AbortSignal): Promise<RatesState> {
+  const cached = readCachedRates()
+  if (!isAutoUpdateEnabled()) return cached
+  /* A captive portal can hold a request open for the OS timeout. Nothing waits on this — the
+   * cached value is already painted — but the socket and the worker's revalidation both sit
+   * there, so it gets its own deadline alongside the caller's unmount signal. */
+  const deadline = AbortSignal.timeout(RATES_TIMEOUT_MS)
+  const combined = signal ? AbortSignal.any([signal, deadline]) : deadline
+  try {
+    // RATES_URL is the only address this file may ever touch: same origin, no
+    // third party, nothing about the shopkeeper leaves the device.
+    /* github.io is a shared origin: any other page under this account's own github.io host
+     * can set a host cookie that a default same-origin fetch would then carry. Nothing about
+     * this request should identify the device, so it carries nothing. */
+    const response = await fetch(RATES_URL, { signal: combined, credentials: 'omit', referrerPolicy: 'no-referrer' })
+    if (!response.ok) return cached
+    const check = validateRates(await response.json())
+    // A rejected file leaves the last good value in place — half-applying a broken
+    // file is worse than showing yesterday's numbers.
+    if (!check.ok) return cached
+    const rates = trimForStorage(check.data)
+    storeRates(rates)
+    return { rates, origin: 'network' }
+  } catch {
+    // offline, aborted, or a body that is not JSON at all
+    return cached
+  }
+}

@@ -1,8 +1,13 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
-import type { Product } from '../lib/db'
+import type { Product, StoreProfile } from '../lib/db'
+import { listObservations, recordCost } from '../lib/observations'
+import { fxAt, fxLatest, productRate } from '../lib/rates'
+import { resolveRateSettings } from '../lib/rates/resolve'
+import type { RatesFile } from '../lib/rates/schema'
 import { vibrate } from '../lib/haptics'
 import { readAnnualInflationPercent, suggestedPrice } from '../lib/inflation'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
@@ -11,6 +16,7 @@ import { readRoundingStep, roundUpTo } from '../lib/rounding'
 import { UNITS, formatAmountWithUnit, unitShortLabel, type Unit } from '../lib/units'
 import { IconAlert, IconCheck, IconTarget, IconTrash, IconTrendUp } from './Icons'
 import { NumberField } from './NumberField'
+import { RateCard } from './RateCard'
 import { SegmentedControl } from './SegmentedControl'
 import { Sheet } from './Sheet'
 
@@ -21,10 +27,25 @@ interface ProductSheetProps {
   lang: AppLanguage
   unit: Unit
   onToast: (message: string, action?: { label: string; onAction: () => void }) => void
+  /** null while the rates file is loading — the card still renders, on the prior alone. */
+  rates: RatesFile | null
+  profile: StoreProfile | null
+  /** A recorded cost changes the staleness list and the badge. */
+  onProductsChanged?: () => void
 }
 
 /** Full editor for one saved product: live real margin, the new-cost shortcut, and a two-step delete. */
-export function ProductSheet({ open, onClose, product, lang, unit, onToast }: ProductSheetProps) {
+export function ProductSheet({
+  open,
+  onClose,
+  product,
+  lang,
+  unit,
+  onToast,
+  rates,
+  profile,
+  onProductsChanged,
+}: ProductSheetProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const productId = product?.id ?? null
@@ -84,6 +105,56 @@ export function ProductSheet({ open, onClose, product, lang, unit, onToast }: Pr
     return productStatus(provisional, readAnnualInflationPercent(), Date.now())
   }, [product, costValue, marginValue, priceValue, rowUnit])
 
+  /* Only this product's readings, and only while the sheet is open. `null` (loading) is
+   * distinct from `[]` (a product with no history), which is what the card's empty copy is for. */
+  const observations = useLiveQuery(
+    () => (open && productId !== null ? listObservations(productId) : Promise.resolve([])),
+    [open, productId],
+    undefined,
+  )
+
+  const rateSettings = useMemo(() => resolveRateSettings(product ?? {}, profile), [product, profile])
+
+  /* One clock reading per open, not per render: a `now` that advanced on every keystroke
+   * would make the rate and the restock figure creep while the user is reading them. */
+  const [rateNow] = useState(() => Date.now())
+
+  const rate = useMemo(() => {
+    if (!product) return null
+    return productRate({
+      observations: observations ?? [],
+      category: rateSettings.category,
+      importDependency: rateSettings.importDependency,
+      ...(rateSettings.manualMonthlyPercent === undefined
+        ? {}
+        : { manualMonthlyPercent: rateSettings.manualMonthlyPercent }),
+      rates,
+      now: rateNow,
+    })
+  }, [product, observations, rateSettings, rates, rateNow])
+
+  const history = useMemo(
+    () => (observations ?? []).filter((o) => o.excluded !== true).map((o) => o.cost),
+    [observations],
+  )
+
+  /* How far the dollar has moved since the last purchase — shown only when both ends are
+   * known, because "the dollar is up 0%" from a missing reading would be a claim, not a fact. */
+  const fxChangePercent = useMemo(() => {
+    if (!rates || rate?.lastObservedAt == null) return null
+    const then = fxAt(rates.fx.series, rate.lastObservedAt)
+    const latest = fxLatest(rates.fx.series)
+    if (then === null || latest === null || then <= 0) return null
+    return (latest[1] / then - 1) * 100
+  }, [rates, rate?.lastObservedAt])
+
+  const onManualRateChange = async (monthlyPercent: number | null) => {
+    if (!product) return
+    // undefined clears the column; null from the card means "back to the automatic estimate".
+    await updateProduct(product.id, { manualMonthlyPercent: monthlyPercent ?? undefined })
+    onProductsChanged?.()
+  }
+
   const newCostValue = parseAmount(newCost)
   const suggested =
     Number.isFinite(newCostValue) && newCostValue > 0 && Number.isFinite(marginValue)
@@ -99,7 +170,21 @@ export function ProductSheet({ open, onClose, product, lang, unit, onToast }: Pr
     setPrice(String(suggested))
     setNewCostOpen(false)
     setNewCost('')
-    await updateProduct(product.id, { cost: newCostValue, costUpdatedAt: Date.now(), price: suggested })
+    /* recordCost, not updateProduct: a new purchase price is exactly the evidence the
+     * estimate is built from, and it stamps cost/costUpdatedAt in the same transaction.
+     * The FX rate of the day is stored with it so an imported product's restock figure can
+     * later ride the dollar rather than the blended rate. */
+    const observedAt = Date.now()
+    const fxToday = rates ? fxAt(rates.fx.series, observedAt) : null
+    await recordCost({
+      productId: product.id,
+      cost: newCostValue,
+      observedAt,
+      ...(fxToday === null ? {} : { fxAtDate: fxToday }),
+      source: 'update',
+    })
+    await updateProduct(product.id, { price: suggested })
+    onProductsChanged?.()
     onToast(t('products.saved'))
   }
 
@@ -205,6 +290,18 @@ export function ProductSheet({ open, onClose, product, lang, unit, onToast }: Pr
               error={showErrors ? priceError : null}
             />
           </div>
+
+          {rate ? (
+            <RateCard
+              rate={rate}
+              history={history}
+              category={rateSettings.category}
+              importDependency={rateSettings.importDependency}
+              lang={lang}
+              fxChangePercent={fxChangePercent}
+              onManualChange={(monthlyPercent) => void onManualRateChange(monthlyPercent)}
+            />
+          ) : null}
 
           <section aria-label={t('products.newCost')}>
             <motion.button

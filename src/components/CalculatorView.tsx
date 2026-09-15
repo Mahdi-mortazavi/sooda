@@ -17,6 +17,7 @@ import {
   visibleFields,
 } from '../lib/modes/registry'
 import type { ModeId, ModeState, ResultDisplay, ScheduleInfo, SegmentId, Translate } from '../lib/modes/types'
+import type { RatesFile } from '../lib/rates/schema'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import type { RoundingStep } from '../lib/rounding'
 import { buildModeShareQuery, parseModeShareQuery } from '../lib/share'
@@ -32,6 +33,8 @@ const ScheduleSheet = lazy(() => import('./ScheduleSheet').then((m) => ({ defaul
 // after load and a deliberate act — so its refraction filter and real-profit block
 // have no business in the bytes that decide first paint.
 const ResultCard = lazy(() => import('./ResultCard').then((m) => ({ default: m.ResultCard })))
+// Only ever mounted under a result that carries a cost, so it never costs a first-time user anything.
+const CalcProductLink = lazy(() => import('./CalcProductLink').then((m) => ({ default: m.CalcProductLink })))
 
 interface Snapshot {
   inputs: number[]
@@ -52,6 +55,10 @@ interface CalculatorViewProps {
   /** The lens's inflation chip is a shortcut into Settings, where the rate lives. */
   onOpenSettings: () => void
   onSaveProduct: (draft: ProductDraft) => void
+  /** null while the rates file loads; only used to stamp the day's FX on a recorded cost. */
+  rates: RatesFile | null
+  /** A cost recorded from here changes the stale list and the badge. */
+  onProductsChanged: () => void
   /** Persisted with the calculator draft so a service-worker reload lands where the user was. */
   tab: DraftState['tab']
 }
@@ -64,6 +71,8 @@ export function CalculatorView({
   roundingStep,
   onOpenSettings,
   onSaveProduct,
+  rates,
+  onProductsChanged,
   tab,
 }: CalculatorViewProps) {
   const { t } = useTranslation()
@@ -382,6 +391,18 @@ export function CalculatorView({
                 />
               </Suspense>
             )}
+
+            {result?.product ? (
+              <Suspense fallback={null}>
+                <CalcProductLink
+                  cost={result.product.cost}
+                  lang={lang}
+                  unit={unit}
+                  rates={rates}
+                  onChanged={onProductsChanged}
+                />
+              </Suspense>
+            ) : null}
           </motion.div>
         </AnimatePresence>
       </div>
