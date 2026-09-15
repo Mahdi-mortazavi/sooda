@@ -95,3 +95,30 @@ export function BadgeMedal({ size = 56 }: { size?: number }) {
     </svg>
   )
 }
+
+/**
+ * A mortar board, for the rows and cards that stand for the tutorial itself.
+ *
+ * It lives here rather than in `components/Icons.tsx` because that module is in the entry chunk:
+ * an icon only lazy surfaces draw would be bytes on the critical path for a shopkeeper who never
+ * opens a lesson.
+ */
+export function IconGraduation({ size = 22 }: { size?: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 4 2 9l10 5 10-5-10-5Z" />
+      <path d="M6 11.5V16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4.5" />
+      <path d="M21 9.5V15" />
+    </svg>
+  )
+}

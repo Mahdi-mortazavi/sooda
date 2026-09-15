@@ -132,7 +132,6 @@ export function LearnCenter({ open, onClose, lang, progress, onStart, available,
           <SectionTitle>{t('learn.recommended', { defaultValue: 'Recommended for you' })}</SectionTitle>
           <motion.button
             type="button"
-            data-tour="learn-recommended"
             onClick={() => {
               vibrate()
               onStart(next)
@@ -258,7 +257,6 @@ function LessonCard({
     >
       <button
         type="button"
-        data-tour={`learn-lesson-${id}`}
         onClick={() => {
           vibrate()
           onStart()

@@ -91,7 +91,6 @@ export function Onboarding({
         stage === 'celebrate' ? null : (
           <button
             type="button"
-            data-tour="onboarding-skip"
             onClick={onSkip}
             className="shrink-0 rounded-full px-3 py-1.5 text-[14px] font-semibold text-[var(--text-secondary)]"
           >
@@ -163,7 +162,6 @@ export function Onboarding({
 
           <motion.button
             type="button"
-            data-tour="onboarding-next"
             onClick={() => {
               vibrate()
               if (card + 1 < CARDS.length) setCard(card + 1)
@@ -192,7 +190,6 @@ export function Onboarding({
                   key={id}
                   type="button"
                   aria-pressed={picked}
-                  data-tour={`onboarding-goal-${id}`}
                   onClick={() => toggleGoal(id)}
                   className={`rounded-full px-4 py-2.5 text-[14.5px] font-semibold transition-colors ${
                     picked
@@ -208,7 +205,6 @@ export function Onboarding({
 
           <motion.button
             type="button"
-            data-tour="onboarding-mission"
             onClick={() => {
               vibrate()
               onStartMission(goals)

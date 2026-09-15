@@ -16,6 +16,7 @@ import { createContext } from 'react'
 import type { SoodaDb } from '../../lib/db'
 import type { ObservationRepository } from '../../lib/observations'
 import type { ProductRepository } from '../../lib/products'
+import type { RoundingStep } from '../../lib/rounding'
 
 /** Everything a component may do to products and their price history. */
 export type AppRepository = ProductRepository & ObservationRepository
@@ -35,6 +36,16 @@ export interface RepositoryValue {
   persist(): Promise<boolean>
   /** True while a lesson is running against the practice store. */
   practice: boolean
+  /**
+   * The two settings a lesson's figures assume, or `null` outside practice.
+   *
+   * A lesson pins 3%/month and 1,000-toman rounding (`src/learn/lessons/rate.ts`) so a challenge
+   * answer cannot change when a maintainer updates a CPI figure, or differ from what the demo
+   * shop's own prices were built on. Several components read both straight out of localStorage,
+   * which is the shopkeeper's own setting — so practice hands them the pinned pair here instead.
+   * Neither is ever written to storage: the lesson must not change what the app does afterwards.
+   */
+  pinned: { monthlyInflationPercent: number; roundingStep: RoundingStep } | null
 }
 
 /** `null` means "nothing is overriding it" — `useRepository` then answers with the real shop. */

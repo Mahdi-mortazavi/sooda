@@ -54,11 +54,11 @@ export function SegmentedControl<T extends string>({
     >
       {options.map((opt) => {
         const selected = opt.value === value
-        const tour = opt.tour === undefined ? (tourPrefix === null ? null : `${tourPrefix}${opt.value}`) : opt.tour
+        const tour = opt.tour ?? (tourPrefix === null ? undefined : `${tourPrefix}${opt.value}`)
         return (
           <button
             key={opt.value}
-            {...(tour === null ? {} : { 'data-tour': tour })}
+            data-tour={tour ?? undefined}
             role={radio ? 'radio' : 'tab'}
             {...(radio ? { 'aria-checked': selected } : { 'aria-selected': selected })}
             aria-label={opt.ariaLabel}

@@ -22,6 +22,7 @@ import type { PracticeSession } from '../sandbox'
 import { LearnCenter } from './LearnCenter'
 import { Onboarding, type OnboardingStage } from './Onboarding'
 import { TipBar } from './TipBar'
+import { TUTORIAL_MONTHLY_PERCENT, TUTORIAL_ROUNDING_STEP } from '../lessons/rate'
 import { loadLesson, lessonsAvailable } from './lessonSource'
 import {
   finishOnboarding,
@@ -116,7 +117,13 @@ export function LearnHost({
         return
       }
       const { enterPractice } = await import('../sandbox')
-      const result = await enterPractice(definition.now === undefined ? {} : { now: definition.now })
+      /* No pinned `now`: `lessons` dates the demo shop from the real clock deliberately, because
+       * every «۱ ماه پیش» on the products tab is measured against it. */
+      const result = await enterPractice({
+        /* The demo shop's product names go through i18n as it is seeded, so an English-locale
+         * learner is not reading five Persian rows inside English lesson text. */
+        translate: (key: string, fallback: string) => t(key, { defaultValue: fallback }),
+      })
       if (!result.ok) {
         if (result.reason === 'storage') {
           setNotice(t('learn.needsStorage', { defaultValue: 'Practice needs storage, and this browser refused.' }))
@@ -124,7 +131,13 @@ export function LearnHost({
         return
       }
       const session = result.session
-      onPractice({ repository: session.repository, db: session.db, persist: NO_PERSIST, practice: true })
+      onPractice({
+        repository: session.repository,
+        db: session.db,
+        persist: NO_PERSIST,
+        practice: true,
+        pinned: { monthlyInflationPercent: TUTORIAL_MONTHLY_PERCENT, roundingStep: TUTORIAL_ROUNDING_STEP },
+      })
       const stored = readProgress().lessons[id]
       setActive({
         id,

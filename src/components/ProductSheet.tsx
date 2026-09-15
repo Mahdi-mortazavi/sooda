@@ -52,7 +52,7 @@ export function ProductSheet({
   const reducedMotion = useReducedMotion()
   /* Practice runs this whole sheet against the demo shop, so every write below goes through the
    * injected repository rather than the exports bound to the shopkeeper's own database. */
-  const { repository } = useRepository()
+  const { repository, pinned } = useRepository()
   const learn = useLearn()
   const productId = product?.id ?? null
 
@@ -108,8 +108,9 @@ export function ProductSheet({
       price: priceValue,
       unit: rowUnit,
     }
-    return productStatus(provisional, readMonthlyInflationPercent(), Date.now())
-  }, [product, costValue, marginValue, priceValue, rowUnit])
+    // Pinned during a lesson: the health chip must agree with the figure the lesson quotes.
+    return productStatus(provisional, pinned?.monthlyInflationPercent ?? readMonthlyInflationPercent(), Date.now())
+  }, [product, costValue, marginValue, priceValue, rowUnit, pinned])
 
   /* Only this product's readings, and only while the sheet is open. `null` (loading) is
    * distinct from `[]` (a product with no history), which is what the card's empty copy is for. */
@@ -170,7 +171,7 @@ export function ProductSheet({
   const newCostValue = parseAmount(newCost)
   const suggested =
     Number.isFinite(newCostValue) && newCostValue > 0 && Number.isFinite(marginValue)
-      ? roundUpTo(suggestedPrice(newCostValue, marginValue), readRoundingStep())
+      ? roundUpTo(suggestedPrice(newCostValue, marginValue), pinned?.roundingStep ?? readRoundingStep())
       : null
 
   const pct = t('fields.percentUnit')

@@ -17,14 +17,14 @@ export interface LessonMeta {
 
 /* Ordered as a newcomer should meet them: what profit is, then what eats it, then the tools. */
 export const LESSONS: readonly LessonMeta[] = [
-  { id: 'profit', seconds: 60 },
-  { id: 'discount', seconds: 60 },
-  { id: 'realProfit', seconds: 90 },
-  { id: 'installments', seconds: 90 },
-  { id: 'products', seconds: 75 },
-  { id: 'smartRates', seconds: 90 },
-  { id: 'everyday', seconds: 60 },
-  { id: 'safety', seconds: 45 },
+  { id: 'profit', seconds: 70 },
+  { id: 'discount', seconds: 55 },
+  { id: 'realProfit', seconds: 70 },
+  { id: 'installments', seconds: 85 },
+  { id: 'products', seconds: 85 },
+  { id: 'smartRates', seconds: 80 },
+  { id: 'everyday', seconds: 90 },
+  { id: 'safety', seconds: 50 },
 ]
 
 /**

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { AmbientBackground } from './components/AmbientBackground'
@@ -111,6 +111,9 @@ export default function App() {
   /* A step may ask for a mode before it runs; the calculator owns `mode`, so the request is passed
    * down and cleared once it has been applied. */
   const [requestedMode, setRequestedMode] = useState<string | null>(null)
+  /* The products tab owns the detail and bulk sheets, so a step that asks for one is relayed
+   * there rather than reached into. Cleared by the tab once it has acted. */
+  const [tourSheet, setTourSheet] = useState<string | null>(null)
 
   const learnApi = useMemo<LearnApi>(
     () => ({
@@ -126,9 +129,10 @@ export default function App() {
 
   // The rates file and everything derived from it. Both hooks no-op until onboarding is done.
   const rates = useRates(!needsLang)
-  /* Frozen during practice: the check-in reads the real products and badges the app icon from
-   * them, and the plan forbids a lesson touching either. */
-  const checkIn = useCheckIn(rates.rates, !needsLang && practice === null)
+  /* Pointed at the demo shop during a lesson: `computeCheckIn` reads products and observations,
+   * and left on the real source it would have the tutorial's check-in ask about — and judge the
+   * learner against — the shopkeeper's own products. The badge stays off while a source is given. */
+  const checkIn = useCheckIn(rates.rates, !needsLang, practice?.repository)
 
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -165,6 +169,13 @@ export default function App() {
     storeLastSeenVersion(__APP_VERSION__)
   }, [])
 
+  /* `?learn` has been read into state by now, so it is taken out of the address bar — otherwise
+   * every later reload, and the reload a new service worker triggers, would reopen the centre. */
+  useEffect(() => {
+    if (parseLearnQuery(window.location.search) === null) return
+    window.history.replaceState({}, '', import.meta.env.BASE_URL)
+  }, [])
+
   const setUnit = useCallback((u: Unit) => {
     setUnitState(u)
     storeUnit(u)
@@ -198,30 +209,40 @@ export default function App() {
   /**
    * Puts the app where a lesson step needs it before that step runs — the coach's `navigate`.
    *
-   * Only what App itself owns: the two tabs, the three header sheets, and the calculator's mode
-   * (which the calculator applies and then clears). A destination App cannot honour is ignored
-   * rather than guessed at; the step still shows, and the user can get there themselves.
+   * A step that names a sheet means that sheet on its own, so every other one is closed in the
+   * same pass: left open, the last step's drawer would sit on top of the target this one points
+   * at. The products tab owns two of the sheets itself and is told which one through `tourSheet`.
    */
   const navigateForTour = useCallback(async (to: TourDestination): Promise<void> => {
     if (to.tab !== undefined) setTab(to.tab)
     if (to.mode !== undefined) setRequestedMode(to.mode)
-    if (to.sheet === 'settings') openSettings()
-    if (to.sheet === 'history') {
-      setHistoryMounted(true)
-      setHistoryOpen(true)
+    if (to.sheet !== undefined) {
+      const sheet = to.sheet
+      if (sheet === 'history') setHistoryMounted(true)
+      if (sheet === 'settings') setSettingsMounted(true)
+      if (sheet === 'basket') setBasketMounted(true)
+      setHistoryOpen(sheet === 'history')
+      setSettingsOpen(sheet === 'settings')
+      setBasketOpen(sheet === 'basket')
+      setCheckInOpen(sheet === 'check-in')
+      setProfileOpen(sheet === 'store-profile')
+      setTourSheet(sheet)
     }
-    if (to.sheet === 'basket') {
-      setBasketMounted(true)
-      setBasketOpen(true)
-    }
-    if (to.sheet === 'check-in') setCheckInOpen(true)
-    if (to.sheet === 'store-profile') setProfileOpen(true)
-    /* One frame, so the sheet is mounted and the target measurable before the coach looks for it.
-     * The coach retries a missing target for a while anyway; this just avoids the first miss. */
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-  }, [openSettings, setTab])
+    /* Two frames: one for the state to land, one for the sheet to mount, so the target is
+     * measurable when the coach looks. It retries a missing target anyway — this avoids the miss. */
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+  }, [setTab])
 
   const closeLearn = useCallback(() => setLearnRequest(null), [])
+
+  /* Leaving practice puts the real shop back, and with it the real badge: the check-in was reading
+   * the demo store a moment ago, so the count on the app icon has to be recomputed from scratch. */
+  const wasPractising = useRef(false)
+  useEffect(() => {
+    const practising = practice !== null
+    if (wasPractising.current && !practising) checkIn.reload()
+    wasPractising.current = practising
+  }, [practice, checkIn])
 
   const onSaveProduct = useCallback((draft: ProductDraft) => {
     setSaveDraft(draft)
@@ -322,8 +343,10 @@ export default function App() {
           practice={practice !== null}
           requestedMode={requestedMode}
           onModeApplied={() => setRequestedMode(null)}
-          monthlyInflationPercent={monthlyInflationPercent}
-          roundingStep={roundingStep}
+          /* A lesson pins both, so its figures cannot move when a maintainer updates a CPI
+           * number or the shopkeeper has rounding switched off. Neither is ever stored. */
+          monthlyInflationPercent={practice?.pinned?.monthlyInflationPercent ?? monthlyInflationPercent}
+          roundingStep={practice?.pinned?.roundingStep ?? roundingStep}
           onOpenSettings={openSettings}
           onSaveProduct={onSaveProduct}
           rates={rates.rates}
@@ -344,6 +367,8 @@ export default function App() {
             repriceIds={repriceIds}
             onRepriceConsumed={() => setRepriceIds(null)}
             onProductsChanged={checkIn.reload}
+            tourSheet={tourSheet}
+            onTourSheetHandled={() => setTourSheet(null)}
           />
           </FeatureBoundary>
         </Suspense>
@@ -419,6 +444,7 @@ export default function App() {
               setProfileOpen(true)
             }}
             onAutoUpdateChange={rates.refresh}
+            install={install}
             ratesUpdatedAt={rates.rates?.updatedAt ?? null}
             ratesOrigin={rates.origin}
           />
@@ -512,7 +538,7 @@ function HeaderButton({
   return (
     <motion.button
       type="button"
-      {...(tour ? { 'data-tour': tour } : {})}
+      data-tour={tour ?? undefined}
       onClick={() => {
         vibrate()
         onClick()

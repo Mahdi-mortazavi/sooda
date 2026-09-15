@@ -88,7 +88,7 @@ export function NumberField({
   }, [display])
 
   return (
-    <div {...(tour === undefined ? {} : { 'data-tour': tour })} className="px-5 py-3.5">
+    <div data-tour={tour} className="px-5 py-3.5">
       <label htmlFor={id} className="block text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">
         {label}
       </label>

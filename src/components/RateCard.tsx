@@ -127,8 +127,6 @@ export function RateCard({
           data-tour="btn-rate-why"
           onClick={() => {
             vibrate()
-            /* Requested by `src/learn/lessons/actions.ts`; `coach` still has to append these
-               four to `TOUR_ACTIONS`, which `missingTourActions()` reports until it does. */
             emitTour({ type: 'action', name: 'rate-why' })
             setWhyOpen((open) => !open)
           }}

@@ -6,6 +6,8 @@ import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { computeBasketTotals, type BasketTotals } from '../lib/basket'
 import { clearBasket, db, deleteBasketItem, type BasketItem } from '../lib/db'
+import { emitTour } from '../learn/coach/events'
+import { LessonLink } from '../learn/ui/LessonLink'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit, unitShortLabel, type Unit } from '../lib/units'
@@ -49,6 +51,7 @@ export function BasketSheet({ open, onClose, lang }: BasketSheetProps) {
           <p className="mt-1.5 max-w-[300px] text-[15px] leading-relaxed text-[var(--text-secondary)]">
             {t('basket.empty.body')}
           </p>
+          <LessonLink lesson="everyday" />
         </div>
       ) : (
         <>
@@ -77,6 +80,7 @@ export function BasketSheet({ open, onClose, lang }: BasketSheetProps) {
                   type="button"
                   onClick={() => {
                     vibrate()
+                    emitTour({ type: 'action', name: 'clear-basket' })
                     void clearBasket().then(() => setConfirmingClear(false))
                   }}
                   className="flex-1 rounded-2xl bg-loss-600 px-3 py-3 text-[15px] font-semibold text-white"

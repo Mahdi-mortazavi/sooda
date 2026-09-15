@@ -26,9 +26,15 @@ import {
   IconTrash,
   IconUpload,
 } from './Icons'
+import { InstallGuideSheet } from './InstallGuideSheet'
 import { NumberField } from './NumberField'
 import { SegmentedControl } from './SegmentedControl'
 import { Sheet } from './Sheet'
+import { isStandalone, type InstallPromptState } from '../hooks/useInstallPrompt'
+import { emitTour } from '../learn/coach/events'
+import { SettingsLearnCard } from '../learn/ui/SettingsLearnCard'
+import { clearProgress, exportProgress, importProgress } from '../learn/ui/progress'
+import { LEARN_STORAGE_KEY } from '../learn/ui/entry'
 
 declare const __APP_VERSION__: string
 
@@ -61,6 +67,12 @@ interface SettingsSheetProps {
   onOpenStoreProfile: () => void
   /** Re-reads the rates file after the toggle is switched back on. */
   onAutoUpdateChange: () => void
+  /**
+   * Add-to-home-screen from Settings, for someone who dismissed the banner and came looking.
+   * The row hides itself once the app is installed, where it would be an instruction to do
+   * something already done.
+   */
+  install?: InstallPromptState | undefined
   /** 'YYYY-MM-DD' from the loaded file, or null when it carries no date yet. */
   ratesUpdatedAt: string | null
   /** Where the loaded file came from — the only field that knows whether the fetch worked. */
@@ -82,11 +94,14 @@ export function SettingsSheet({
   onInflationChange,
   onOpenStoreProfile,
   onAutoUpdateChange,
+  install,
   ratesUpdatedAt,
   ratesOrigin,
 }: SettingsSheetProps) {
   const { t } = useTranslation()
   const [confirmingErase, setConfirmingErase] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const canInstall = install !== undefined && !isStandalone()
 
   // The field holds a canonical ASCII string; it re-seeds whenever the committed percent changes.
   const [inflationText, setInflationText] = useState(() => String(monthlyInflationPercent))
@@ -103,6 +118,7 @@ export function SettingsSheet({
 
   const toggleAutoUpdate = () => {
     vibrate()
+    emitTour({ type: 'action', name: 'toggle-auto-rates' })
     const next = !autoUpdate
     setAutoUpdate(next)
     setAutoUpdateEnabled(next)
@@ -125,7 +141,10 @@ export function SettingsSheet({
       return
     }
     setInflationError(null)
-    if (parsed !== monthlyInflationPercent) onInflationChange(parsed)
+    if (parsed !== monthlyInflationPercent) {
+      emitTour({ type: 'action', name: 'set-inflation' })
+      onInflationChange(parsed)
+    }
   }
 
   const resetInflation = () => {
@@ -138,7 +157,12 @@ export function SettingsSheet({
 
   const exportBackup = async () => {
     vibrate()
+    emitTour({ type: 'action', name: 'backup' })
     const file = await buildBackup()
+    /* `lib/backup.ts` collects every `sooda:`-prefixed localStorage key; the tutorial's record is
+     * deliberately outside that namespace (`sooda.learn.v1`), so it is carried by hand here and
+     * put back by hand on restore. Tucking it into `settings` keeps the file one shape. */
+    file.settings[LEARN_STORAGE_KEY] = exportProgress()
     downloadJson(JSON.stringify(file, null, 2), backupFilename())
   }
 
@@ -169,7 +193,12 @@ export function SettingsSheet({
   const restoreBackup = async (mode: 'merge' | 'replace') => {
     if (!pendingBackup) return
     vibrate()
+    emitTour({ type: 'action', name: 'restore' })
     await applyBackup(pendingBackup, mode)
+    /* `restoreSettings` refuses keys outside `sooda:`, which is the right rule for a file off the
+     * user's disk — so the one key it cannot write is validated and written here instead. */
+    const storedProgress = pendingBackup.settings[LEARN_STORAGE_KEY]
+    if (storedProgress !== undefined) importProgress(storedProgress)
     setPendingBackup(null)
     setConfirmingReplace(false)
     setBackupRestored(true)
@@ -188,13 +217,42 @@ export function SettingsSheet({
             layoutId="settings-lang"
             ariaLabel={t('settings.language')}
             value={lang}
-            onChange={onLanguageChange}
+            onChange={(next) => {
+              emitTour({ type: 'action', name: 'switch-language' })
+              onLanguageChange(next)
+            }}
             options={[
               { value: 'en', label: 'English' },
               { value: 'fa', label: 'فارسی' },
             ]}
           />
         </section>
+
+        <SettingsLearnCard lang={lang} />
+
+        {canInstall ? (
+          <section data-tour="settings-install" aria-label={t('install.title')}>
+            <button
+              type="button"
+              onClick={() => {
+                vibrate()
+                emitTour({ type: 'action', name: 'install-app' })
+                /* Chromium can be asked directly; iOS Safari has no prompt to ask, so the same
+                 * row opens the walkthrough that InstallPrompt would have shown. */
+                if (install.canNativePrompt) void install.promptInstall()
+                else setGuideOpen(true)
+              }}
+              className="glass glass-ring flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-start"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14.5px] font-semibold">{t('install.title')}</span>
+                <span className="mt-0.5 block text-[12.5px] leading-snug text-[var(--text-secondary)]">
+                  {t('install.body')}
+                </span>
+              </span>
+            </button>
+          </section>
+        ) : null}
 
         <section aria-label={t('settings.theme')}>
           <h3 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
@@ -204,7 +262,10 @@ export function SettingsSheet({
             layoutId="settings-theme"
             ariaLabel={t('settings.theme')}
             value={themePreference}
-            onChange={onThemeChange}
+            onChange={(next) => {
+              emitTour({ type: 'action', name: 'switch-theme' })
+              onThemeChange(next)
+            }}
             options={[
               {
                 value: 'light',
@@ -242,13 +303,16 @@ export function SettingsSheet({
             layoutId="settings-unit"
             ariaLabel={t('settings.unit')}
             value={unit}
-            onChange={onUnitChange}
+            onChange={(next) => {
+              emitTour({ type: 'action', name: 'switch-unit' })
+              onUnitChange(next)
+            }}
             size="sm"
             options={UNITS.map((u) => ({ value: u, label: unitShortLabel(u, lang) }))}
           />
         </section>
 
-        <section aria-label={t('settings.ratesAuto')}>
+        <section data-tour="settings-rates-auto" aria-label={t('settings.ratesAuto')}>
           <h3 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
             {t('settings.ratesAuto')}
           </h3>
@@ -256,6 +320,7 @@ export function SettingsSheet({
             <span className="min-w-0 flex-1 text-[14.5px] font-semibold">{t('settings.ratesAuto')}</span>
             <button
               type="button"
+              data-tour="btn-rates-auto"
               role="switch"
               aria-checked={autoUpdate}
               aria-label={t('settings.ratesAuto')}
@@ -367,7 +432,9 @@ export function SettingsSheet({
             size="sm"
             onChange={(value) => {
               const step = ROUNDING_STEPS.find((s) => String(s) === value)
-              if (step !== undefined) onRoundingChange(step)
+              if (step === undefined) return
+              emitTour({ type: 'action', name: 'set-rounding' })
+              onRoundingChange(step)
             }}
             options={ROUNDING_STEPS.map((step) => ({
               value: String(step),
@@ -379,7 +446,7 @@ export function SettingsSheet({
           </p>
         </section>
 
-        <section aria-label={t('settings.backup')}>
+        <section data-tour="settings-backup" aria-label={t('settings.backup')}>
           <h3 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
             {t('settings.backup')}
           </h3>
@@ -389,6 +456,7 @@ export function SettingsSheet({
           <div className="flex items-center gap-3">
             <button
               type="button"
+              data-tour="btn-backup-export"
               onClick={() => void exportBackup()}
               className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
             >
@@ -484,6 +552,10 @@ export function SettingsSheet({
                   type="button"
                   onClick={() => {
                     vibrate()
+                    emitTour({ type: 'action', name: 'erase-all' })
+                    /* "Erase all data" means all of it. What the shopkeeper learnt is theirs
+                     * too, and someone handing their phone over expects it gone. */
+                    clearProgress()
                     void clearAllData()
                       // The badge counts products to check; with no products it must go too.
                       .then(() => import('../lib/badge').then((b) => b.clearBadge()))
@@ -571,6 +643,16 @@ export function SettingsSheet({
           </div>
         </section>
       </div>
+
+      {guideOpen ? (
+        <InstallGuideSheet
+          open={guideOpen}
+          onClose={() => {
+            setGuideOpen(false)
+            emitTour({ type: 'sheet:close', sheet: 'install-guide' })
+          }}
+        />
+      ) : null}
     </Sheet>
   )
 }

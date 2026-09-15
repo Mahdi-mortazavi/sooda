@@ -184,15 +184,5 @@
     "fix": "Fix the number",
     "temporary": "Temporary / sale",
     "excluded": "Saved. It won’t change the estimate."
-  },
-  "help": {
-    "open": "Help",
-    "openFor": "Help with {{topic}}"
-  },
-  "tip": {
-    "firstTime": "First time? A 60-second lesson.",
-    "start": "Start",
-    "dismiss": "Dismiss this tip",
-    "watch60": "Watch a 60-second lesson"
   }
 }

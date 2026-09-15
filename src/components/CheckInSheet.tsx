@@ -6,7 +6,8 @@ import type { Product } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { formatDate } from '../lib/dates'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
-import { addObservation, recordCost } from '../lib/observations'
+import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
 import { checkOutlier } from '../lib/rates'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { IconBox, IconCheck, IconTrendUp } from './Icons'
@@ -65,6 +66,8 @@ function lastRecorded(item: CheckInItem): { cost: number; observedAt: number } {
  */
 export function CheckInSheet({ open, onClose, items, lang, unit, now, onFinish, onReprice }: CheckInSheetProps) {
   const { t } = useTranslation()
+  // The demo shop during a lesson; the check-in writes real price readings otherwise.
+  const { repository } = useRepository()
   const reducedMotion = useReducedMotion()
 
   const [index, setIndex] = useState(0)
@@ -147,9 +150,11 @@ export function CheckInSheet({ open, onClose, items, lang, unit, now, onFinish, 
     /* Excluded readings are kept but must not move `product.cost`, so they go in as a plain
      * observation; a real reading stamps the product so nothing on screen can disagree with it. */
     const write: Promise<unknown> = temporary
-      ? addObservation({ productId: id, cost, observedAt: now, excluded: true, source: 'checkin' })
-      : recordCost({ productId: id, cost, observedAt: now, source: 'checkin' })
-    void write.catch(() => {
+      ? repository.addObservation({ productId: id, cost, observedAt: now, excluded: true, source: 'checkin' })
+      : repository.recordCost({ productId: id, cost, observedAt: now, source: 'checkin' })
+    /* Announced only once the row is actually in the store: the coach refreshes its snapshot
+     * before judging, but it cannot refresh before a write that has not started. */
+    void write.then(() => emitTour({ type: 'action', name: 'record-cost' })).catch(() => {
       /* Nothing the shopkeeper can act on mid-flow. The product simply stays stale and gets
        * offered again on the next check-in, which is the safe direction to fail in. */
     })
@@ -194,6 +199,7 @@ export function CheckInSheet({ open, onClose, items, lang, unit, now, onFinish, 
 
   return (
     <Sheet open={open} onClose={onClose} title={t('checkin.title')}>
+      <div data-tour="checkin-panel">
       {total === 0 ? (
         <p className="px-4 py-12 text-center text-[15px] leading-relaxed text-[var(--text-secondary)]">
           {t('checkin.empty')}
@@ -289,11 +295,14 @@ export function CheckInSheet({ open, onClose, items, lang, unit, now, onFinish, 
                 onChange={setDraft}
                 placeholder={t('fields.amountPlaceholder')}
                 lang={lang}
+                tourField="checkin-cost"
+                tour="field-checkin-cost"
               />
             </div>
 
             <motion.button
               type="submit"
+              data-tour="btn-checkin-record"
               disabled={!canRecord}
               whileTap={reducedMotion || !canRecord ? undefined : { scale: 0.97 }}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent-fill-strong)] px-4 py-3.5 text-[16px] font-bold text-white disabled:opacity-40 dark:text-[hsl(168_90%_8%)]"
@@ -305,6 +314,7 @@ export function CheckInSheet({ open, onClose, items, lang, unit, now, onFinish, 
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
+                data-tour="btn-checkin-unchanged"
                 onClick={recordUnchanged}
                 className="glass glass-ring min-w-0 flex-1 rounded-2xl px-3 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
               >
@@ -350,6 +360,7 @@ export function CheckInSheet({ open, onClose, items, lang, unit, now, onFinish, 
           />
         </div>
       ) : null}
+      </div>
     </Sheet>
   )
 }

@@ -34,6 +34,8 @@ const product = (id: number, over: Partial<Product> = {}): Product => ({
   targetMarginPercent: 20,
   price: 120_000,
   costUpdatedAt: NOW - 120 * MS_PER_DAY,
+  createdAt: NOW - 180 * MS_PER_DAY,
+  updatedAt: NOW - 120 * MS_PER_DAY,
   ...over,
 })
 
@@ -84,7 +86,7 @@ describe('computeCheckIn', () => {
 
   it('prefers a recorded reading over the product’s own stamped cost', async () => {
     const byProduct = new Map<number, Observation[]>([
-      [1, [{ id: 1, productId: 1, cost: 180_000, observedAt: NOW - 120 * MS_PER_DAY, source: 'manual' }]],
+      [1, [{ id: 1, productId: 1, cost: 180_000, observedAt: NOW - 120 * MS_PER_DAY, source: 'update' }]],
     ])
     const { source } = sourceOf([product(1)], byProduct)
     const snapshot = await computeCheckIn(rates, source, () => NOW)

@@ -45,7 +45,7 @@ export function ChipRow({ options, value, onChange, layoutId, ariaLabel, tour, t
   return (
     <div
       ref={scroller}
-      {...(tour === undefined ? {} : { 'data-tour': tour })}
+      data-tour={tour}
       role="radiogroup"
       aria-label={ariaLabel}
       className={`-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
@@ -60,7 +60,7 @@ export function ChipRow({ options, value, onChange, layoutId, ariaLabel, tour, t
           <button
             key={option.value}
             type="button"
-            {...(tourKey === undefined ? {} : { 'data-tour': `chip-${tourKey}-${option.value}` })}
+            data-tour={tourKey === undefined ? undefined : `chip-${tourKey}-${option.value}`}
             role="radio"
             aria-checked={selected}
             onClick={() => {

@@ -6,6 +6,8 @@ import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { buildHistoryCsv, downloadCsv } from '../lib/csv'
 import { clearHistory, db, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
+import { emitTour } from '../learn/coach/events'
+import { LessonLink } from '../learn/ui/LessonLink'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, normalizeDigits, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit } from '../lib/units'
@@ -64,12 +66,14 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
   const onExport = () => {
     if (!entries?.length) return
     vibrate()
+    emitTour({ type: 'action', name: 'export-csv' })
     const headers = t('history.csvHeaders', { returnObjects: true }) as string[]
     downloadCsv(buildHistoryCsv(entries, headers, modeLabels), 'sooda-history.csv')
   }
 
   const onClearAll = async () => {
     vibrate()
+    emitTour({ type: 'action', name: 'clear-history' })
     await clearHistory()
     setConfirmingClear(false)
   }
@@ -118,6 +122,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
         <div className="mt-5 flex items-center gap-3">
           <button
             type="button"
+            data-tour="btn-export-csv"
             onClick={onExport}
             className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
           >
@@ -168,6 +173,7 @@ function EmptyState() {
       <p className="mt-1.5 max-w-[300px] text-[15px] leading-relaxed text-[var(--text-secondary)]">
         {t('history.empty.body')}
       </p>
+      <LessonLink lesson="everyday" />
     </div>
   )
 }
