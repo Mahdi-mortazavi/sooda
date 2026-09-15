@@ -13,11 +13,12 @@ import type { TourEvent } from '../coach/events'
 import { TOUR_SHEETS } from '../coach/events'
 import type { LessonStep, SandboxState } from '../coach/types'
 import { buildSeed, SEED_PRODUCTS } from '../sandbox/seed'
-import { LESSONS } from './index'
+import { LESSONS, LESSON_IDS } from './index'
+import { MISSION } from './mission'
 import { LESSON_EXPECTED, LESSON_INPUTS } from './expected.generated'
 import { PINNED_NOW } from './expected.source'
 import { isTourTarget } from './targets'
-import type { Lesson, TaskChallenge } from './types'
+import type { Lesson, LessonStepSpec, TaskChallenge } from './types'
 
 /* ── little builders, so the table below reads as events rather than as objects ── */
 
@@ -127,6 +128,15 @@ const CASES: Record<string, { pass: TourEvent; fail: TourEvent }> = {
   'safety.settings': { pass: openedSheet('settings'), fail: openedSheet('install-guide') },
   'safety.install': { pass: openedSheet('install-guide'), fail: openedSheet('settings') },
   'safety.updates': { pass: did('toggle-auto-rates'), fail: did('backup') },
+}
+
+/** The same table for Mission 1, which is not in `LESSONS` and so is not covered above. */
+const MISSION_CASES: Record<string, { pass: TourEvent; fail: TourEvent }> = {
+  cost: { pass: commit('cost', num(LESSON_INPUTS.mission.cost)), fail: commit('cost', 10_000) },
+  margin: { pass: commit('margin', num(LESSON_INPUTS.mission.margin)), fail: commit('margin', 25) },
+  calculate: { pass: shown('profit'), fail: shown('sell') },
+  months: { pass: chip('months', LESSON_INPUTS.mission.months), fail: chip('months', '1') },
+  again: { pass: shown('profit'), fail: shown('rdiscount') },
 }
 
 function everyStep(): { lesson: Lesson; step: LessonStep; key: string }[] {
@@ -328,6 +338,64 @@ describe('the challenges that read the practice shop', () => {
     const backup = challengeOf('safety', 'backup')
     expect(backup.done(did('backup'), EMPTY)).toBe(true)
     expect(backup.done(did('restore'), EMPTY)).toBe(false)
+  })
+})
+
+describe('Mission 1', () => {
+  it('is not a lesson', () => {
+    /* A ninth id in that union would let onboarding write a progress row for something the
+     * Learning Centre never lists — and it would type-check. */
+    expect((LESSON_IDS as string[]).includes(MISSION.id)).toBe(false)
+    expect(MISSION.challenges).toHaveLength(0)
+  })
+
+  it('fits in the plan’s thirty seconds and ends on the real-profit verdict', () => {
+    expect(MISSION.estimateSeconds).toBeLessThanOrEqual(30)
+    expect(MISSION.showsRate).toBe(true)
+    const last = MISSION.steps[MISSION.steps.length - 1]
+    // The lens is set two steps earlier; the last thing asked for is the calculation that shows it.
+    expect(MISSION.steps.map((s) => s.id)).toContain('months')
+    expect(last?.id).toBe('again')
+  })
+
+  it('names a story card, its own keys, and known targets', () => {
+    expect(MISSION.storyKey).toBe('learn.mission.story')
+    for (const step of MISSION.steps) {
+      expect(step.textKey).toBe(`learn.mission.${step.id}`)
+      expect(isTourTarget(step.target), step.target).toBe(true)
+      expect(step.demo.actions.length, step.id).toBeGreaterThan(0)
+      for (const action of step.demo.actions) expect(isTourTarget(action.target), action.target).toBe(true)
+    }
+  })
+
+  it('offers the suggestion chip as the first step’s way in', () => {
+    const first = MISSION.steps[0]
+    expect(first?.id).toBe('cost')
+    expect(first?.demo.actions[0]?.target).toBe('chip-suggest-cost')
+    // The chip fills the field with the very figure the mission's answer was computed from.
+    expect(MISSION.suggestion.field).toBe('cost')
+    expect(MISSION.suggestion.value).toBe(LESSON_INPUTS.mission.cost)
+    expect(MISSION.suggestion.labelKey).toBe('learn.mission.suggestCost')
+    expect(first?.expect(commit('cost', num(MISSION.suggestion.value)), EMPTY)).toBe(true)
+  })
+
+  it('has a case for every step, and every step judges it', () => {
+    expect(MISSION.steps.map((s) => s.id).sort()).toEqual(Object.keys(MISSION_CASES).sort())
+    for (const step of MISSION.steps) {
+      const testCase = MISSION_CASES[step.id]
+      if (testCase === undefined) throw new Error(`no case for mission.${step.id}`)
+      expect(step.expect(testCase.pass, EMPTY), `${step.id} satisfying`).toBe(true)
+      expect(step.expect(testCase.fail, EMPTY), `${step.id} near miss`).toBe(false)
+    }
+  })
+
+  it('takes the suggestion chip’s figure however the chip announces it', () => {
+    const first: LessonStepSpec | undefined = MISSION.steps[0]
+    const typed: TourEvent = { type: 'field:commit', field: 'cost', value: 100_000 }
+    const chipped: TourEvent = { type: 'field:change', field: 'cost', value: '100000' }
+    expect(first?.expect(typed, EMPTY)).toBe(true)
+    expect(first?.expect(chipped, EMPTY)).toBe(true)
+    expect(first?.expect({ type: 'field:change', field: 'cost', value: '10' }, EMPTY)).toBe(false)
   })
 })
 

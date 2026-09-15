@@ -54,6 +54,14 @@ export function loadLesson(id: LessonId): Lesson | null {
   return getLesson(id) ?? null
 }
 
+/**
+ * Mission 1, kept out of `LESSONS` and out of `LessonId`.
+ *
+ * Onboarding runs it; the Learning Centre never lists it, and the progress store has no row for
+ * it. Exported here so `ui` reaches the tutorial through one module either way.
+ */
+export { MISSION, loadMission } from './mission'
+
 export { REQUESTED_TOUR_ACTIONS, missingTourActions } from './actions'
 export { LESSON_EXPECTED, LESSON_INPUTS } from './expected.generated'
 export { TUTORIAL_MONTHLY_PERCENT, TUTORIAL_RATE_NOTE_KEY, TUTORIAL_ROUNDING_STEP } from './rate'
@@ -69,6 +77,7 @@ export type {
   LessonId,
   LessonInputs,
   LessonStepSpec,
+  Mission,
   NumberChallenge,
   TaskChallenge,
 } from './types'

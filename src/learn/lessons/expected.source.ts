@@ -49,6 +49,9 @@ const INSTALLMENT_CASH = 12_000_000
 const INSTALLMENT_COUNT = 6
 const INSTALLMENT_DOWN = 0
 const NEIGHBOUR_FLAT_PERCENT = 2
+/** Mission 1: the tin of tuna at a round 100,000, and the 20% every shopkeeper asks for first. */
+const MISSION_COST = 100_000
+const MISSION_MARGIN = 20
 /** Undercutting his own cost by 10,000 — lesson 1's last step, where the card turns red. */
 const PROFIT_UNDERCUT = 140_000
 /** The lens horizon lesson 3 asks for, in months. */
@@ -131,6 +134,13 @@ export function computeLessonExpected(now: number = PINNED_NOW): LessonExpected 
     now,
   )
 
+  /* mission — the same calculation twice: once as anyone would do it, once through the lens.
+   * The lens judges the price the shopkeeper would otherwise have charged, which is why the
+   * real percentage below belongs to the 120,000 of the first run and not to the suggestion. */
+  const missionValues = { cost: MISSION_COST, margin: MISSION_MARGIN }
+  const missionNow = profitMode.compute(missionValues, context(now))
+  const missionLater = profitMode.compute(missionValues, context(now, { months: String(LENS_MONTHS_CHIP) }))
+
   /* everyday — two calculations in the basket, totalled by the basket's own adder. */
   const rice = seedProduct(now, SEED_PRODUCTS.rice)
   const riceLine = lineOf(rice.cost, rice.margin, now)
@@ -159,6 +169,14 @@ export function computeLessonExpected(now: number = PINNED_NOW): LessonExpected 
       newCosts: preview.map((row) => ({ id: row.id, cost: row.newCost })),
     },
     smartRates: { seedObservationCount: buildSeed(now).observations.length },
+    mission: {
+      sellingPrice: missionNow.price,
+      profitAmount: missionNow.profitAmount,
+      replacement: missionLater.figures.replacement,
+      realPercent: missionLater.figures.realPercent,
+      verdict: missionLater.figures.status,
+      suggested: missionLater.price,
+    },
     everyday: { combinedProfit: combined.profit },
   }
 }
@@ -203,6 +221,11 @@ export function computeLessonInputs(now: number = PINNED_NOW): LessonInputs {
       bulkPercent: String(BULK_COST_UP_PERCENT),
     },
     smartRates: { manualRate: String(MANUAL_RATE_PERCENT) },
+    mission: {
+      cost: String(MISSION_COST),
+      margin: String(MISSION_MARGIN),
+      months: String(LENS_MONTHS_CHIP),
+    },
     everyday: {
       riceCost: String(rice.cost),
       riceMargin: String(rice.margin),

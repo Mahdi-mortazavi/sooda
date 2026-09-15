@@ -81,6 +81,33 @@ export interface TaskChallenge extends ChallengeBase {
 
 export type Challenge = NumberChallenge | ChoiceChallenge | TaskChallenge
 
+/**
+ * Mission 1 — the sixty-second-or-less thing onboarding ends on.
+ *
+ * Not a ninth `LessonId` on purpose: it is not a Learning Centre card, it has no progress row of
+ * its own, and giving it an id from that union would let it be written into the lessons map by a
+ * call that type-checks. It is the same shape a lesson runs as — steps the coach drives — with a
+ * story card in front and no quiz behind, because onboarding ends on a badge, not on a question.
+ */
+export interface Mission {
+  id: 'mission'
+  /** The card shown before step 1: «آقا رضا شالی را ۱۰۰٬۰۰۰ تومان خریده…». */
+  storyKey: string
+  /**
+   * The suggestion chip the first step offers, for `RepositoryContext.suggestion`.
+   *
+   * The figure lives here rather than in the host because it is the same 100,000 the mission's
+   * answer was computed from: typed in two places, the two would eventually disagree and the
+   * chip would fill the field with a number the step does not accept.
+   */
+  suggestion: { field: string; value: string; labelKey: string }
+  estimateSeconds: number
+  showsRate: boolean
+  steps: LessonStepSpec[]
+  /** Always empty. Present so the host can hand a mission to the same runner as a lesson. */
+  challenges: Challenge[]
+}
+
 export interface Lesson {
   id: LessonId
   titleKey: string
@@ -117,6 +144,16 @@ export interface LessonExpected {
   /** The seeded rows a check-in challenge has to look past to see the learner's own. */
   smartRates: { seedObservationCount: number }
   everyday: { combinedProfit: number }
+  /** Mission 1: the answer, and what three months of the pinned rate leaves of it. */
+  mission: {
+    sellingPrice: number
+    profitAmount: number
+    replacement: number
+    realPercent: number
+    verdict: ProfitStatus
+    /** What the card suggests charging instead, once the lens is on. */
+    suggested: number
+  }
 }
 
 /**
@@ -135,4 +172,5 @@ export interface LessonInputs {
   products: { cost: string; margin: string; name: string; newCost: string; bulkPercent: string }
   smartRates: { manualRate: string }
   everyday: { riceCost: string; riceMargin: string; oilCost: string; oilMargin: string }
+  mission: { cost: string; margin: string; months: string }
 }

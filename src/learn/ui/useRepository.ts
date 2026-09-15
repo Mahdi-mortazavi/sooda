@@ -22,6 +22,7 @@ const REAL: RepositoryValue = {
   persist: requestPersistentStorage,
   practice: false,
   pinned: null,
+  suggestion: null,
 }
 
 export function useRepository(): RepositoryValue {

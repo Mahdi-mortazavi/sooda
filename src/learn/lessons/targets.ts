@@ -20,6 +20,9 @@ export const TOUR_TARGETS = {
   'calc-panel': 'The input card holding the current mode’s fields — the whole card, not one field.',
   'field-cost': 'The purchase-price input (profit and sell modes).',
   'field-margin': 'The desired-profit-% input (profit mode).',
+  'chip-suggest-cost':
+    'Mission 1 only: the «۱۰۰٬۰۰۰ را وارد کنید» suggestion chip beside the purchase-price field. ' +
+    'Tapping it fills the field — and must announce that, or the mission’s first step never advances.',
   'field-price': 'The selling-price input (sell mode); the original-price input (discount mode).',
   'field-final': 'The already-discounted-price input (reverse discount).',
   'field-off': 'The discount-% input (both discount directions).',

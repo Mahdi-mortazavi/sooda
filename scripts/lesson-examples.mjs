@@ -72,6 +72,14 @@ const show = (label, value) => {
 
 console.log(`\n■ pinned for every lesson: ${e.PINNED_NOW ? '' : ''}3%/month, rounding up to 1,000`)
 
+console.log('\n■ mission 1 — bought at 100,000, wants 20%, then three months on')
+show('قیمت فروش / selling price', expected.mission.sellingPrice)
+show('سود / profit', expected.mission.profitAmount)
+show('خرید دوباره / restock cost', expected.mission.replacement)
+show('سود واقعی ٪ / real profit %', expected.mission.realPercent)
+show('حکم / verdict', expected.mission.verdict)
+show('قیمت پیشنهادی / suggested price', expected.mission.suggested)
+
 console.log('\n■ profit — bought at 150,000, wants 25%')
 show('قیمت فروش / selling price', expected.profit.sellingPrice)
 show('سود / profit', expected.profit.profitAmount)

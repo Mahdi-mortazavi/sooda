@@ -15,7 +15,7 @@ import { AnimatePresence } from 'motion/react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../../i18n/sheets'
-import type { AppLanguage } from '../../lib/numbers'
+import { formatNumber, type AppLanguage } from '../../lib/numbers'
 import { emitTour } from '../coach/events'
 import type { SandboxState, TourCtx, TourDestination } from '../coach/types'
 import type { PracticeSession } from '../sandbox'
@@ -24,7 +24,7 @@ import { LearnCenter } from './LearnCenter'
 import { Onboarding, type OnboardingStage } from './Onboarding'
 import { TipBar } from './TipBar'
 import { TUTORIAL_MONTHLY_PERCENT, TUTORIAL_ROUNDING_STEP } from '../lessons/rate'
-import { loadLesson, lessonsAvailable } from './lessonSource'
+import { loadLesson, loadMission, lessonsAvailable } from './lessonSource'
 import {
   finishOnboarding,
   markLessonPassed,
@@ -40,21 +40,22 @@ import type { LearnRequest } from './entry'
 
 const Coach = lazy(() => import('../coach/Coach').then((m) => ({ default: m.Coach })))
 
-/** Mission 1 — the calculation every shopkeeper does first, so onboarding ends on a real answer. */
-const MISSION_ONE: LessonId = 'profit'
-
 /** Practice must never ask the browser for persistent storage: the prompt would land mid-lesson. */
 const NO_PERSIST = async (): Promise<boolean> => false
 
-interface ActiveLesson {
-  id: LessonId
+interface ActiveRun {
+  /**
+   * `null` for Mission 1, which is not a lesson: it has no card in the centre and no row in the
+   * progress map, so there is nothing to mark. Every progress write below is behind this check.
+   */
+  id: LessonId | null
   steps: LessonStep[]
   /** The questions asked after the steps: the typed and multiple-choice ones only. */
   quiz: Challenge[]
+  /** The lesson's own one-line summary, shown as «این را یاد گرفتید» after a right answer. */
+  summaryKey: string
   session: PracticeSession
   startIndex: number
-  /** Onboarding's Mission 1 returns to the celebration screen rather than to the centre. */
-  mission: boolean
 }
 
 /**
@@ -82,7 +83,8 @@ function splitChallenges(steps: LessonStep[], challenges: Challenge[]): { steps:
 }
 
 export interface LearnHostProps {
-  request: LearnRequest
+  /** `null` when nothing was asked for and only a just-in-time tip is keeping the host mounted. */
+  request: LearnRequest | null
   /** Swaps what `RepositoryContext` provides. `null` puts the real shop back. */
   onPractice: (value: RepositoryValue | null) => void
   /** Puts the app where a step needs it before the step runs. */
@@ -108,14 +110,30 @@ export function LearnHost({
   const rtl = lang === 'fa'
   const [progress, setProgress] = useState<LearnProgress>(readProgress)
   const [stage, setStage] = useState<OnboardingStage>('intro')
-  const [active, setActive] = useState<ActiveLesson | null>(null)
+  const [active, setActive] = useState<ActiveRun | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   /* The lesson whose questions are being asked. Practice has already been torn down by then. */
-  const [quiz, setQuiz] = useState<ActiveLesson | null>(null)
-  const [centerOpen, setCenterOpen] = useState(request.kind !== 'onboarding')
+  const [quiz, setQuiz] = useState<ActiveRun | null>(null)
+  /* Opened by what was asked for, then owned here: a tip arriving later must not open the centre,
+   * and closing the centre must not depend on App clearing the request first. */
+  const [centerOpen, setCenterOpen] = useState(request !== null && request.kind !== 'onboarding')
   const startedFor = useRef<string | null>(null)
+  /* Fetched as soon as onboarding opens, so the story card has something to show the moment the
+   * question is answered rather than a blank panel while a chunk downloads. */
+  const [missionStory, setMissionStory] = useState<string | null>(null)
 
-  const onboarding = request.kind === 'onboarding'
+  const onboarding = request?.kind === 'onboarding'
+
+  useEffect(() => {
+    if (request?.kind !== 'onboarding') return
+    let live = true
+    void loadMission().then((mission) => {
+      if (live && mission !== null) setMissionStory(mission.storyKey)
+    })
+    return () => {
+      live = false
+    }
+  }, [request?.kind])
 
   /* ---- practice ---- */
 
@@ -133,19 +151,19 @@ export function LearnHost({
     }
   }, [leavePractice])
 
-  const startLesson = useCallback(
-    async (id: LessonId, mission = false) => {
+  /**
+   * Opens the practice shop and hands the coach a script. One path for a lesson and for the
+   * mission, because they differ only in what is written down afterwards.
+   */
+  const startRun = useCallback(
+    async (run: {
+      id: LessonId | null
+      steps: LessonStep[]
+      challenges: Challenge[]
+      summaryKey: string
+      suggestion?: { field: string; value: string; label: string }
+    }) => {
       setNotice(null)
-      const definition = await loadLesson(id)
-      if (definition === null || definition.steps.length === 0) {
-        if (mission) {
-          // Nothing to practise yet — onboarding still finishes on its own terms.
-          setStage('celebrate')
-          return
-        }
-        setNotice(t('learn.unavailable', { defaultValue: 'Lessons are being prepared.' }))
-        return
-      }
       const { enterPractice } = await import('../sandbox')
       /* No pinned `now`: `lessons` dates the demo shop from the real clock deliberately, because
        * every «۱ ماه پیش» on the products tab is measured against it. */
@@ -167,31 +185,84 @@ export function LearnHost({
         persist: NO_PERSIST,
         practice: true,
         pinned: { monthlyInflationPercent: TUTORIAL_MONTHLY_PERCENT, roundingStep: TUTORIAL_ROUNDING_STEP },
+        suggestion: run.suggestion ?? null,
       })
-      const stored = readProgress().lessons[id]
-      const split = splitChallenges(definition.steps, definition.challenges)
+      const stored = run.id === null ? null : readProgress().lessons[run.id]
+      const split = splitChallenges(run.steps, run.challenges)
       setActive({
-        id,
+        id: run.id,
         steps: split.steps,
         quiz: split.quiz,
+        summaryKey: run.summaryKey,
         session,
-        startIndex: stored.status === 'progress' ? stored.step : 0,
-        mission,
+        startIndex: stored !== null && stored.status === 'progress' ? stored.step : 0,
       })
       setCenterOpen(false)
     },
     [onPractice, t],
   )
 
-  /** Where a lesson lands once its steps and its questions are behind it. */
+  const startLesson = useCallback(
+    async (id: LessonId) => {
+      const definition = await loadLesson(id)
+      if (definition === null || definition.steps.length === 0) {
+        setNotice(t('learn.unavailable', { defaultValue: 'Lessons are being prepared.' }))
+        return
+      }
+      await startRun({
+        id,
+        steps: definition.steps,
+        challenges: definition.challenges,
+        summaryKey: definition.summaryKey,
+      })
+    },
+    [startRun, t],
+  )
+
+  /**
+   * Mission 1. Not `startLesson('profit')`: the mission is thirty seconds and five steps, and the
+   * profit lesson is seventy and seven — running the lesson here would mean a first-time user
+   * finishes onboarding without ever seeing what three months does to their margin, which is the
+   * one thing the mission exists to show them.
+   */
+  const startMission = useCallback(async () => {
+    const mission = await loadMission()
+    if (mission === null || mission.steps.length === 0) {
+      // Nothing to run yet: onboarding still finishes on its own terms rather than on a lesson.
+      setStage('celebrate')
+      return
+    }
+    await startRun({
+      id: null,
+      steps: mission.steps,
+      challenges: [],
+      summaryKey: mission.storyKey,
+      ...(mission.suggestion === undefined
+        ? {}
+        : {
+            suggestion: {
+              field: mission.suggestion.field,
+              value: mission.suggestion.value,
+              /* Translated here, so `NumberField` — which is in the entry chunk — never has to
+               * reach for i18next to draw a chip almost nobody will ever see. */
+              label: t(mission.suggestion.labelKey, {
+                replace: { value: formatNumber(Number(mission.suggestion.value), lang, 0) },
+              }),
+            },
+          }),
+    })
+  }, [lang, startRun, t])
+
+  /** Where a run lands once its steps and its questions are behind it. */
   const settle = useCallback(
-    (lesson: ActiveLesson, passed: boolean) => {
-      setProgress(passed ? markLessonPassed(lesson.id) : setLessonProgress(lesson.id, { status: 'done', step: 0 }))
-      if (lesson.mission) {
+    (lesson: ActiveRun, passed: boolean) => {
+      if (lesson.id === null) {
+        // The mission. Nothing to record but that the welcome is over.
         setProgress(finishOnboarding(true))
         setStage('celebrate')
         return
       }
+      setProgress(passed ? markLessonPassed(lesson.id) : setLessonProgress(lesson.id, { status: 'done', step: 0 }))
       setCenterOpen(true)
       setNotice(
         passed
@@ -203,18 +274,18 @@ export function LearnHost({
   )
 
   const finishLesson = useCallback(
-    (lesson: ActiveLesson, outcome: { finished: boolean; atStep: number }) => {
+    (lesson: ActiveRun, outcome: { finished: boolean; atStep: number }) => {
       setActive(null)
       void leavePractice()
       if (!outcome.finished) {
-        /* Left partway through. The step index is kept so «ادامه» resumes exactly there —
-         * nothing in the tutorial is ever lost by walking away from it. */
-        setProgress(setLessonProgress(lesson.id, { status: 'progress', step: outcome.atStep }))
-        if (lesson.mission) {
+        if (lesson.id === null) {
           setProgress(finishOnboarding(true))
           setStage('celebrate')
           return
         }
+        /* Left partway through. The step index is kept so «ادامه» resumes exactly there —
+         * nothing in the tutorial is ever lost by walking away from it. */
+        setProgress(setLessonProgress(lesson.id, { status: 'progress', step: outcome.atStep }))
         setCenterOpen(true)
         return
       }
@@ -232,7 +303,7 @@ export function LearnHost({
   /* ---- the request ---- */
 
   useEffect(() => {
-    if (request.kind !== 'lesson') return
+    if (request === null || request.kind !== 'lesson') return
     /* Guarded by the id: React runs effects again on every re-render of a changed parent, and a
      * second `enterPractice` would tear down the database the first one is running on. */
     if (startedFor.current === request.id) return
@@ -275,17 +346,33 @@ export function LearnHost({
     onClose()
   }, [onClose])
 
-  const onStartMission = useCallback(
+  /**
+   * Onboarding's one forward button, which means something different on each stage: cards →
+   * question → story card → the mission itself.
+   */
+  const onAdvanceOnboarding = useCallback(
     (goals: GoalId[]) => {
-      setProgress(setGoals(goals))
       if (stage === 'intro') {
         setStage('goals')
         return
       }
-      void startLesson(MISSION_ONE, true)
+      if (stage === 'goals') {
+        setProgress(setGoals(goals))
+        setStage('story')
+        return
+      }
+      void startMission()
     },
-    [stage, startLesson],
+    [stage, startMission],
   )
+
+  /* Both halves of closing: the surface here and the request upstream. Called by every exit, so a
+   * centre closed while a tip is still on screen does not come back on the next render. */
+  const close = useCallback(() => {
+    setCenterOpen(false)
+    setQuiz(null)
+    onClose()
+  }, [onClose])
 
   const noticeStrip =
     notice === null ? null : (
@@ -301,11 +388,12 @@ export function LearnHost({
     <>
       {onboarding ? (
         <Onboarding
-          open={active === null && quiz === null}
+          open={active === null && quiz === null && !centerOpen}
           stage={stage}
           lang={lang}
           rtl={rtl}
-          onStartMission={onStartMission}
+          onAdvance={onAdvanceOnboarding}
+          storyKey={missionStory}
           onSkip={onSkipOnboarding}
           onOpenCenter={() => {
             setProgress(finishOnboarding(true))
@@ -319,17 +407,15 @@ export function LearnHost({
         />
       ) : null}
 
-      {onboarding && !centerOpen ? null : (
-        <LearnCenter
+      <LearnCenter
           open={centerOpen && active === null && quiz === null}
-          onClose={onClose}
+          onClose={close}
           lang={lang}
           progress={progress}
           onStart={onStart}
           available={lessonsAvailable()}
           notice={noticeStrip}
         />
-      )}
 
       {active !== null && ctx !== null ? (
         <Suspense fallback={null}>
@@ -347,8 +433,9 @@ export function LearnHost({
         <Challenges
           open
           lang={lang}
-          title={t(`learn.lessons.${quiz.id}.title`)}
+          title={quiz.id === null ? t('learn.missionTitle', { defaultValue: 'Mission 1' }) : t(`learn.lessons.${quiz.id}.title`)}
           challenges={quiz.quiz}
+          summaryKey={quiz.summaryKey}
           onPassed={() => {
             setQuiz(null)
             settle(quiz, true)

@@ -18,5 +18,11 @@ export const TUTORIAL_MONTHLY_PERCENT = 3
 /** 1,000 toman — what the demo shop's own prices were built on, so nothing on screen disagrees. */
 export const TUTORIAL_ROUNDING_STEP: RoundingStep = 1000
 
-/** «در این تمرین فرض می‌کنیم قیمت‌ها ماهی ۳٪ گران می‌شوند.» — shown by every lesson with `showsRate`. */
-export const TUTORIAL_RATE_NOTE_KEY = 'learn.rateNote'
+/**
+ * «در این تمرین فرض می‌کنیم قیمت‌ها ماهی ۳٪ گران می‌شوند.» — shown by every lesson with `showsRate`.
+ *
+ * `copy` wrote the plan's sentence under `practiceRate`, beside the practice-shop notice it sits
+ * with on screen, so this points there rather than asking for a second copy of it. `i18n.test.ts`
+ * resolves it, which is what would have caught the name I first guessed.
+ */
+export const TUTORIAL_RATE_NOTE_KEY = 'learn.practiceRate'

@@ -53,6 +53,14 @@ export const LESSON_EXPECTED: LessonExpected = {
   "smartRates": {
     "seedObservationCount": 15
   },
+  "mission": {
+    "sellingPrice": 120000,
+    "profitAmount": 20000,
+    "replacement": 109272.7,
+    "realPercent": 9.82,
+    "verdict": "thin",
+    "suggested": 132000
+  },
   "everyday": {
     "combinedProfit": 308000
   }
@@ -89,6 +97,11 @@ export const LESSON_INPUTS: LessonInputs = {
   },
   "smartRates": {
     "manualRate": "4"
+  },
+  "mission": {
+    "cost": "100000",
+    "margin": "20",
+    "months": "3"
   },
   "everyday": {
     "riceCost": "2480000",

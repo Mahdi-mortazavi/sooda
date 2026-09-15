@@ -20,8 +20,12 @@ import { BadgeMedal, IllustrationEverything, IllustrationPrivate, IllustrationPr
 import { LearnSurface } from './Surface'
 import { GOAL_IDS, type GoalId } from './types'
 
-/** Which stage the host wants shown. The mission itself is the coach's, over the real UI. */
-export type OnboardingStage = 'intro' | 'goals' | 'celebrate'
+/**
+ * Which stage the host wants shown. `story` is Mission 1's setup card — «آقا رضا شالی را
+ * ۱۰۰٬۰۰۰ تومان خریده…» — which has to be read before the first step, because every figure the
+ * mission asks for comes out of it. The mission itself is the coach's, over the real UI.
+ */
+export type OnboardingStage = 'intro' | 'goals' | 'story' | 'celebrate'
 
 /*
  * The ids are copy's, and the sentences behind them are frozen by the brief; the drawings follow
@@ -43,8 +47,10 @@ interface OnboardingProps {
   stage: OnboardingStage
   lang: AppLanguage
   rtl: boolean
-  /** Chosen goals; the host stores them and starts Mission 1. */
-  onStartMission: (goals: GoalId[]) => void
+  /** The one forward button. The host decides what the next stage is. */
+  onAdvance: (goals: GoalId[]) => void
+  /** The mission's story card text, once the host has a mission to run. */
+  storyKey: string | null
   /** «رد شدن» from any stage, and the close button. */
   onSkip: () => void
   /** Celebration CTA — opens the Learning Centre. */
@@ -58,7 +64,8 @@ export function Onboarding({
   stage,
   lang,
   rtl,
-  onStartMission,
+  onAdvance,
+  storyKey,
   onSkip,
   onOpenCenter,
   onFinish,
@@ -74,7 +81,9 @@ export function Onboarding({
       ? t('learn.celebrateTitle', { defaultValue: 'Nicely done' })
       : stage === 'goals'
         ? t('learn.goalsTitle', { defaultValue: 'What brings you here?' })
-        : t('learn.introTitle', { defaultValue: 'Welcome to Sooda' })
+        : stage === 'story'
+          ? t('learn.missionTitle', { defaultValue: 'Mission 1' })
+          : t('learn.introTitle', { defaultValue: 'Welcome to Sooda' })
 
   const go = (next: number) => {
     if (next < 0 || next >= CARDS.length) return
@@ -170,7 +179,7 @@ export function Onboarding({
             onClick={() => {
               vibrate()
               if (card + 1 < CARDS.length) setCard(card + 1)
-              else onStartMission(goals)
+              else onAdvance(goals)
             }}
             whileTap={reducedMotion ? undefined : { scale: 0.97 }}
             className="mt-5 w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
@@ -212,12 +221,37 @@ export function Onboarding({
             type="button"
             onClick={() => {
               vibrate()
-              onStartMission(goals)
+              onAdvance(goals)
             }}
             whileTap={reducedMotion ? undefined : { scale: 0.97 }}
             className="mt-auto w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
           >
             {t('learn.missionCta', { defaultValue: 'Try it on a real calculation' })}
+          </motion.button>
+        </div>
+      ) : null}
+
+      {stage === 'story' ? (
+        <div className="flex min-h-full flex-col">
+          {/* Read before the first step, because every figure the mission asks for is in it. */}
+          <div className="glass glass-ring rounded-[28px] px-5 py-6">
+            <p className="text-[16px] leading-relaxed">{storyKey === null ? '' : t(storyKey)}</p>
+          </div>
+          <p className="mt-3 px-1 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+            {t('learn.practiceNotice', {
+              defaultValue: 'Nothing here touches your own data — it is a practice shop.',
+            })}
+          </p>
+          <motion.button
+            type="button"
+            onClick={() => {
+              vibrate()
+              onAdvance(goals)
+            }}
+            whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+            className="mt-auto w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
+          >
+            {t('learn.missionStart', { defaultValue: 'Start' })}
           </motion.button>
         </div>
       ) : null}

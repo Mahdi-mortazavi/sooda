@@ -66,6 +66,31 @@ describe('the committed snapshot', () => {
 })
 
 describe('every challenge answer, recomputed from the engine itself', () => {
+  it('mission 1 — 20% on 100,000, and what three months leaves of it', () => {
+    const cost = Number(LESSON_INPUTS.mission.cost)
+    const margin = Number(LESSON_INPUTS.mission.margin)
+    const months = Number(LESSON_INPUTS.mission.months)
+
+    const naive = calcFromProfitPercent(cost, margin)
+    const price = roundUpTo(naive.sellingPrice, TUTORIAL_ROUNDING_STEP)
+    expect(LESSON_EXPECTED.mission.sellingPrice).toBe(price)
+    expect(LESSON_EXPECTED.mission.profitAmount).toBe(price - cost)
+
+    /* The lens judges the price the shopkeeper would otherwise have charged — the 120,000, not
+     * the suggestion the second calculation puts in its place. Reading the suggestion's own
+     * margin back would report a healthy 20% and lose the entire point of the mission. */
+    const restock = replacementCost(cost, RATE, months)
+    const real = realProfitPercent(price, restock)
+    expect(LESSON_EXPECTED.mission.replacement).toBe(restock)
+    expect(LESSON_EXPECTED.mission.realPercent).toBe(real)
+    expect(LESSON_EXPECTED.mission.verdict).toBe(profitStatus(real, margin))
+
+    // The payoff, in one line: a fifth of the sale on paper, under a tenth once it is restocked.
+    expect(real).toBeGreaterThan(0)
+    expect(real).toBeLessThan(margin / 2)
+    expect(LESSON_EXPECTED.mission.suggested).toBe(roundUpTo(restock * (1 + margin / 100), TUTORIAL_ROUNDING_STEP))
+  })
+
   it('profit — 25% on 150,000, rounded the way the card rounds it', () => {
     const naive = calcFromProfitPercent(150_000, 25)
     const price = roundUpTo(naive.sellingPrice, TUTORIAL_ROUNDING_STEP)

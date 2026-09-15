@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useContext, useLayoutEffect, useRef } from 'react'
 import type { AppLanguage } from '../lib/numbers'
 import { countSignificantChars, formatLiveInput, parseAmount, sanitizeNumericInput } from '../lib/numbers'
 import { emitTour } from '../learn/coach/events'
+import { RepositoryContext } from '../learn/ui/repositoryContext'
 
 interface NumberFieldProps {
   id: string
@@ -41,6 +42,11 @@ export function NumberField({
   tour,
 }: NumberFieldProps) {
   const errorId = `${id}-error`
+  /* Only while the tutorial is offering one for this field, and only while the field is still
+   * empty: a chip that stays after the figure is in is a chip in the way. Read straight from the
+   * context rather than through `useRepository`, which would pull Dexie into the entry chunk. */
+  const offered = useContext(RepositoryContext)?.suggestion ?? null
+  const suggestion = offered !== null && offered.field === tourField && value === '' ? offered : null
   const inputRef = useRef<HTMLInputElement>(null)
   const caretDigits = useRef<number | null>(null)
 
@@ -116,6 +122,23 @@ export function NumberField({
           </span>
         ) : null}
       </div>
+      {suggestion ? (
+        <button
+          type="button"
+          data-tour={`chip-suggest-${suggestion.field}`}
+          onClick={() => {
+            onChange(suggestion.value)
+            /* Both events, because the step after this one waits on the commit a blur would
+               normally give — a chip that filled the field silently would stall the mission. */
+            emitTour({ type: 'field:change', field: suggestion.field, value: suggestion.value })
+            const parsed = parseAmount(suggestion.value)
+            if (Number.isFinite(parsed)) emitTour({ type: 'field:commit', field: suggestion.field, value: parsed })
+          }}
+          className="mt-2 rounded-full bg-accent-500/16 px-3 py-1 text-[13px] font-bold text-[var(--accent-text)]"
+        >
+          {suggestion.label}
+        </button>
+      ) : null}
       {error ? (
         <p id={errorId} role="alert" className="mt-1 text-[13px] font-medium text-loss-600 dark:text-loss-400">
           {error}

@@ -57,11 +57,10 @@ const STATUS_FALLBACK: Record<LessonStatus, string> = {
 }
 
 /*
- * The brief's eight, in the order someone reads them: what the app is actually claiming, then
- * where its numbers come from, then whether they can trust it with their price list. `copy` owns
- * every question and answer behind these ids.
+ * The brief's eight, in the order someone reads them: the concept first, then where the numbers
+ * come from, then privacy, then the practicalities. `copy` owns every question and answer.
  */
-const FAQ_IDS = ['realProfit', 'rate', 'record', 'data', 'newPhone', 'offline', 'stop', 'source'] as const
+const FAQ_IDS = ['realProfit', 'rate', 'inflation', 'data', 'stop', 'offline', 'phone', 'source'] as const
 
 interface LearnCenterProps {
   open: boolean

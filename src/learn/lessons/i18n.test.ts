@@ -5,6 +5,8 @@ import coreFa from '../../i18n/fa.json'
 import sheetsEn from '../../i18n/sheets/en.json'
 import sheetsFa from '../../i18n/sheets/fa.json'
 import { LESSONS } from './index'
+import { MISSION } from './mission'
+import { TUTORIAL_RATE_NOTE_KEY } from './rate'
 
 /**
  * Every key a lesson names must resolve, in both languages, against the real bundles.
@@ -38,9 +40,14 @@ beforeAll(async () => {
   })
 })
 
-/** Every key the eight lessons name, labelled so a failure says which one. */
+/** Every key the eight lessons, Mission 1 and the pinned-rate note name, labelled for the failure. */
 function everyKey(): { key: string; where: string }[] {
-  const out: { key: string; where: string }[] = []
+  const out: { key: string; where: string }[] = [
+    { key: TUTORIAL_RATE_NOTE_KEY, where: 'the pinned-rate note' },
+    { key: MISSION.storyKey, where: 'mission story card' },
+    { key: MISSION.suggestion.labelKey, where: 'mission suggestion chip' },
+  ]
+  for (const step of MISSION.steps) out.push({ key: step.textKey, where: `mission.${step.id}` })
   for (const lesson of LESSONS) {
     out.push({ key: lesson.titleKey, where: `${lesson.id} title` })
     out.push({ key: lesson.summaryKey, where: `${lesson.id} summary` })

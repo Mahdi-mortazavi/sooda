@@ -17,6 +17,18 @@ export function committed(field: string, value?: number): Predicate {
 }
 
 /**
+ * A field ended up holding this value, whoever put it there.
+ *
+ * A suggestion chip fills a field without anybody typing, and whether the component announces
+ * that as a commit or as a change is its business — the step only cares that the figure is in.
+ */
+export function filled(field: string, value: number): Predicate {
+  return (ev) =>
+    (ev.type === 'field:commit' && ev.field === field && ev.value === value) ||
+    (ev.type === 'field:change' && ev.field === field && Number(ev.value) === value)
+}
+
+/**
  * A chip or toggle option was chosen.
  *
  * Toggles are chips with two options, and whether `ui` announces one as `chip:select` or as a

@@ -46,6 +46,16 @@ export interface RepositoryValue {
    * Neither is ever written to storage: the lesson must not change what the app does afterwards.
    */
   pinned: { monthlyInflationPercent: number; roundingStep: RoundingStep } | null
+  /**
+   * A figure the tutorial is offering to type for the learner — Mission 1's
+   * «۱۰۰٬۰۰۰ را وارد کنید» chip beside the purchase-price field.
+   *
+   * It rides here rather than in a context of its own because this is the one context the entry
+   * chunk already provides, and `NumberField` is in that chunk: a second provider would be more
+   * bytes before first paint than the chip itself. `label` arrives translated, so the field does
+   * not have to reach for i18next.
+   */
+  suggestion: { field: string; value: string; label: string } | null
 }
 
 /** `null` means "nothing is overriding it" — `useRepository` then answers with the real shop. */

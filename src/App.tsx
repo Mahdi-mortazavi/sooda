@@ -501,7 +501,7 @@ export default function App() {
         <Suspense fallback={null}>
           <FeatureBoundary label="the tutorial">
             <LearnHost
-              request={learnRequest ?? { kind: 'center' }}
+              request={learnRequest}
               onPractice={setPractice}
               navigate={navigateForTour}
               tip={tip}
