@@ -283,8 +283,8 @@ export function LearnHost({
       setCenterOpen(true)
       setNotice(
         passed
-          ? t('learn.passedNotice', { defaultValue: 'Lesson passed.' })
-          : t('learn.doneNotice', { defaultValue: 'Lesson finished — answer its question to pass it.' }),
+          ? t('learn.passedNotice')
+          : t('learn.doneNotice'),
       )
     },
     [t],
@@ -520,9 +520,9 @@ export function LearnHost({
           open
           challenges={quiz.quiz}
           summaryKey={quiz.summaryKey}
-          onPassed={() => {
+          onDone={(passed) => {
             setQuiz(null)
-            settle(quiz, true)
+            settle(quiz, passed)
           }}
           onSkip={() => {
             setQuiz(null)

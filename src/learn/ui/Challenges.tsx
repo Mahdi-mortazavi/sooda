@@ -35,8 +35,11 @@ interface ChallengesProps {
   challenges: Challenge[]
   /** The lesson's own one-line summary — «این را یاد گرفتید» is shown against it. */
   summaryKey: string
-  /** Every question answered — the lesson is `passed`. */
-  onPassed: () => void
+  /**
+   * The questions are behind them. `passed` is false if any answer was shown to them rather than
+   * given by them, which is what keeps «استاد سودا» meaning every question was actually answered.
+   */
+  onDone: (passed: boolean) => void
   /** Closed early. The lesson stays `done`: they did it, they just did not answer. */
   onSkip: () => void
 }
@@ -47,7 +50,7 @@ export function Challenges({
   title,
   challenges,
   summaryKey,
-  onPassed,
+  onDone,
   onSkip,
 }: ChallengesProps) {
   const { t } = useTranslation()
@@ -55,9 +58,17 @@ export function Challenges({
   const [index, setIndex] = useState(0)
   const [typed, setTyped] = useState('')
   const [misses, setMisses] = useState(0)
-  /* Right answers pause on the takeaway rather than skipping straight on: "here is what you
-   * learned" is the only place a lesson says out loud what it was for. */
-  const [correct, setCorrect] = useState(false)
+  /*
+   * Where the current question is.
+   *
+   * `asking` until it is settled; then it pauses on the takeaway rather than skipping straight
+   * on, because "here is what you learned" is the only place a lesson says out loud what it was
+   * for. `shown` is the same pause reached by «نشانم بده» instead of by answering.
+   */
+  const [phase, setPhase] = useState<'asking' | 'answered' | 'shown'>('asking')
+  /* Sticky for the whole run: one answer handed over is the difference between a lesson finished
+   * and a lesson passed, and moving on to the next question must not quietly forget it. */
+  const [anyShown, setAnyShown] = useState(false)
 
   const challenge = challenges[index]
   if (!challenge) return null
@@ -71,15 +82,29 @@ export function Challenges({
 
   const accept = () => {
     vibrate()
-    setCorrect(true)
+    setPhase('answered')
+  }
+
+  /**
+   * «نشانم بده» — the way out of being stuck that is not another wrong answer.
+   *
+   * It settles the question the same way a right answer does, and the learner reads the same
+   * takeaway. What it does not do is count: being shown an answer is finishing the lesson, not
+   * answering it, so the lesson lands on `done` and «استاد سودا» keeps its meaning. Nothing here
+   * says "wrong" — they asked for help and got it.
+   */
+  const reveal = () => {
+    vibrate()
+    setAnyShown(true)
+    setPhase('shown')
   }
 
   const advance = () => {
     vibrate()
-    setCorrect(false)
+    setPhase('asking')
     setMisses(0)
     setTyped('')
-    if (last) onPassed()
+    if (last) onDone(!anyShown)
     else setIndex(index + 1)
   }
 
@@ -92,9 +117,9 @@ export function Challenges({
    * The lesson's own hint for this challenge.
    *
    * `learn.challenge.hintMore` is a label — "another hint" — and on its own it is not a hint at
-   * all, which is what a second miss was getting. Every challenge now carries a `hintKey`;
-   * it is read structurally so this compiles either side of that landing and starts saying
-   * the fallback is kept only so a challenge added without one degrades to the old label.
+   * all, which is what a second miss used to get. Every challenge now carries a `hintKey`; the
+   * fallback is kept only so that one added without a hint degrades to the old label rather than
+   * to a raw key.
    */
   const hintKey = challenge.hintKey ?? 'learn.challenge.hintMore'
 
@@ -119,7 +144,11 @@ export function Challenges({
       }
     >
       <p className="sr-only" aria-live="polite">
-        {correct ? `${t('learn.challenge.correct')} ${t(takeawayKey)}` : `${counter}. ${prompt}`}
+        {phase === 'answered'
+          ? `${t('learn.challenge.correct')} ${t(takeawayKey)}`
+          : phase === 'shown'
+            ? t(takeawayKey)
+            : `${counter}. ${prompt}`}
       </p>
 
       <p className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
@@ -129,19 +158,24 @@ export function Challenges({
         <p className="text-[16px] font-semibold leading-relaxed">{prompt}</p>
       </div>
 
-      {correct ? (
+      {phase !== 'asking' ? (
         <motion.section
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-          aria-label={t('learn.challenge.correct')}
+          aria-label={t('learn.challenge.takeawayLabel')}
           className="mt-4"
         >
-          <p className="flex items-center gap-2 px-1 text-[15px] font-bold text-[var(--accent-text)]">
-            <IconCheck size={18} />
-            {t('learn.challenge.correct')}
-          </p>
-          <div className="glass glass-ring mt-3 rounded-2xl px-4 py-3.5">
+          {/* Only an answer they gave gets «آفرین». A revealed one goes straight to the takeaway:
+            * congratulating someone on an answer they asked to be shown is the kind of praise
+            * that teaches a learner not to trust the next one. */}
+          {phase === 'answered' ? (
+            <p className="flex items-center gap-2 px-1 text-[15px] font-bold text-[var(--accent-text)]">
+              <IconCheck size={18} />
+              {t('learn.challenge.correct')}
+            </p>
+          ) : null}
+          <div className={`glass glass-ring rounded-2xl px-4 py-3.5 ${phase === 'answered' ? 'mt-3' : ''}`}>
             <p className="text-[12.5px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
               {t('learn.challenge.takeawayLabel')}
             </p>
@@ -232,6 +266,19 @@ export function Challenges({
                 <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
                   {t(hintKey)}
                 </p>
+                {/* The way out of being stuck that is not another wrong answer. Two misses is
+                  * where a learner starts guessing, and a question with no exit but a guess is a
+                  * question that teaches nothing. */}
+                <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
+                  {t('learn.challenge.showMeOffer')}
+                </p>
+                <button
+                  type="button"
+                  onClick={reveal}
+                  className="mt-2 rounded-full bg-accent-500/16 px-3.5 py-1.5 text-[13px] font-bold text-[var(--accent-text)]"
+                >
+                  {t('learn.challenge.showMe')}
+                </button>
               </div>
             ) : null}
           </div>
