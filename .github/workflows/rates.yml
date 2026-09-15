@@ -1,0 +1,97 @@
+name: Update rates
+
+on:
+  schedule:
+    # 02:20 UTC is ~05:50 Tehran: after the free-market day has closed and long before
+    # the morning traffic that this repo's Pages deploy would otherwise land in. The
+    # odd minute keeps us off the :00 spike when GitHub's scheduler is most backed up.
+    - cron: '20 2 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Which signals to refresh'
+        type: choice
+        default: both
+        options: [both, fx, cpi]
+        required: false
+
+# Needed to push the FX commit to main and to open the CPI pull request.
+permissions:
+  contents: write
+  pull-requests: write
+
+# Its own group, so this never queues behind — or cancels — the 'pages' group that
+# .github/workflows/deploy.yml serialises deploys on. The FX commit this job pushes
+# triggers that workflow separately, which is the intended hand-off.
+concurrency:
+  group: rates
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # No `npm ci`: the pipeline is dependency-free plain Node ESM, so skipping the
+      # install keeps a daily cron job down to a few seconds.
+      - name: Sanity-check the pipeline itself
+        run: npm run rates:test
+
+      - name: Configure git identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      # FX moves daily and is low-stakes, so it goes straight to main and lets the
+      # existing deploy workflow pick it up.
+      - name: Refresh FX
+        id: fx
+        if: inputs.mode != 'cpi'
+        run: node scripts/rates/update.mjs --fx-only
+
+      - name: Commit FX to main
+        if: steps.fx.outputs.changed == 'true'
+        run: |
+          git add public/data/rates.json
+          git commit -m "chore(data): rates ${{ steps.fx.outputs.date }}"
+          git push origin HEAD:main
+
+      # CPI is a monthly official figure. A wrong one quietly skews every margin the app
+      # suggests, so it gets a human glance before it ships.
+      - name: Refresh CPI
+        id: cpi
+        if: inputs.mode != 'fx'
+        run: node scripts/rates/update.mjs --cpi-only
+
+      - name: Open a pull request for CPI
+        if: steps.cpi.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          BRANCH="data/cpi-${{ steps.cpi.outputs.cpi_as_of || steps.cpi.outputs.date }}"
+          git checkout -b "$BRANCH"
+          git add public/data/rates.json
+          git commit -m "chore(data): CPI ${{ steps.cpi.outputs.cpi_as_of }}"
+          git push --force origin "$BRANCH"
+          # An open PR for this month already exists on a re-run; reuse it rather than fail.
+          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "chore(data): CPI ${{ steps.cpi.outputs.cpi_as_of }}" \
+              --body "Automated CPI refresh for ${{ steps.cpi.outputs.cpi_as_of }}. Check each monthly percent against the official release before merging: the pipeline only proves the numbers are plausible (finite, within [-5, +30]), not that they are right."
+          fi
+
+      # Nothing changed is the normal outcome on most days, and is not a failure.
+      - name: Summarise
+        run: |
+          echo "fx changed: ${{ steps.fx.outputs.changed || 'skipped' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "cpi changed: ${{ steps.cpi.outputs.changed || 'skipped' }}" >> "$GITHUB_STEP_SUMMARY"
