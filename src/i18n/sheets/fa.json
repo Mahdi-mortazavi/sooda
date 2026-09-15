@@ -110,8 +110,8 @@
     }
   },
   "settings": {
-    "inflation": "تورم سالانه",
-    "inflationHint": "برای تخمین هزینهٔ خرید دوبارهٔ کالا به کار می‌رود.",
+    "inflation": "گرانی ماهانه",
+    "inflationHint": "نرخ ماهانه‌ای که برای تخمین هزینهٔ خرید دوبارهٔ همان جنس به کار می‌رود.",
     "inflationSource": "منبع: {{source}} · {{date}}",
     "inflationCustom": "مقدار شما",
     "inflationReset": "بازگشت به پیش‌فرض",

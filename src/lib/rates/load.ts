@@ -24,7 +24,7 @@ export const RATES_TIMEOUT_MS = 8000
 const EMPTY_RATES: RatesFile = {
   schema: RATES_SCHEMA_VERSION,
   updatedAt: null,
-  cpi: { source: { name: '', url: '' }, asOf: null, overallMonthlyPercent: null, categories: {} },
+  cpi: { source: { name: '', url: '' }, asOf: null, confidence: null, overallMonthlyPercent: null, categories: {} },
   fx: { source: { name: '', url: '' }, pair: '', series: [] },
 }
 

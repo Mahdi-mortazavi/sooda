@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { annualToMonthlyPercent } from '../inflation'
 import { MODES, type Mode } from '../calc'
 import { INSTALLMENT_COUNTS } from '../installment'
 import { INSTALLMENT_BASE_FIELDS } from './installmentFields'
@@ -23,7 +24,8 @@ import {
 import type { CalcContext, ModeState, PresentContext } from './types'
 
 const calcCtx = (state: ModeState, over: Partial<CalcContext> = {}): CalcContext => ({
-  annualInflationPercent: 40,
+  // Briefed at 40% annual; the context now carries a monthly percent.
+  monthlyInflationPercent: annualToMonthlyPercent(40),
   roundingStep: 0,
   now: Date.UTC(2026, 8, 15),
   state,

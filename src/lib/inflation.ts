@@ -4,7 +4,8 @@ import inflationData from '../data/inflation.json'
 import { MAX_VALUE, round2 } from './calc'
 
 export interface InflationSource {
-  annualPercent: number
+  /** MONTHLY, not annual. Iran's CPI is published monthly and the engine works monthly. */
+  monthlyPercent: number
   source: string
   /** Persian rendering of the same source, so the provenance line is not English inside an RTL UI. */
   sourceFa?: string
@@ -15,7 +16,7 @@ export interface InflationSource {
 
 /* JSON imports widen `confidence` to plain string, so the union is re-narrowed by hand rather than cast away. */
 const bundled: {
-  annualPercent: number
+  monthlyPercent: number
   source: string
   sourceFa?: string
   sourceUrl: string
@@ -26,7 +27,7 @@ const bundled: {
 
 /** The CPI figure shipped with the build — never fetched, because the precache skips .json. */
 export const INFLATION_DEFAULT: InflationSource = {
-  annualPercent: bundled.annualPercent,
+  monthlyPercent: bundled.monthlyPercent,
   source: bundled.source,
   sourceFa: bundled.sourceFa,
   sourceUrl: bundled.sourceUrl,
@@ -34,10 +35,25 @@ export const INFLATION_DEFAULT: InflationSource = {
   confidence: bundled.confidence === 'primary' ? 'primary' : 'secondary',
 }
 
-export const INFLATION_STORAGE_KEY = 'sooda:inflation'
+export const INFLATION_STORAGE_KEY = 'sooda:inflation-monthly'
 
-/* At or below −100%/yr the annual growth factor is ≤ 0 and a fractional power of it is NaN, so such an
-   override is treated as garbage rather than allowed to poison every downstream figure. */
+/**
+ * The v1.4-and-earlier key, which held an ANNUAL percent.
+ *
+ * The meaning of the number changed in v1.5, so the key had to change with it. Reading the old
+ * key as if it were monthly would turn one shopkeeper's carefully chosen "89% a year" into
+ * 89% a *month* — a factor of 1.89^12 on every restock estimate they see. A stored value is
+ * migrated once, by conversion, and the old key is then removed.
+ */
+export const LEGACY_ANNUAL_STORAGE_KEY = 'sooda:inflation'
+
+/** An annual percent → the equivalent compounding monthly percent. 89%/yr is 5.45%/mo. */
+export function annualToMonthlyPercent(annualPercent: number): number {
+  return (Math.pow(1 + annualPercent / 100, 1 / 12) - 1) * 100
+}
+
+/* At or below −100% the growth factor is ≤ 0 and every downstream figure turns to NaN, so such an
+   override is treated as garbage rather than allowed to poison the results. */
 function parseOverride(raw: string | null): number | null {
   if (raw === null || raw.trim() === '') return null
   const pct = Number(raw)
@@ -47,7 +63,17 @@ function parseOverride(raw: string | null): number | null {
 
 function readOverride(): number | null {
   try {
-    return parseOverride(localStorage.getItem(INFLATION_STORAGE_KEY))
+    const current = parseOverride(localStorage.getItem(INFLATION_STORAGE_KEY))
+    if (current !== null) return current
+
+    // Nothing under the new key: convert a v1.4 annual override exactly once, then retire it.
+    const legacy = parseOverride(localStorage.getItem(LEGACY_ANNUAL_STORAGE_KEY))
+    if (legacy === null) return null
+    const monthly = annualToMonthlyPercent(legacy)
+    if (!Number.isFinite(monthly)) return null
+    localStorage.setItem(INFLATION_STORAGE_KEY, String(monthly))
+    localStorage.removeItem(LEGACY_ANNUAL_STORAGE_KEY)
+    return monthly
   } catch {
     // storage unavailable
     return null
@@ -60,15 +86,21 @@ export function inflationSourceLabel(lang: 'en' | 'fa'): string {
   return (lang === 'fa' ? INFLATION_DEFAULT.sourceFa : undefined) ?? INFLATION_DEFAULT.source
 }
 
-export function readAnnualInflationPercent(): number {
-  return readOverride() ?? INFLATION_DEFAULT.annualPercent
+export function readMonthlyInflationPercent(): number {
+  return readOverride() ?? INFLATION_DEFAULT.monthlyPercent
 }
 
 /** null clears the override and restores the bundled default. */
-export function storeAnnualInflationPercent(pct: number | null): void {
+export function storeMonthlyInflationPercent(pct: number | null): void {
   try {
-    if (pct === null) localStorage.removeItem(INFLATION_STORAGE_KEY)
-    else localStorage.setItem(INFLATION_STORAGE_KEY, String(pct))
+    // The legacy key goes too, or the next read would migrate it straight back in.
+    if (pct === null) {
+      localStorage.removeItem(INFLATION_STORAGE_KEY)
+      localStorage.removeItem(LEGACY_ANNUAL_STORAGE_KEY)
+    } else {
+      localStorage.setItem(INFLATION_STORAGE_KEY, String(pct))
+      localStorage.removeItem(LEGACY_ANNUAL_STORAGE_KEY)
+    }
   } catch {
     // best-effort persistence
   }
@@ -78,14 +110,15 @@ export function hasInflationOverride(): boolean {
   return readOverride() !== null
 }
 
-/** Annual FRACTION (0.40 = 40%) → the equivalent compounding monthly rate. Never rounded: it feeds every result. */
-export function monthlyRate(annual: number): number {
-  if (annual === 0) return 0
-  return Math.pow(1 + annual, 1 / 12) - 1
-}
-
-export function monthlyRateFromPercent(annualPercent: number): number {
-  return monthlyRate(annualPercent / 100)
+/**
+ * A MONTHLY percent → the fraction the engine compounds. Never rounded: it feeds every result.
+ *
+ * Until v1.5 this took an annual percent and took its twelfth root. Iran's CPI is published
+ * monthly, and deriving a monthly pace from a point-to-point annual figure overstates it badly
+ * while inflation is decelerating — 89%/yr implies 5.45%/mo against a reported 3.4%.
+ */
+export function monthlyRateFromPercent(monthlyPercent: number): number {
+  return monthlyPercent / 100
 }
 
 /** R = c·(1+r)^m — what the same goods will cost to buy again after `months`. */

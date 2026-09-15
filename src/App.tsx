@@ -14,7 +14,7 @@ import { useRates } from './hooks/useRates'
 import { useTheme } from './hooks/useTheme'
 import { LANG_STORAGE_KEY, setLanguage } from './i18n'
 import { vibrate } from './lib/haptics'
-import { readAnnualInflationPercent, storeAnnualInflationPercent } from './lib/inflation'
+import { readMonthlyInflationPercent, storeMonthlyInflationPercent } from './lib/inflation'
 import { TELEGRAM_URL } from './lib/links'
 import { formatNumber, type AppLanguage } from './lib/numbers'
 import { readRoundingStep, storeRoundingStep, type RoundingStep } from './lib/rounding'
@@ -65,7 +65,7 @@ export default function App() {
   const sharedUnit = useMemo(() => parseModeShareQuery(window.location.search)?.unit ?? 'none', [])
   const [unit, setUnitState] = useState<Unit>(() => (sharedUnit !== 'none' ? sharedUnit : readStoredUnit()))
   const [roundingStep, setRoundingStepState] = useState<RoundingStep>(readRoundingStep)
-  const [annualInflationPercent, setAnnualInflation] = useState<number>(readAnnualInflationPercent)
+  const [monthlyInflationPercent, setMonthlyInflation] = useState<number>(readMonthlyInflationPercent)
 
   // A ?tab=products shortcut wins over whatever tab the draft remembered.
   /* The URL is the only source of truth for the tab: setTab replaceStates it, so it already
@@ -124,8 +124,8 @@ export default function App() {
 
   const onInflationChange = useCallback((percent: number | null) => {
     // Storage first: Settings reads hasInflationOverride() during render.
-    storeAnnualInflationPercent(percent)
-    setAnnualInflation(readAnnualInflationPercent())
+    storeMonthlyInflationPercent(percent)
+    setMonthlyInflation(readMonthlyInflationPercent())
   }, [])
 
   const setTab = useCallback((next: AppTab) => {
@@ -216,7 +216,7 @@ export default function App() {
           lang={lang}
           unit={unit}
           ready={!needsLang}
-          annualInflationPercent={annualInflationPercent}
+          monthlyInflationPercent={monthlyInflationPercent}
           roundingStep={roundingStep}
           onOpenSettings={openSettings}
           onSaveProduct={onSaveProduct}
@@ -289,7 +289,7 @@ export default function App() {
             onUnitChange={setUnit}
             roundingStep={roundingStep}
             onRoundingChange={setRoundingStep}
-            annualInflationPercent={annualInflationPercent}
+            monthlyInflationPercent={monthlyInflationPercent}
             onInflationChange={onInflationChange}
             onOpenStoreProfile={() => {
               setSettingsOpen(false)

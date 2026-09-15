@@ -137,9 +137,9 @@ export interface ProductStatus {
 }
 
 /** Estimates today's restock cost from `cost`, the months since `costUpdatedAt`, and inflation. */
-export function productStatus(p: Product, annualInflationPercent: number, now: number): ProductStatus {
+export function productStatus(p: Product, monthlyInflationPercent: number, now: number): ProductStatus {
   const costAgeMonths = monthsBetween(p.costUpdatedAt, now)
-  const replacement = replacementCost(p.cost, monthlyRateFromPercent(annualInflationPercent), costAgeMonths)
+  const replacement = replacementCost(p.cost, monthlyRateFromPercent(monthlyInflationPercent), costAgeMonths)
   // A row with no recorded purchase price cannot be judged; dividing by it would yield
   // Infinity or NaN, and NaN silently reads as 'thin'. Flag it instead.
   const realMarginPercent = replacement > 0 ? realProfitPercent(p.price, replacement) : 0
@@ -214,13 +214,13 @@ export function previewBulk(
   items: Product[],
   op: BulkOp,
   step: RoundingStep,
-  annualInflationPercent: number,
+  monthlyInflationPercent: number,
   now: number,
 ): BulkPreviewRow[] {
   const percent = op.kind === 'costUp' ? Math.max(op.percent, MIN_COST_CHANGE_PERCENT) : 0
   return items.map((p) => {
     const newCost = op.kind === 'costUp' ? round2(p.cost * (1 + percent / 100)) : p.cost
-    const basis = op.kind === 'costUp' ? newCost : productStatus(p, annualInflationPercent, now).replacement
+    const basis = op.kind === 'costUp' ? newCost : productStatus(p, monthlyInflationPercent, now).replacement
     return {
       id: p.id,
       name: p.name,

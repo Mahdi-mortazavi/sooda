@@ -9,7 +9,7 @@ import { fxAt, fxLatest, productRate } from '../lib/rates'
 import { resolveRateSettings } from '../lib/rates/resolve'
 import type { RatesFile } from '../lib/rates/schema'
 import { vibrate } from '../lib/haptics'
-import { readAnnualInflationPercent, suggestedPrice } from '../lib/inflation'
+import { readMonthlyInflationPercent, suggestedPrice } from '../lib/inflation'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
 import { deleteProduct, productStatus, updateProduct, type ProductHealth, type ProductStatus } from '../lib/products'
 import { readRoundingStep, roundUpTo } from '../lib/rounding'
@@ -102,7 +102,7 @@ export function ProductSheet({
       price: priceValue,
       unit: rowUnit,
     }
-    return productStatus(provisional, readAnnualInflationPercent(), Date.now())
+    return productStatus(provisional, readMonthlyInflationPercent(), Date.now())
   }, [product, costValue, marginValue, priceValue, rowUnit])
 
   /* Only this product's readings, and only while the sheet is open. `null` (loading) is

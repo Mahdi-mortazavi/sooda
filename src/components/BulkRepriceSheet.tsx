@@ -5,7 +5,7 @@ import '../i18n/sheets'
 import type { Product } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
-import { readAnnualInflationPercent } from '../lib/inflation'
+import { readMonthlyInflationPercent } from '../lib/inflation'
 import { bulkApply, previewBulk, restoreProducts, type BulkOp, type ProductChange } from '../lib/products'
 import { readRoundingStep } from '../lib/rounding'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
@@ -42,7 +42,7 @@ export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast,
 
   const rows = useMemo(() => {
     const op: BulkOp = kind === 'costUp' ? { kind: 'costUp', percent: percentValue } : { kind: 'retarget' }
-    return previewBulk(products, op, step, readAnnualInflationPercent(), Date.now())
+    return previewBulk(products, op, step, readMonthlyInflationPercent(), Date.now())
   }, [products, kind, percentValue, step])
 
   const changed = rows.filter((r) => r.newPrice !== r.oldPrice || r.newCost !== r.oldCost)

@@ -110,8 +110,8 @@
     }
   },
   "settings": {
-    "inflation": "Annual inflation",
-    "inflationHint": "Used to estimate what buying the same goods again will cost.",
+    "inflation": "Monthly inflation",
+    "inflationHint": "The monthly rate used to estimate what buying the same goods again will cost.",
     "inflationSource": "Source: {{source}} · {{date}}",
     "inflationCustom": "Your value",
     "inflationReset": "Reset to default",

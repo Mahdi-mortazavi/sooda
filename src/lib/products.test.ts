@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Product } from './db'
+import { annualToMonthlyPercent } from './inflation'
 import type { RoundingStep } from './rounding'
 import {
   buildProductsCsv,
@@ -34,7 +35,12 @@ describe('productStatus', () => {
   })
 
   it('ages a six-month-old cost by compounded monthly inflation', () => {
-    const s = productStatus(product({ id: 1, name: 'Stale', costUpdatedAt: MARCH }), 40, SEPTEMBER)
+    // The scenario is still 40% a YEAR; since v1.5 productStatus takes a monthly percent.
+    const s = productStatus(
+      product({ id: 1, name: 'Stale', costUpdatedAt: MARCH }),
+      annualToMonthlyPercent(40),
+      SEPTEMBER,
+    )
     expect(s.costAgeMonths).toBe(6)
     // 100000 · 1.4^(6/12) — half a year of 40%/yr, compounded monthly.
     expect(s.replacement).toBe(118_321.6)

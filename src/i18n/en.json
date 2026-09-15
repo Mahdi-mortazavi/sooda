@@ -104,7 +104,7 @@
     "sourceKnown": "I know today’s restock price",
     "sourceInflation": "Estimate with inflation",
     "replacementField": "Today’s restock price",
-    "inflationChip": "Annual inflation {{percent}}",
+    "inflationChip": "Monthly inflation {{percent}}",
     "blockTitle": "Real profit",
     "nominalProfit": "Nominal profit",
     "realProfit": "Real profit",

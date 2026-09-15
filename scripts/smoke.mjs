@@ -68,6 +68,10 @@ async function open({ lang = 'en', query = '', storage = {}, fresh = false } = {
     const seed = {
       'sooda:lang': lang,
       'sooda:theme': 'light',
+      /* Deliberately the v1.4 key, holding an ANNUAL 40%. Every inflation-dependent expectation
+       * below was briefed at 40%/yr, so they only still hold if the v1.5 migration converts it
+       * to the equivalent monthly rate — which makes this suite integration coverage for that
+       * migration as well as for the flows themselves. */
       'sooda:inflation': '40',
       'sooda:last-version': APP_VERSION,
       ...storage,

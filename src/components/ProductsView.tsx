@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import { db, type Product, type StoreProfile } from '../lib/db'
 import { vibrate } from '../lib/haptics'
-import { readAnnualInflationPercent } from '../lib/inflation'
+import { readMonthlyInflationPercent } from '../lib/inflation'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import {
   buildProductsCsv,
@@ -80,9 +80,9 @@ export function ProductsView({
   // One status per product, from one inflation read and one clock reading per pass.
   const statuses = useMemo(() => {
     const now = Date.now()
-    const annualInflationPercent = readAnnualInflationPercent()
+    const monthlyInflationPercent = readMonthlyInflationPercent()
     const map = new Map<number, ProductStatus>()
-    for (const p of all) map.set(p.id, productStatus(p, annualInflationPercent, now))
+    for (const p of all) map.set(p.id, productStatus(p, monthlyInflationPercent, now))
     return map
   }, [all])
 

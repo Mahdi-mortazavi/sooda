@@ -23,7 +23,7 @@ export const reverseInstallmentBehaviour: ModeBehaviour<ReverseResult> = {
     const cash = valueOf(values, 'cash')
     const count = valueOf(values, 'n')
     const downPayment = resolveDownPayment(cash, values, ctx.state)
-    const rate = monthlyRateFromPercent(ctx.annualInflationPercent)
+    const rate = monthlyRateFromPercent(ctx.monthlyInflationPercent)
     const result = calcInstallmentReverse(cash, downPayment, count, valueOf(values, 'flat'), rate)
     return { ...result, count, downPayment, startAt: ctx.now }
   },

@@ -23,7 +23,7 @@ export const installmentBehaviour: ModeBehaviour<ForwardResult> = {
     const cash = valueOf(values, 'cash')
     const count = valueOf(values, 'n')
     const downPayment = resolveDownPayment(cash, values, ctx.state)
-    const rate = monthlyRateFromPercent(ctx.annualInflationPercent)
+    const rate = monthlyRateFromPercent(ctx.monthlyInflationPercent)
     return { ...calcInstallmentForward(cash, downPayment, count, rate), count, downPayment, startAt: ctx.now }
   },
   present: (r, _values, ctx) => {

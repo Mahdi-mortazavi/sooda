@@ -64,11 +64,11 @@ show('rdiscount', 'A 408,000 sale price that was 15% off — what was the origin
 
 /* ── the real-profit lens ────────────────────────────────────────────────── */
 
-const INFL = e.INFLATION_DEFAULT.annualPercent
+const INFL = e.INFLATION_DEFAULT.monthlyPercent
 const monthly = e.monthlyRateFromPercent(INFL)
 const replacement = e.replacementCost(400_000, monthly, 3)
 const realPct = e.realProfitPercent(shawl.sellingPrice, replacement)
-show('lens', `The shawl was bought 3 months ago. Bundled inflation ${INFL}%/yr (${e.INFLATION_DEFAULT.updatedAt})`, {
+show('lens', `The shawl was bought 3 months ago. Bundled inflation ${INFL}%/month (${e.INFLATION_DEFAULT.updatedAt})`, {
   'نرخ ماهانه / monthly rate %': [fa(monthly * 100, 2), en(monthly * 100, 2)],
   'قیمت خرید دوباره / restock cost': [fa(replacement), en(replacement)],
   'سود واقعی / real profit %': [fa(realPct, 2), en(realPct, 2)],
@@ -86,8 +86,8 @@ show('installment', '10,000,000 cash price, 4,000,000 down, 6 monthly payments',
   'سود ماهانهٔ ساده / flat monthly %': [fa(fwd.flatMonthlyPercent, 2), en(fwd.flatMonthlyPercent, 2)],
 })
 
-const rev = e.calcInstallmentReverse(10_000_000, 4_000_000, 6, 3, monthly)
-show('rinstallment', 'The same plan offered at a flat 3%/month — is it actually profitable?', {
+const rev = e.calcInstallmentReverse(10_000_000, 4_000_000, 6, 2, monthly)
+show('rinstallment', 'The same plan offered at a flat 2%/month — is it actually profitable?', {
   'قسط ماهانه / monthly payment': [fa(rev.installment), en(rev.installment)],
   'ارزش امروز / value today': [fa(rev.presentValue), en(rev.presentValue)],
   'سود واقعی / real gain %': [fa(rev.realGainPercent, 2), en(rev.realGainPercent, 2)],
@@ -139,7 +139,7 @@ const rate = e.productRate({
   rates: e.FALLBACK_RATES,
   now,
 })
-show('rate', 'Three purchase prices recorded over six months, no national figures yet (the shipped state)', {
+show('rate', 'Three purchase prices recorded over six months, blended with the bundled national figures', {
   'نرخ ماهانه / monthly rate %': [
     rate.monthlyPercent === null ? '—' : fa(rate.monthlyPercent, 2),
     rate.monthlyPercent === null ? '—' : en(rate.monthlyPercent, 2),

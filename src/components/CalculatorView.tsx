@@ -51,7 +51,7 @@ interface CalculatorViewProps {
   unit: Unit
   /** Onboarding is finished — safe to auto-run a shared link. */
   ready: boolean
-  annualInflationPercent: number
+  monthlyInflationPercent: number
   roundingStep: RoundingStep
   /** The lens's inflation chip is a shortcut into Settings, where the rate lives. */
   onOpenSettings: () => void
@@ -68,7 +68,7 @@ export function CalculatorView({
   lang,
   unit,
   ready,
-  annualInflationPercent,
+  monthlyInflationPercent,
   roundingStep,
   onOpenSettings,
   onSaveProduct,
@@ -208,7 +208,7 @@ export function CalculatorView({
       const { display, snapshot } = runMode(
         behaviour,
         values,
-        { annualInflationPercent, roundingStep, now, state },
+        { monthlyInflationPercent, roundingStep, now, state },
         {
           t: translate,
           lang,
@@ -227,7 +227,7 @@ export function CalculatorView({
         await addHistoryEntry({ mode, inputs: snapshot.inputs, results: snapshot.results, unit, createdAt: now })
       }
     },
-    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, annualInflationPercent, roundingStep],
+    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, monthlyInflationPercent, roundingStep],
   )
 
   const addToBasket = useCallback(async () => {
@@ -356,7 +356,7 @@ export function CalculatorView({
                 state={states[mode]}
                 errors={errors[mode]}
                 lang={lang}
-                annualInflationPercent={annualInflationPercent}
+                monthlyInflationPercent={monthlyInflationPercent}
                 onChange={setField}
                 onOpenInflationSetting={onOpenSettings}
               />

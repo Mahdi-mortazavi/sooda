@@ -39,7 +39,7 @@ and he's pleased. He bought them three months ago at 400,000 toman each.
 
 The next morning his wholesaler calls: prices are up. Only now does he realise that the money
 from those ten shawls will not buy ten shawls. His profit looked like 80,000 each — but
-restocking the same shawl now costs about **469,003**. Of that 20%, roughly **2.34%** is
+restocking the same shawl now costs about **442,203**. Of that 20%, roughly **8.55%** is
 actually left.
 
 That is the moment Sooda is built for. Reza enters his purchase and selling price, and next to
@@ -47,9 +47,9 @@ the nominal profit Sooda shows the **real** profit — flagged as thin, with a s
 that covers buying the goods again.
 
 That afternoon a customer wants a 10,000,000 item on instalments. Reza opens
-*"Is my deal profitable?"* and finds that the flat 3%/month he has always charged is today a
-**0.96% loss**. He fixes the number, and sends the customer a payment schedule with no mention
-of his own margin.
+*"Is my deal profitable?"* and finds that the flat 2%/month he has always charged now barely
+**breaks even** — a 0.12% loss, which is to say he is working for free. He fixes the number, and
+sends the customer a payment schedule with no mention of his own margin.
 
 And the imported item priced in dollars? Sooda estimates a monthly price-growth rate for each
 product separately — and tells him where that number came from.
@@ -129,10 +129,10 @@ And back the other way: a 408,000 price that was 15% off started at **480,000**.
 
 | | |
 | --- | --- |
-| Monthly rate (from annual inflation) | about 5.45% |
-| Restock cost (estimate) | about 469,003 |
-| **Real profit** | **about 2.34%** — thin |
-| Suggested price | about 562,803 |
+| Monthly inflation | 3.4% |
+| Restock cost (estimate) | about 442,203 |
+| **Real profit** | **about 8.55%** — thin |
+| Suggested price | about 530,644 |
 
 <div align="center">
 <img src="docs/screenshots/en/lens-light.png" width="240" alt="Real profit lens" />
@@ -157,14 +157,14 @@ beats any estimate.
 
 | | |
 | --- | --- |
-| Monthly payment | 1,199,096 |
-| Total collected | 11,194,576 |
-| Markup needed | about 11.95% |
-| Equivalent flat monthly | about 3.32% |
+| Monthly payment | 1,122,313 |
+| Total collected | 10,733,880 |
+| Markup needed | about 7.34% |
+| Equivalent flat monthly | about 2.04% |
 
-**Example 2 — Is my deal profitable?** The same item at the flat 3%/month many shops charge:
-payments of **1,180,000**, but worth only **9,904,448** today — about a **0.96% loss** against
-selling for cash.
+**Example 2 — Is my deal profitable?** The same item at the flat 2%/month many shops charge:
+payments of **1,120,000**, but worth only **9,987,633** today — about a **0.12% loss** against
+selling for cash. Barely break-even.
 
 <div align="center">
 <img src="docs/screenshots/en/installment-dark.png" width="240" alt="Instalment pricing" />
@@ -186,14 +186,14 @@ the Persian calendar, with nothing about your margin.
 3. To reprice many at once, open bulk reprice, check the preview, then confirm.
 
 **Example** — the same shawl, three months after its cost was last recorded: restock cost about
-**469,003**, real margin about **2.34%**, health chip **thin**.
+**442,203**, real margin about **8.55%**, health chip **thin**.
 
 <div align="center">
 <img src="docs/screenshots/en/products-light.png" width="240" alt="My products" />
 </div>
 
 **Tip** — bulk reprice has a 10-second **undo**. Rounding always goes **up**, so margin is never
-lost: 562,803.37 with a 5,000 step becomes **565,000**.
+lost: 530,643.5 with a 5,000 step becomes **535,000**.
 
 ---
 
@@ -217,17 +217,17 @@ one national number for the whole market.
 
 | | |
 | --- | --- |
-| Price growth | about 4.66% a month |
+| Price growth | about 4.11% a month |
 | From your own prices | 60% |
-| Estimate quality | low |
-| Restock cost today (estimate) | about 418,636 |
+| Estimate quality | medium |
+| Restock cost today (estimate) | about 416,453 |
 
 <div align="center">
 <img src="docs/screenshots/en/checkin-light.png" width="240" alt="Price check-in" />
 <img src="docs/screenshots/en/rate-fx-dark.png" width="240" alt="Imported product — the dollar line" />
 </div>
 
-**Tip** — "low" means Sooda has no national figures yet and is going on your prices alone.
+**Tip** — "medium" means Sooda is blending your own prices with the national figures.
 Every purchase price you record sharpens it. For an imported product, Sooda separately shows
 how far the dollar has moved since your last purchase.
 
@@ -288,8 +288,8 @@ category, and the dollar (for imported goods). It is always an **estimate** — 
 Sooda says "about" everywhere, and why **Why this number?** breaks down where each part came from.
 
 **I don't know the inflation rate — is that a problem?**
-No. Sooda ships with a default (currently 89% a year, from the Statistical Center of Iran — CPI,
-Mordad 1405). Change it in Settings if you have a better figure. And if you know the new
+No. Sooda ships with a default (currently 3.4% **a month**, from the Statistical Center of Iran —
+CPI, Mordad 1405). Change it in Settings if you have a better figure. And if you know the new
 purchase price, you don't need inflation at all: enter it directly.
 
 **Where is my data stored?**

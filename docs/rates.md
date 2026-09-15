@@ -6,12 +6,31 @@ behind that estimate come from a small public data file, `public/data/rates.json
 | Signal | Where it comes from | Status today |
 | --- | --- | --- |
 | Your own price history | The shopkeeper's own device. Never leaves it. | Working, needs nothing |
-| Category CPI | `cpi.categories` in the rates file | **empty — see below** |
+| Category CPI | `cpi.categories` in the rates file | **filled — Mordad 1405, see below** |
 | Free-market USD | `fx.series` in the rates file | **empty — see below** |
 
 The app works with the file empty. Every reader treats a `null` as "no figure", the estimate
 falls back to whatever signals it does have, and the rate card says so. Nothing is fabricated
 to fill a gap, and nothing here is guessed.
+
+## What is in the file today
+
+CPI figures for **Mordad 1405**, supplied by the maintainer citing the Statistical Center of
+Iran: overall **+3.4%/month**, food and beverages **+3.6%/month**, and **+3.3%/month** for every
+other division until per-division figures are confirmed. Marked `"confidence": "secondary"`
+because this repository cannot reach amar.org.ir to verify them (see below) — they were relayed,
+not fetched.
+
+Two things worth knowing about these numbers:
+
+* They are **monthly**, and that is now the app's only basis. Until v1.5 the bundled default was
+  an annual 89% (point-to-point), from which the engine derived ~5.45%/month. That badly
+  overstates the current pace while inflation decelerates, and it inflated every suggested price.
+* 3.4%/month compounds to about **49%/year**, which is lower than the 89% point-to-point figure
+  for the same release. Both are true: one looks back over twelve months, the other measures
+  this month. Sooda prices the future, so it uses the monthly one.
+
+The FX series is deliberately still empty, so the dollar line stays hidden.
 
 ## Which sources were verified, and which could not be
 

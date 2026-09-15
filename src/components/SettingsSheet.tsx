@@ -54,7 +54,7 @@ interface SettingsSheetProps {
   onUnitChange: (unit: Unit) => void
   roundingStep: RoundingStep
   onRoundingChange: (step: RoundingStep) => void
-  annualInflationPercent: number
+  monthlyInflationPercent: number
   /** null resets to the bundled default. */
   onInflationChange: (percent: number | null) => void
   /** Opens the two-question store setup; Settings is the only place to change it later. */
@@ -78,7 +78,7 @@ export function SettingsSheet({
   onUnitChange,
   roundingStep,
   onRoundingChange,
-  annualInflationPercent,
+  monthlyInflationPercent,
   onInflationChange,
   onOpenStoreProfile,
   onAutoUpdateChange,
@@ -89,12 +89,12 @@ export function SettingsSheet({
   const [confirmingErase, setConfirmingErase] = useState(false)
 
   // The field holds a canonical ASCII string; it re-seeds whenever the committed percent changes.
-  const [inflationText, setInflationText] = useState(() => String(annualInflationPercent))
-  const [seededPercent, setSeededPercent] = useState(annualInflationPercent)
+  const [inflationText, setInflationText] = useState(() => String(monthlyInflationPercent))
+  const [seededPercent, setSeededPercent] = useState(monthlyInflationPercent)
   const [inflationError, setInflationError] = useState<string | null>(null)
-  if (seededPercent !== annualInflationPercent) {
-    setSeededPercent(annualInflationPercent)
-    setInflationText(String(annualInflationPercent))
+  if (seededPercent !== monthlyInflationPercent) {
+    setSeededPercent(monthlyInflationPercent)
+    setInflationText(String(monthlyInflationPercent))
     setInflationError(null)
   }
 
@@ -125,14 +125,14 @@ export function SettingsSheet({
       return
     }
     setInflationError(null)
-    if (parsed !== annualInflationPercent) onInflationChange(parsed)
+    if (parsed !== monthlyInflationPercent) onInflationChange(parsed)
   }
 
   const resetInflation = () => {
     vibrate()
     setInflationError(null)
-    setSeededPercent(INFLATION_DEFAULT.annualPercent)
-    setInflationText(String(INFLATION_DEFAULT.annualPercent))
+    setSeededPercent(INFLATION_DEFAULT.monthlyPercent)
+    setInflationText(String(INFLATION_DEFAULT.monthlyPercent))
     onInflationChange(null)
   }
 

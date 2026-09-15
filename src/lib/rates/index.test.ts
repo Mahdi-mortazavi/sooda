@@ -20,6 +20,7 @@ const ratesFile = (over: Partial<RatesFile> = {}): RatesFile => ({
   cpi: {
     source: { name: 'Statistical Center of Iran', url: 'https://www.amar.org.ir/' },
     asOf: '2026-08',
+    confidence: null,
     overallMonthlyPercent: 2.5,
     categories: { food: 3, apparel: 2.9 },
   },

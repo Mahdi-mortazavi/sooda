@@ -50,6 +50,7 @@ const rates: RatesFile = {
   cpi: {
     source: { name: 'SCI', url: 'https://example.invalid/cpi' },
     asOf: '2026-08',
+    confidence: null,
     overallMonthlyPercent: 2.4,
     categories: { food: 3.1, apparel: 2.2, home: 1.9, digital: 4.4, beauty: 2.7, health: 1.6, auto: 3.8 },
   },

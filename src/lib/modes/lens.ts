@@ -56,7 +56,7 @@ export function resolveReplacement(cost: number, months: number, values: Record<
   if (months <= 0) return round2(cost)
   const supplied = values['replacement'] ?? 0
   if (ctx.state['src'] === 'known' && supplied > 0) return round2(supplied)
-  return replacementCost(cost, monthlyRateFromPercent(ctx.annualInflationPercent), months)
+  return replacementCost(cost, monthlyRateFromPercent(ctx.monthlyInflationPercent), months)
 }
 
 export interface LensFigures {
