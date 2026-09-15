@@ -1,7 +1,7 @@
 /**
  * Lesson 1 — «چقدر بفروشم؟»
  *
- * The first thing «آقا رضا» ever asked Sooda: he paid 150,000 for a shawl and wants a quarter on
+ * The first thing «آقا رضا» ever asked Sooda: he paid 150,000 for a tin of tuna and wants a quarter on
  * top. Then the same question from the other end — the price is fixed, what does it actually
  * earn? — which is also the only way to show him the card turning red.
  */

@@ -1,7 +1,7 @@
 /**
  * Lesson 2 — «تخفیف، و راه برگشتش»
  *
- * Nowruz is coming and «آقا رضا» wants 30% off a 500,000 shawl. Then the question every shopper
+ * Nowruz is coming and «آقا رضا» wants 30% off a 500,000 rug. Then the question every shopper
  * asks him back: the sign says 350,000 after 30% off — what was it before?
  */
 

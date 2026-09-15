@@ -98,7 +98,8 @@
     "b3": "Save your products and reprice them all at once.",
     "b4": "Interactive lessons: instead of reading, you do it yourself on a practice shop.",
     "b5": "Eight short lessons, each with a challenge — and the Sooda master badge for passing them all.",
-    "b6": "Stuck anywhere? The “?” beside it explains."
+    "b6": "Stuck anywhere? The “?” beside it explains.",
+    "learnCta": "See the lessons"
   },
   "installment": {
     "schedule": {
@@ -494,6 +495,9 @@
         "q": "What happens if I change phones?",
         "a": "Take a backup file from Settings and restore it on the new phone. Because the data lives on the phone, without a backup it goes when the browser is cleared."
       }
-    }
+    },
+    "checkAnswer": "Check my answer",
+    "tryAgain": "Not yet — have another go.",
+    "doneNotice": "Lesson finished. Answer its question to pass the challenge too."
   }
 }
