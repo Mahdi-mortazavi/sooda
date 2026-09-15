@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { db as realDb } from '../../lib/db'
 import { PRACTICE_DB_NAME, PRACTICE_SCHEMA_VERSION, PRACTICE_STORES } from './db'
-import { SEED_PRODUCTS } from './seed'
+import { buildSeed, SEED_PRODUCTS } from './seed'
 import { currentPractice, enterPractice, exitPractice, type PracticeOptions } from './session'
 import { createFakeIndexedDb, type FakeIndexedDb } from './testing/fakeIndexedDb'
 
@@ -92,8 +92,19 @@ describe('enterPractice', () => {
     expect(await session.db.basket.count()).toBe(0)
   })
 
-  it('pins every write to the session clock, so a challenge answer cannot drift', async () => {
+  it('dates the demo shop from the session clock, so a challenge answer cannot drift', async () => {
     const session = await enter()
+    const seeded = buildSeed(NOW).products.find((p) => p.id === SEED_PRODUCTS.oil)
+    expect(await session.db.products.get(SEED_PRODUCTS.oil)).toEqual(seeded)
+  })
+
+  /* A write made DURING the lesson is stamped by the app's own clock, not by the session's: the
+   * practice repository is `createProductRepository` itself, which reads `Date.now()`, and running
+   * the shop's real code is worth more than pinning a timestamp no challenge is computed from.
+   * What a lesson does pass explicitly — `costUpdatedAt`, `observedAt` — is honoured exactly. */
+  it('stamps a new row with the app’s clock, and honours the dates it is given', async () => {
+    const session = await enter()
+    const before = Date.now()
     const id = await session.repository.addProduct({
       name: 'چای سیاه ۵۰۰ گرمی',
       cost: 620_000,
@@ -102,8 +113,12 @@ describe('enterPractice', () => {
       costUpdatedAt: NOW,
     })
     const saved = await session.db.products.get(id)
-    expect(saved?.createdAt).toBe(NOW)
-    expect(saved?.updatedAt).toBe(NOW)
+    expect(saved?.createdAt).toBeGreaterThanOrEqual(before)
+    expect(saved?.createdAt).toBeLessThanOrEqual(Date.now())
+    // The date the caller supplied is the one the reading carries — that is what lessons rely on.
+    expect(saved?.costUpdatedAt).toBe(NOW)
+    const readings = await session.repository.listObservations(id)
+    expect(readings[0]?.observedAt).toBe(NOW)
   })
 
   it('hands back the same session to a second tap while the first is still opening', async () => {

@@ -31,12 +31,16 @@ export interface ObservationRepository {
 /**
  * The price history, bound to whichever database it is given.
  *
- * Taking the database as an argument rather than importing the singleton is what makes practice
- * mode honest: the tutorial runs this exact logic against a throwaway store, so what a learner
+ * The clock is injectable for the same reason: a lesson pins an instant so its challenge answer
+ * is the same every run. Taking the database as an argument rather than importing the singleton
+ * is what makes practice mode honest: the tutorial runs this exact logic against a throwaway store, so what a learner
  * does behaves identically to the real thing without touching a row of it. Every existing caller
  * keeps using the bound exports below and is unaffected.
  */
-export function createObservationRepository(database: SoodaDb): ObservationRepository {
+export function createObservationRepository(
+  database: SoodaDb,
+  clock: () => number = Date.now,
+): ObservationRepository {
   return {
     /** Adds one reading. Returns the new id, so an undoable bulk run can name exactly what it wrote. */
     async addObservation(o) {
@@ -93,7 +97,7 @@ export function createObservationRepository(database: SoodaDb): ObservationRepos
         } as Observation)
         /* The reading and the product's own `cost` must never disagree: a reader that trusted one and
          * not the other would show two different "today's cost" figures on the same screen. */
-        await database.products.update(productId, { cost, costUpdatedAt: observedAt, updatedAt: Date.now() })
+        await database.products.update(productId, { cost, costUpdatedAt: observedAt, updatedAt: clock() })
       })
     },
 

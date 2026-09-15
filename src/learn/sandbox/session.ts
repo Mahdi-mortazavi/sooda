@@ -18,9 +18,12 @@ import type { SandboxState } from './types'
 
 export interface PracticeOptions extends StorageBackend {
   /**
-   * Pins the whole session — the seed's dates AND every write's timestamp — to this instant, so a
-   * challenge has the same answer every time it is taken. Left out, the seed is dated from the
-   * moment practice started and later writes use the real clock, exactly as the app does.
+   * Dates the demo shop from this instant, so a challenge computed from the seed has the same
+   * answer every time it is taken. Left out, the shop is dated from the moment practice started.
+   *
+   * It does NOT pin what the shopkeeper writes during the lesson: the app's own repository stamps
+   * `createdAt`, `updatedAt` and a missing `observedAt` from `Date.now()`, and practice runs that
+   * code rather than a copy of it. A row the learner has just written is a moment old either way.
    */
   now?: number
 }
@@ -105,9 +108,7 @@ async function openSession(options: PracticeOptions): Promise<EnterPracticeResul
     ...(options.indexedDB === undefined ? {} : { indexedDB: options.indexedDB }),
     ...(options.IDBKeyRange === undefined ? {} : { IDBKeyRange: options.IDBKeyRange }),
   }
-  const pinned = options.now
-  const now = pinned ?? Date.now()
-  const clock = pinned === undefined ? Date.now : (): number => pinned
+  const now = options.now ?? Date.now()
 
   let db: PracticeDb | null = null
   try {
@@ -129,18 +130,18 @@ async function openSession(options: PracticeOptions): Promise<EnterPracticeResul
     return { ok: false, reason: 'cancelled' }
   }
 
-  const session = createSession(db, now, clock)
+  const session = createSession(db, now)
   // Read once here, so `snapshot()` shows the demo shop before the first step has run.
   await session.readState()
   active = session
   return { ok: true, session }
 }
 
-function createSession(db: PracticeDb, now: number, clock: () => number): PracticeSession {
+function createSession(db: PracticeDb, now: number): PracticeSession {
   let cached: SandboxState = { products: [], observations: [], profile: null, lastResult: null }
   return {
     db,
-    repository: createPracticeRepository(db, clock),
+    repository: createPracticeRepository(db),
     now,
     async readState(): Promise<SandboxState> {
       try {

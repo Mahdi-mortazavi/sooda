@@ -33,18 +33,22 @@ export interface ProductRepository {
 }
 
 /**
- * The saved products, bound to whichever database it is given.
+ * The saved products, bound to whichever database it is given — and to whichever clock.
+ *
+ * The clock is injectable so a lesson can pin an instant and get the same answer every time it
+ * is run. Without it the seed would be dated at one moment and a row the learner writes at
+ * another, and a challenge that asks how old something is would drift with the wall clock.
  *
  * Taking the database as an argument rather than importing the singleton is what makes practice
  * mode honest: a lesson runs this exact logic — including which writes count as a new price
  * reading — against a throwaway store, without touching a row of the shopkeeper's own. Every
  * existing caller keeps using the bound exports below and is unaffected.
  */
-export function createProductRepository(database: SoodaDb): ProductRepository {
+export function createProductRepository(database: SoodaDb, clock: () => number = Date.now): ProductRepository {
   return {
     /** Adds a product with its first price observation, stamping both timestamps. Returns the new id. */
     async addProduct(p) {
-      const now = Date.now()
+      const now = clock()
       return database.transaction('rw', database.products, database.observations, async () => {
         const id = await database.products.add({ ...p, createdAt: now, updatedAt: now })
         /* The very first save is already evidence. Dated `costUpdatedAt` rather than now, because the
@@ -57,7 +61,7 @@ export function createProductRepository(database: SoodaDb): ProductRepository {
 
     /** Patches a product and stamps `updatedAt`, so the "recently changed" sort stays honest. */
     async updateProduct(id, patch) {
-      const now = Date.now()
+      const now = clock()
       await database.transaction('rw', database.products, database.observations, async () => {
         const before = await database.products.get(id)
         await database.products.update(id, { ...patch, updatedAt: now })
@@ -87,7 +91,7 @@ export function createProductRepository(database: SoodaDb): ProductRepository {
 
     /** Applies every change inside ONE Dexie transaction so a bulk reprice is all-or-nothing. */
     async bulkApply(changes) {
-      const now = Date.now()
+      const now = clock()
       return database.transaction('rw', database.products, database.observations, async () => {
         const observationIds: number[] = []
         for (const c of changes) {

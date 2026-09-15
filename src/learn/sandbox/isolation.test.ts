@@ -24,6 +24,13 @@
  * Every import that reaches Dexie is dynamic, and deliberately so: the real `src/lib/db.ts` picks
  * its IndexedDB up from the global scope when the module first loads, so the fake backend has to
  * be installed before that happens. A static import would be hoisted above the install.
+ *
+ * Since the sandbox stopped mirroring the repositories and started running the app's own
+ * (`createProductRepository` / `createObservationRepository`), the practice module graph contains
+ * the real `sooda` Dexie instance: those modules bind their own exports to it as they load. That
+ * is the right trade — a lesson has to run the code the shop runs — but it means this file is no
+ * longer a belt-and-braces check on top of "the sandbox cannot reach the real store". It is the
+ * proof. Hence 'loading the sandbox opens nothing' below, which watches the import itself.
  */
 
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -111,6 +118,12 @@ const { PRACTICE_DB_NAME } = await import('./db')
 const { buildPracticeBackup } = await import('./backup')
 const { SEED_PRODUCTS } = await import('./seed')
 const { enterPractice, exitPractice, currentPractice } = await import('./session')
+
+/* Captured before any test runs: importing the sandbox pulls in the app's repositories, and with
+ * them the real database object. Constructing a Dexie must touch no storage — and if that ever
+ * changes, it changes here, in a line no test could otherwise reach. */
+const operationsAfterImport = factory.operations('sooda').length
+const openAfterImport = realDb.isOpen()
 
 /* ── the user's own shop, which must survive all of this untouched ──────── */
 
@@ -420,9 +433,15 @@ describe('the guard itself', () => {
 })
 
 describe('the sandbox module graph', () => {
-  /* The strongest isolation there is: the practice code cannot write to the real database because
-   * it does not have it. Only types cross the line, and types are erased. */
-  it('never imports the real database module as a value', async () => {
+  it('opens nothing merely by being loaded', () => {
+    expect(operationsAfterImport).toBe(0)
+    expect(openAfterImport).toBe(false)
+  })
+
+  /* The sandbox runs the app's repositories, so it does hold the real database transitively. What
+   * it must never do is NAME it: the one file that decides which database exists takes types from
+   * `lib/db` and nothing else, so no line in the sandbox can pass the real store to anything. */
+  it('never names the real database module as a value', async () => {
     /* Read as text rather than imported, so the check is on what the file SAYS. A module graph
      * walked at runtime would already have had its type imports erased by the compiler. */
     const sources = import.meta.glob('./*.ts', { query: '?raw', import: 'default', eager: true }) as Record<
@@ -441,6 +460,12 @@ describe('the sandbox module graph', () => {
         seen.push(`${name}: ${line.trim()}`)
         // Anything from lib/db must be a type; types are erased, values are not.
         if (!line.startsWith('import type ')) offenders.push(`${name}: ${line.trim()}`)
+      }
+      for (const line of source.split('\n')) {
+        // …and no file may pull in the bound, real-database exports of the repository modules.
+        if (/from '\.\.\/\.\.\/lib\/(products|observations)'/.test(line) && !/create\w+Repository/.test(line)) {
+          if (!line.startsWith('import type ')) offenders.push(`${name}: ${line.trim()}`)
+        }
       }
     }
     expect(offenders).toEqual([])

@@ -7,12 +7,14 @@
  * never be true of it is that it shares anything with the user's own data, so:
  *
  *  * the database has its own name, and nothing here reads or writes the real one;
- *  * `../../lib/db` is imported for TYPES ONLY. A value import would put the real `sooda` Dexie
- *    instance in the practice module's own graph, one typo away from being the object written to.
+ *  * this file names `../../lib/db` for TYPES ONLY, so the one place that decides which database
+ *    is created cannot reach the real instance even by a typo. The repository next door does hold
+ *    it — it runs the app's own logic, which binds itself to the real store at import time — so
+ *    what actually proves the guarantee is `isolation.test.ts` watching every operation.
  */
 
-import Dexie, { type EntityTable } from 'dexie'
-import type { BasketItem, HistoryEntry, Observation, Product, StoreProfile } from '../../lib/db'
+import Dexie from 'dexie'
+import type { SoodaDb } from '../../lib/db'
 
 /** Never 'sooda'. A test asserts it, because a one-character slip here would erase a price list. */
 export const PRACTICE_DB_NAME = 'sooda-practice'
@@ -34,13 +36,8 @@ export const PRACTICE_STORES: Record<string, string> = {
 
 export const PRACTICE_SCHEMA_VERSION = 4
 
-export type PracticeDb = Dexie & {
-  history: EntityTable<HistoryEntry, 'id'>
-  basket: EntityTable<BasketItem, 'id'>
-  products: EntityTable<Product, 'id'>
-  observations: EntityTable<Observation, 'id'>
-  storeProfile: EntityTable<StoreProfile, 'id'>
-}
+/** A practice database IS a Sooda database — that is what lets the real repositories run on it. */
+export type PracticeDb = SoodaDb
 
 /** The browser storage the practice database runs on. Only tests pass it — the node test
  * environment has no IndexedDB, and the app must always use the one the browser gives it. */
