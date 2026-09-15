@@ -191,7 +191,9 @@ export function Challenges({
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent-fill-strong)] px-4 py-3.5 text-[16px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
               >
                 <IconCheck size={18} />
-                {t('learn.challenge.check')}
+                {/* After a miss the button acknowledges the retry rather than repeating the
+                  * first-time label — «یک‌بار دیگر امتحان کنید», not «جواب را بررسی کن» again. */}
+                {t(misses === 0 ? 'learn.challenge.check' : 'learn.challenge.tryAgain')}
               </motion.button>
             </>
           ) : null}

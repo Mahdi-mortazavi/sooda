@@ -456,6 +456,18 @@
     "resetProgress": "Clear lesson progress",
     "resetProgressHint": "Every lesson goes back to “New”. Your products, history and settings stay untouched.",
     "faq": {
+      "realProfit": {
+        "q": "What does real profit mean?",
+        "a": "Paper profit is the selling price minus the purchase price. Real profit is what you actually have left once you have bought the same goods again. In a market where prices keep rising, the two are very different."
+      },
+      "rate": {
+        "q": "Where does the price-rise figure come from, and how accurate is it?",
+        "a": "From three things: the purchase prices you record yourself, how fast your product’s category is rising nationally, and the dollar (if the goods are imported). It is always an estimate, never a certainty — which is why Sooda says “about” everywhere, and why “Why this number?” shows how much of it came from where."
+      },
+      "inflation": {
+        "q": "I don’t know the inflation rate. Is that a problem?",
+        "a": "No. Sooda has a default rate that comes from the national figures, and you can change it in Settings. And if you know the new purchase price, you don’t need inflation at all: just enter it directly."
+      },
       "data": {
         "q": "Where is my data stored?",
         "a": "On this phone, and only here. No account, no server, and nothing is sent from your device. The only thing Sooda fetches from the internet is a public rates file from its own site — and you can turn that off in Settings too."
@@ -468,25 +480,13 @@
         "q": "Does it work without the internet?",
         "a": "Yes. Install Sooda on your home screen and it opens fully offline. The only thing it fetches is a public rates file, and you can turn that off in Settings."
       },
-      "rate": {
-        "q": "Where does the price-rise figure come from, and how accurate is it?",
-        "a": "From three things: the purchase prices you record yourself, how fast your product’s category is rising nationally, and the dollar (if the goods are imported). It is always an estimate, never a certainty — which is why Sooda says “about” everywhere, and why “Why this number?” shows how much of it came from where."
+      "phone": {
+        "q": "What happens if I change phones?",
+        "a": "Take a backup file from Settings and restore it on the new phone. Because the data lives on the phone, without a backup it goes when the browser is cleared."
       },
       "source": {
         "q": "Is Sooda free?",
         "a": "Yes, completely free and open source, under the MIT licence."
-      },
-      "realProfit": {
-        "q": "What does real profit mean?",
-        "a": "Paper profit is the selling price minus the purchase price. Real profit is what you actually have left once you have bought the same goods again. In a market where prices keep rising, the two are very different."
-      },
-      "inflation": {
-        "q": "I don’t know the inflation rate. Is that a problem?",
-        "a": "No. Sooda has a default rate that comes from the national figures, and you can change it in Settings. And if you know the new purchase price, you don’t need inflation at all: just enter it directly."
-      },
-      "phone": {
-        "q": "What happens if I change phones?",
-        "a": "Take a backup file from Settings and restore it on the new phone. Because the data lives on the phone, without a backup it goes when the browser is cleared."
       }
     },
     "doneNotice": "Lesson finished. Answer its question to pass the challenge too.",
