@@ -12,8 +12,10 @@ import type { Lesson } from './types'
 
 export const safetyLesson: Lesson = {
   id: 'safety',
-  titleKey: 'learn.safety.title',
-  summaryKey: 'learn.safety.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.safety.title',
+  summaryKey: 'learn.lessons.safety.body',
   estimateSeconds: 50,
   showsRate: false,
   steps: [

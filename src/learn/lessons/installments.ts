@@ -16,8 +16,10 @@ const ANSWER = LESSON_EXPECTED.installments
 
 export const installmentsLesson: Lesson = {
   id: 'installments',
-  titleKey: 'learn.installments.title',
-  summaryKey: 'learn.installments.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.installments.title',
+  summaryKey: 'learn.lessons.installments.body',
   estimateSeconds: 85,
   showsRate: true,
   steps: [

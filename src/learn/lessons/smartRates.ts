@@ -30,8 +30,10 @@ function checkedIn(_ev: unknown, state: SandboxState): boolean {
 
 export const smartRatesLesson: Lesson = {
   id: 'smartRates',
-  titleKey: 'learn.smartRates.title',
-  summaryKey: 'learn.smartRates.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.smartRates.title',
+  summaryKey: 'learn.lessons.smartRates.body',
   estimateSeconds: 80,
   showsRate: true,
   steps: [

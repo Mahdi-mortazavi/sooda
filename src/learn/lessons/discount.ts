@@ -15,8 +15,10 @@ const ANSWER = LESSON_EXPECTED.discount
 
 export const discountLesson: Lesson = {
   id: 'discount',
-  titleKey: 'learn.discount.title',
-  summaryKey: 'learn.discount.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.discount.title',
+  summaryKey: 'learn.lessons.discount.body',
   estimateSeconds: 55,
   showsRate: false,
   steps: [

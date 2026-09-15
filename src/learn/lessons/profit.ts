@@ -16,8 +16,10 @@ const ANSWER = LESSON_EXPECTED.profit
 
 export const profitLesson: Lesson = {
   id: 'profit',
-  titleKey: 'learn.profit.title',
-  summaryKey: 'learn.profit.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.profit.title',
+  summaryKey: 'learn.lessons.profit.body',
   estimateSeconds: 70,
   // Nothing here is aged: the lens stays off, so no rate is involved and none is claimed.
   showsRate: false,

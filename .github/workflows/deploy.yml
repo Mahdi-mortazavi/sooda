@@ -41,6 +41,15 @@ jobs:
       - name: i18n parity
         run: npm run i18n:check
 
+      # Every figure in the READMEs and in the lessons is computed by the app's own engine.
+      # These two fail when a committed number no longer matches what the engine produces,
+      # which is the only way a stale figure can be caught before a reader believes it.
+      - name: Documented figures match the engine
+        run: npm run docs:examples -- --check
+
+      - name: Lesson answers match the engine
+        run: npm run lesson:examples -- --check
+
       - name: Build
         run: npm run build
         env:

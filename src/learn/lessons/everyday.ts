@@ -16,8 +16,10 @@ const ANSWER = LESSON_EXPECTED.everyday
 
 export const everydayLesson: Lesson = {
   id: 'everyday',
-  titleKey: 'learn.everyday.title',
-  summaryKey: 'learn.everyday.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.everyday.title',
+  summaryKey: 'learn.lessons.everyday.body',
   estimateSeconds: 90,
   showsRate: false,
   steps: [

@@ -16,8 +16,10 @@ const ANSWER = LESSON_EXPECTED.realProfit
 
 export const realProfitLesson: Lesson = {
   id: 'realProfit',
-  titleKey: 'learn.realProfit.title',
-  summaryKey: 'learn.realProfit.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.realProfit.title',
+  summaryKey: 'learn.lessons.realProfit.body',
   estimateSeconds: 70,
   showsRate: true,
   steps: [

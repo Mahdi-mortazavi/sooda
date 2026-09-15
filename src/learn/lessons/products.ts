@@ -32,8 +32,10 @@ function repriced(_ev: unknown, state: SandboxState): boolean {
 
 export const productsLesson: Lesson = {
   id: 'products',
-  titleKey: 'learn.products.title',
-  summaryKey: 'learn.products.summary',
+  /* The Learning Centre's card already has a title and a blurb for this lesson, and one
+   * lesson does not need two of each — so these point at the catalogue's own keys. */
+  titleKey: 'learn.lessons.products.title',
+  summaryKey: 'learn.lessons.products.body',
   estimateSeconds: 85,
   showsRate: true,
   steps: [

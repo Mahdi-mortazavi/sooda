@@ -38,6 +38,22 @@ export function getLesson(id: LessonId): Lesson | undefined {
   return LESSONS.find((lesson) => lesson.id === id)
 }
 
+/**
+ * The seam `src/learn/ui/lessonSource.ts` documents, filled in.
+ *
+ * It expects `import('../lessons').then((m) => m.loadLesson(id))` to hand back a definition with
+ * an id and steps, so that is what this returns — the whole `Lesson`, which has both, plus the
+ * challenges the centre needs to turn «done» into «passed».
+ *
+ * `now` is deliberately not set. `enterPractice({ now })` would date the demo shop from a fixed
+ * instant, and every «۱ ماه پیش» on the products tab is measured against the real clock — pin it
+ * and the shop reads as years stale the following spring. Nothing a challenge asks depends on
+ * when it is taken; `expected.test.ts` proves that by recomputing every answer a year on.
+ */
+export function loadLesson(id: LessonId): Lesson | null {
+  return getLesson(id) ?? null
+}
+
 export { REQUESTED_TOUR_ACTIONS, missingTourActions } from './actions'
 export { LESSON_EXPECTED, LESSON_INPUTS } from './expected.generated'
 export { TUTORIAL_MONTHLY_PERCENT, TUTORIAL_RATE_NOTE_KEY, TUTORIAL_ROUNDING_STEP } from './rate'
