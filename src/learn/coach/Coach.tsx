@@ -5,6 +5,7 @@ import { vibrate } from '../../lib/haptics'
 import { formatNumber, type AppLanguage } from '../../lib/numbers'
 import { GhostFinger } from './GhostFinger'
 import { Spotlight } from './Spotlight'
+import { createTourEventQueue } from './eventQueue'
 import { subscribeTour } from './events'
 import { toInlineStart } from './geometry'
 import { findTourTarget, focusQuietly, useIsRtl, useLatest, useViewportSize } from './useSpotlight'
@@ -183,19 +184,28 @@ export function Coach({ steps, ctx, onComplete, onExit, initialIndex = 0 }: Coac
     setIndex(from + 1)
   }, [cancelDemo, indexRef, onCompleteRef, stepsRef])
 
+  /*
+   * One queue per step. The practice store is re-read before every `expect` — the plan's
+   * refresh rule — which makes judging async even though the predicate is not, so events are
+   * serialised through the queue rather than raced against each other. It closes itself the
+   * moment a step passes, and again here when the step is torn down.
+   */
   useEffect(() => {
     if (!ready || !step) return
-    return subscribeTour((event) => {
-      resetIdle()
-      let satisfied = false
-      try {
-        satisfied = step.expect(event, ctxRef.current.sandbox)
-      } catch {
-        /* A predicate that throws is a lesson bug, not a reason to trap the user in a
-         * step. The lessons suite runs every step end to end and is where it surfaces. */
-      }
-      if (satisfied) advance()
+    const queue = createTourEventQueue({
+      refresh: () => ctxRef.current.refreshSandbox(),
+      judge: (event) => step.expect(event, ctxRef.current.sandbox),
+      onSatisfied: advance,
     })
+    const unsubscribe = subscribeTour((event) => {
+      // Idle is about the user, not about the judging, so it resets on arrival.
+      resetIdle()
+      queue.push(event)
+    })
+    return () => {
+      unsubscribe()
+      queue.close()
+    }
   }, [ready, step, advance, resetIdle, ctxRef])
 
   if (!step) return null

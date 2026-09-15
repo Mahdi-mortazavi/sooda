@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { computeSpotlight, type Rect, type Size } from './geometry'
+import { computeSpotlight, type Placement, type Rect, type Size, type SpotlightLayout } from './geometry'
 import {
   applyInertOutside,
   focusQuietly,
@@ -15,7 +15,7 @@ import {
 interface SpotlightProps {
   /** The `data-tour` value this step points at. */
   target: string
-  placement?: 'auto' | 'top' | 'bottom'
+  placement?: Placement
   /** Changes whenever the step does; drives focus, the announcement and re-measurement. */
   stepId: string
   /** Already-translated body copy. */
@@ -202,10 +202,7 @@ export function Spotlight({
           <span
             aria-hidden
             className="glass-ring absolute h-3 w-3 rotate-45 rounded-[3px] bg-[var(--glass-fill-strong)]"
-            style={{
-              insetInlineStart: layout.arrowInlineStart - 6,
-              ...(layout.placement === 'bottom' ? { insetBlockStart: -6 } : { insetBlockEnd: -6 }),
-            }}
+            style={arrowStyle(layout)}
           />
         )}
 
@@ -244,6 +241,26 @@ export function Spotlight({
     </div>,
     document.body,
   )
+}
+
+/**
+ * The arrow pins to whichever of the tooltip's four edges faces the hole, and slides along
+ * that edge to aim at it. Every offset is logical, so `start` and `end` swap sides under RTL
+ * with nothing here having to know that they did.
+ */
+function arrowStyle(layout: SpotlightLayout): CSSProperties {
+  const nudge = -6
+  switch (layout.placement) {
+    case 'bottom':
+      return { insetInlineStart: layout.arrowInlineStart + nudge, insetBlockStart: nudge }
+    case 'top':
+      return { insetInlineStart: layout.arrowInlineStart + nudge, insetBlockEnd: nudge }
+    case 'end':
+      // The tooltip sits after the hole, so its arrow leans back towards the start.
+      return { insetBlockStart: layout.arrowBlockStart + nudge, insetInlineStart: nudge }
+    default:
+      return { insetBlockStart: layout.arrowBlockStart + nudge, insetInlineEnd: nudge }
+  }
 }
 
 /** The ring that gives the hole an edge, and pulses when the runner thinks the user is lost. */

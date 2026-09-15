@@ -3,6 +3,7 @@
  * `await import('../sandbox')` — never a static import, or the tutorial lands in the entry chunk.
  */
 
+export { buildPracticeBackup, PRACTICE_BACKUP_VERSION } from './backup'
 export { PRACTICE_DB_NAME, type PracticeDb } from './db'
 export { buildSeed, SEED_PRODUCTS, SEED_PROFILE, type SeedData } from './seed'
 export type { PracticeRepository } from './repository'

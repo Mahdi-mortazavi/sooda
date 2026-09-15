@@ -108,6 +108,7 @@ const realProducts = await import('../../lib/products')
 const realObservations = await import('../../lib/observations')
 const { DRAFT_STORAGE_KEY, writeDraft } = await import('../../lib/drafts')
 const { PRACTICE_DB_NAME } = await import('./db')
+const { buildPracticeBackup } = await import('./backup')
 const { SEED_PRODUCTS } = await import('./seed')
 const { enterPractice, exitPractice, currentPractice } = await import('./session')
 
@@ -262,7 +263,13 @@ async function runFullPracticeSession(): Promise<{ productCount: number; observa
   // …and take it back again, which is the undo the products screen offers.
   await repo.restoreProducts(snapshot, applied.observationIds)
 
-  // Lesson 5 — the store profile, and a result on the card.
+  // Lesson 5 — take a backup. The app's own exporter would have read the real shop AND every
+  // `sooda:` key in localStorage; the practice one must read neither.
+  const file = await buildPracticeBackup(session.db, NOW)
+  expect(file.products).toHaveLength(6)
+  expect(file.settings).toEqual({})
+
+  // Lesson 6 — the store profile, and a result on the card.
   await repo.writeStoreProfile({ id: 'me', categories: ['food', 'auto'], importDependency: 1 })
   session.setLastResult({
     key: 'profit',

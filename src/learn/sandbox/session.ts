@@ -32,8 +32,14 @@ export interface PracticeSession {
   readonly repository: PracticeRepository
   /** The instant the demo shop is dated from. */
   readonly now: number
-  /** The frozen `SandboxState` the coach hands to each step's `expect`. */
+  /**
+   * Re-reads the practice store. This is what `TourCtx.refreshSandbox()` awaits, and the plan's
+   * refresh rule says the coach awaits it before evaluating any `expect` — a step whose condition
+   * is "a product now exists" must not be judged against a snapshot taken before the write landed.
+   */
   readState(): Promise<SandboxState>
+  /** The last state read, with no database access: `TourCtx.sandbox` between two refreshes. */
+  snapshot(): SandboxState
   /** The result card a mode last produced in practice. View state, never stored. */
   setLastResult(result: ResultDisplay | null): void
 }
@@ -42,9 +48,15 @@ export type EnterPracticeResult =
   | { ok: true; session: PracticeSession }
   /** The browser refuses to store anything — private mode, a locked-down profile, a full disk. */
   | { ok: false; reason: 'storage'; error: unknown }
+  /** `exitPractice()` was called while this one was still opening. Nothing to report to the user. */
+  | { ok: false; reason: 'cancelled' }
 
 let active: PracticeSession | null = null
 let entering: Promise<EnterPracticeResult> | null = null
+/* Bumped by every exit. An enter that was still opening when the user backed out finds its own
+ * generation stale and tears the database down instead of handing back a session nobody asked
+ * for any more. */
+let generation = 0
 
 /** The session in progress, or null. Synchronous, so a render can ask it. */
 export function currentPractice(): PracticeSession | null {
@@ -81,12 +93,14 @@ export async function exitPractice(): Promise<void> {
   /* Cleared before the await, so a second call — or a component unmounting into the same
    * teardown — finds nothing to do rather than deleting the database twice. */
   active = null
+  generation++
   if (session === null) return
   await destroyPracticeDb(session.db)
 }
 
 async function openSession(options: PracticeOptions): Promise<EnterPracticeResult> {
   await exitPractice()
+  const opening = generation
   const backend: StorageBackend = {
     ...(options.indexedDB === undefined ? {} : { indexedDB: options.indexedDB }),
     ...(options.IDBKeyRange === undefined ? {} : { IDBKeyRange: options.IDBKeyRange }),
@@ -109,26 +123,47 @@ async function openSession(options: PracticeOptions): Promise<EnterPracticeResul
     return { ok: false, reason: 'storage', error }
   }
 
-  active = createSession(db, now, clock)
-  return { ok: true, session: active }
+  if (generation !== opening) {
+    // Backed out while this was opening: leave exactly as little behind as a normal exit would.
+    await destroyPracticeDb(db, backend)
+    return { ok: false, reason: 'cancelled' }
+  }
+
+  const session = createSession(db, now, clock)
+  // Read once here, so `snapshot()` shows the demo shop before the first step has run.
+  await session.readState()
+  active = session
+  return { ok: true, session }
 }
 
 function createSession(db: PracticeDb, now: number, clock: () => number): PracticeSession {
-  let lastResult: ResultDisplay | null = null
+  let cached: SandboxState = { products: [], observations: [], profile: null, lastResult: null }
   return {
     db,
     repository: createPracticeRepository(db, clock),
     now,
     async readState(): Promise<SandboxState> {
-      const [products, observations, profile] = await Promise.all([
-        db.products.toArray(),
-        db.observations.toArray(),
-        db.storeProfile.get('me'),
-      ])
-      return { products, observations, profile: profile ?? null, lastResult }
+      try {
+        const [products, observations, profile] = await Promise.all([
+          db.products.toArray(),
+          db.observations.toArray(),
+          db.storeProfile.get('me'),
+        ])
+        cached = { products, observations, profile: profile ?? null, lastResult: cached.lastResult }
+      } catch {
+        /* The database is gone — practice was exited while this read was in flight, or storage
+         * was taken away. A step's `expect` seeing an empty shop is a step that does not advance;
+         * a rejected promise here would be an unhandled crash in the middle of a render. */
+        cached = { products: [], observations: [], profile: null, lastResult: cached.lastResult }
+      }
+      return cached
+    },
+    snapshot(): SandboxState {
+      return cached
     },
     setLastResult(result): void {
-      lastResult = result
+      // A new object, so a step holding the previous snapshot is not mutated underneath it.
+      cached = { ...cached, lastResult: result }
     },
   }
 }

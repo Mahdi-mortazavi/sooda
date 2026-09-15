@@ -32,9 +32,16 @@ export interface Insets {
   end: number
 }
 
-/** What a step may ask for. Same union as `LessonStep['placement']`. */
-export type Placement = 'auto' | 'top' | 'bottom'
-export type ResolvedPlacement = 'top' | 'bottom'
+/**
+ * What a step may ask for. Same union as `LessonStep['placement']`.
+ *
+ * `start` and `end` are logical: `start` puts the tooltip on the side the reading order
+ * begins at, which is the left of a chip in English and the right of the same chip in
+ * Persian. They exist for wide, short targets in a horizontal row — a chip, a tab — where
+ * a tooltip above or below has nothing to point at without covering its neighbours.
+ */
+export type Placement = 'auto' | 'top' | 'bottom' | 'start' | 'end'
+export type ResolvedPlacement = 'top' | 'bottom' | 'start' | 'end'
 
 export interface SpotlightInput {
   /** The measured target, in viewport coordinates. */
@@ -64,8 +71,14 @@ export interface SpotlightLayout {
     /** What `inset-inline-start` takes: distance from the viewport's inline-start edge. */
     inlineStart: number
   }
-  /** Arrow centre as a distance from the tooltip's own inline-start edge. */
+  /**
+   * Arrow centre along each of the tooltip's own axes, measured from its inline-start and
+   * block-start edges. A `top`/`bottom` tooltip pins its arrow to a block edge and slides it
+   * along `arrowInlineStart`; a `start`/`end` tooltip does the mirror of that. Both are
+   * always computed, so the overlay picks rather than recomputes.
+   */
   arrowInlineStart: number
+  arrowBlockStart: number
   /**
    * False when the tooltip had to be clamped over the hole because neither side had room —
    * a target that fills the screen. The overlay leans on this to drop its arrow.
@@ -124,9 +137,9 @@ function buildCutout(target: Rect, padding: number, viewport: Size): Rect {
  * Place the hole and the tooltip. Guarantees, in order of how loudly they fail when broken:
  *
  * 1. the tooltip is inside the viewport, insets included, whatever the target does;
- * 2. placement flips to the side that has room;
- * 3. under RTL the whole thing mirrors — the tooltip hangs off the hole's right edge and
- *    clamps against the right inset first.
+ * 2. placement flips to the opposite side of the same axis when its own side has no room;
+ * 3. under RTL the whole thing mirrors — `start` becomes the right-hand side, the tooltip
+ *    hangs off the hole's right edge, and it clamps against the right inset first.
  */
 export function computeSpotlight(input: SpotlightInput): SpotlightLayout {
   const { target, tooltip, viewport } = input
@@ -143,40 +156,77 @@ export function computeSpotlight(input: SpotlightInput): SpotlightLayout {
 
   const spaceAbove = cutout.y - insetTop - gap
   const spaceBelow = viewport.height - (cutout.y + cutout.height) - insetBottom - gap
+  /* The inline axis is measured logically, so `spaceStart` is room on the left in English
+   * and room on the right in Persian — which is the whole point of having these placements. */
+  const cutoutInlineStart = toInlineStart(cutout.x, cutout.width, viewport.width, rtl)
+  const spaceStart = cutoutInlineStart - insetStart - gap
+  const spaceEnd = viewport.width - cutoutInlineStart - cutout.width - insetEnd - gap
   const fitsAbove = tooltip.height <= spaceAbove
   const fitsBelow = tooltip.height <= spaceBelow
-  /* 'auto' prefers below: that is where the hand already is, and it keeps the tooltip out
-   * of the notch. An explicit request is honoured whenever it fits and flipped when it
-   * does not; when neither side fits, the roomier one at least loses the least. */
-  const roomier: ResolvedPlacement = spaceBelow >= spaceAbove ? 'bottom' : 'top'
+  const fitsStart = tooltip.width <= spaceStart
+  const fitsEnd = tooltip.width <= spaceEnd
+
+  /* 'auto' prefers below: that is where the hand already is, and it keeps the tooltip out of
+   * the notch. An explicit request is honoured whenever it fits and flipped to its opposite
+   * when it does not; when neither side of that axis fits, the roomier one loses the least.
+   * A request never jumps axis — a step that asked to sit beside a chip would rather be
+   * squeezed beside it than land somewhere the author never looked at. */
+  const roomierBlock: ResolvedPlacement = spaceBelow >= spaceAbove ? 'bottom' : 'top'
+  const roomierInline: ResolvedPlacement = spaceEnd >= spaceStart ? 'end' : 'start'
   const placement: ResolvedPlacement =
     input.placement === 'top'
       ? fitsAbove
         ? 'top'
         : fitsBelow
           ? 'bottom'
-          : roomier
-      : fitsBelow
-        ? 'bottom'
-        : fitsAbove
-          ? 'top'
-          : roomier
+          : roomierBlock
+      : input.placement === 'start'
+        ? fitsStart
+          ? 'start'
+          : fitsEnd
+            ? 'end'
+            : roomierInline
+        : input.placement === 'end'
+          ? fitsEnd
+            ? 'end'
+            : fitsStart
+              ? 'start'
+              : roomierInline
+          : fitsBelow
+            ? 'bottom'
+            : fitsAbove
+              ? 'top'
+              : roomierBlock
 
-  const rawY = placement === 'top' ? cutout.y - gap - tooltip.height : cutout.y + cutout.height + gap
-  const y = clamp(rawY, insetTop, viewport.height - insetBottom - tooltip.height)
-
-  /* Aligned to the hole's inline-start edge rather than centred: the tooltip then reads as
-   * belonging to the thing it points at, and mirroring is one edge swapped for the other
-   * instead of a special case. The arrow below still aims at the hole's centre. */
-  const rawX = rtl ? cutout.x + cutout.width - tooltip.width : cutout.x
+  const alongBlock = placement === 'top' || placement === 'bottom'
   const minX = rtl ? insetEnd : insetStart
   const maxX = viewport.width - (rtl ? insetStart : insetEnd) - tooltip.width
-  const x = clamp(rawX, minX, maxX)
+  const minY = insetTop
+  const maxY = viewport.height - insetBottom - tooltip.height
+
+  /* One rule on both axes: along the axis the tooltip is *not* placed on, it lines its own
+   * leading edge up with the hole's, so it reads as belonging to the thing it points at and
+   * mirroring is one edge swapped for the other. The arrow below still aims at the centre. */
+  let x: number
+  let y: number
+  if (alongBlock) {
+    y = clamp(placement === 'top' ? cutout.y - gap - tooltip.height : cutout.y + cutout.height + gap, minY, maxY)
+    x = clamp(rtl ? cutout.x + cutout.width - tooltip.width : cutout.x, minX, maxX)
+  } else {
+    // `start` is physically before the hole in English and after it in Persian.
+    const before = placement === 'start' ? !rtl : rtl
+    x = clamp(before ? cutout.x - gap - tooltip.width : cutout.x + cutout.width + gap, minX, maxX)
+    y = clamp(cutout.y, minY, maxY)
+  }
   const inlineStart = toInlineStart(x, tooltip.width, viewport.width, rtl)
 
-  const arrowReach = Math.min(ARROW_INSET, tooltip.width / 2)
-  const arrowX = clamp(cutout.x + cutout.width / 2, x + arrowReach, x + tooltip.width - arrowReach)
+  const inlineReach = Math.min(ARROW_INSET, tooltip.width / 2)
+  const arrowX = clamp(cutout.x + cutout.width / 2, x + inlineReach, x + tooltip.width - inlineReach)
   const arrowInlineStart = rtl ? x + tooltip.width - arrowX : arrowX - x
+
+  const blockReach = Math.min(ARROW_INSET, tooltip.height / 2)
+  const arrowY = clamp(cutout.y + cutout.height / 2, y + blockReach, y + tooltip.height - blockReach)
+  const arrowBlockStart = arrowY - y
 
   return {
     cutout,
@@ -184,7 +234,8 @@ export function computeSpotlight(input: SpotlightInput): SpotlightLayout {
     placement,
     tooltip: { x, y, inlineStart },
     arrowInlineStart,
-    fits: placement === 'top' ? fitsAbove : fitsBelow,
+    arrowBlockStart,
+    fits: alongBlock ? (placement === 'top' ? fitsAbove : fitsBelow) : placement === 'start' ? fitsStart : fitsEnd,
   }
 }
 

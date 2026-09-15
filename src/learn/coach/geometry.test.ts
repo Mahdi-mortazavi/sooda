@@ -13,11 +13,15 @@ function layout(over: Partial<SpotlightInput> & { target: Rect }) {
 }
 
 /** Every layout must satisfy this, whatever nonsense went in. */
-function expectInsideViewport(result: ReturnType<typeof computeSpotlight>, viewport: Size = PHONE) {
+function expectInsideViewport(
+  result: ReturnType<typeof computeSpotlight>,
+  viewport: Size = PHONE,
+  tooltip: Size = TOOLTIP,
+) {
   expect(result.tooltip.x).toBeGreaterThanOrEqual(0)
   expect(result.tooltip.y).toBeGreaterThanOrEqual(0)
-  expect(result.tooltip.x + TOOLTIP.width).toBeLessThanOrEqual(viewport.width)
-  expect(result.tooltip.y + TOOLTIP.height).toBeLessThanOrEqual(viewport.height)
+  expect(result.tooltip.x + tooltip.width).toBeLessThanOrEqual(viewport.width)
+  expect(result.tooltip.y + tooltip.height).toBeLessThanOrEqual(viewport.height)
 }
 
 describe('computeSpotlight — the hole', () => {
@@ -170,6 +174,109 @@ describe('computeSpotlight — RTL', () => {
     expect(ltr.tooltip.x).toBe(44)
     const rtl = layout({ target: { x: 320, y: 300, width: 40, height: 40 }, dir: 'rtl', insets })
     expect(rtl.tooltip.x + TOOLTIP.width).toBe(PHONE.width - 44)
+  })
+})
+
+describe('computeSpotlight — inline placement, for a chip in a row', () => {
+  /** A chip: short and not very wide, with room on both sides. */
+  const CHIP: Rect = { x: 150, y: 300, width: 60, height: 34 }
+  /** Narrow enough to actually fit beside a chip on a 360px screen — 118px of room either side. */
+  const NARROW: Size = { width: 110, height: 90 }
+
+  function beside(over: Partial<SpotlightInput> & { target: Rect }) {
+    return computeSpotlight({ tooltip: NARROW, viewport: PHONE, ...over })
+  }
+
+  it('sits before the hole in LTR and after it in RTL', () => {
+    const ltr = beside({ target: CHIP, placement: 'start' })
+    expect(ltr.placement).toBe('start')
+    expect(ltr.tooltip.x + NARROW.width).toBe(CHIP.x - PAD - GAP)
+
+    const rtl = beside({ target: CHIP, placement: 'start', dir: 'rtl' })
+    expect(rtl.placement).toBe('start')
+    expect(rtl.tooltip.x).toBe(CHIP.x + CHIP.width + PAD + GAP)
+  })
+
+  it('puts end on the opposite side, in both directions', () => {
+    const ltr = beside({ target: CHIP, placement: 'end' })
+    expect(ltr.tooltip.x).toBe(CHIP.x + CHIP.width + PAD + GAP)
+    const rtl = beside({ target: CHIP, placement: 'end', dir: 'rtl' })
+    expect(rtl.tooltip.x + NARROW.width).toBe(CHIP.x - PAD - GAP)
+  })
+
+  it('mirrors a mirrored chip: the same logical offsets come back out', () => {
+    const ltr = beside({ target: CHIP, placement: 'start' })
+    const mirrored: Rect = { ...CHIP, x: PHONE.width - (CHIP.x + CHIP.width) }
+    const rtl = beside({ target: mirrored, placement: 'start', dir: 'rtl' })
+    expect(rtl.placement).toBe(ltr.placement)
+    expect(rtl.tooltip.inlineStart).toBe(ltr.tooltip.inlineStart)
+    expect(rtl.arrowBlockStart).toBe(ltr.arrowBlockStart)
+    expect(rtl.tooltip.y).toBe(ltr.tooltip.y)
+  })
+
+  it('flips start to end at the leading edge of the row', () => {
+    const first: Rect = { x: 8, y: 300, width: 60, height: 34 }
+    const ltr = beside({ target: first, placement: 'start' })
+    expect(ltr.placement).toBe('end')
+    expectInsideViewport(ltr, PHONE, NARROW)
+
+    // The same chip at the leading edge of a mirrored row is the one on the right.
+    const firstRtl: Rect = { ...first, x: PHONE.width - 68 }
+    const rtl = beside({ target: firstRtl, placement: 'start', dir: 'rtl' })
+    expect(rtl.placement).toBe('end')
+    expectInsideViewport(rtl, PHONE, NARROW)
+  })
+
+  it('flips end to start at the trailing edge of the row', () => {
+    const last: Rect = { x: PHONE.width - 68, y: 300, width: 60, height: 34 }
+    const result = beside({ target: last, placement: 'end' })
+    expect(result.placement).toBe('start')
+    expectInsideViewport(result, PHONE, NARROW)
+  })
+
+  it('stays on its own axis when neither side fits, and says so', () => {
+    // A wide target leaves no room either side; flipping to the block axis is not the
+    // author's intent, so it squeezes in beside rather than jumping above.
+    const wideTarget: Rect = { x: 20, y: 300, width: 320, height: 34 }
+    const result = beside({ target: wideTarget, placement: 'start' })
+    expect(result.placement === 'start' || result.placement === 'end').toBe(true)
+    expect(result.fits).toBe(false)
+    expectInsideViewport(result, PHONE, NARROW)
+  })
+
+  it('lines its block-start edge up with the hole, and clamps near the bottom', () => {
+    const high = beside({ target: CHIP, placement: 'end' })
+    expect(high.tooltip.y).toBe(CHIP.y - PAD)
+
+    const low = beside({ target: { ...CHIP, y: 610 }, placement: 'end' })
+    expect(low.tooltip.y).toBe(PHONE.height - EDGE - NARROW.height)
+    expectInsideViewport(low, PHONE, NARROW)
+  })
+
+  it('aims the arrow at the middle of the hole down the block axis', () => {
+    const result = beside({ target: CHIP, placement: 'end' })
+    expect(result.tooltip.y + result.arrowBlockStart).toBe(CHIP.y + CHIP.height / 2)
+  })
+
+  it('keeps the arrow off the tooltip corners for a chip at the very bottom', () => {
+    const result = beside({ target: { ...CHIP, y: 620 }, placement: 'end' })
+    expect(result.arrowBlockStart).toBeGreaterThanOrEqual(0)
+    expect(result.arrowBlockStart).toBeLessThanOrEqual(NARROW.height)
+  })
+
+  it('stays inside the viewport for every chip position, both directions and both sides', () => {
+    for (const dir of ['ltr', 'rtl'] as const) {
+      for (const placement of ['start', 'end'] as const) {
+        for (let x = -40; x <= PHONE.width + 40; x += 19) {
+          for (let y = -40; y <= PHONE.height + 40; y += 41) {
+            const result = beside({ target: { x, y, width: 60, height: 34 }, dir, placement })
+            expectInsideViewport(result, PHONE, NARROW)
+            expect(result.arrowBlockStart).toBeGreaterThanOrEqual(0)
+            expect(result.arrowBlockStart).toBeLessThanOrEqual(NARROW.height)
+          }
+        }
+      }
+    }
   })
 })
 
