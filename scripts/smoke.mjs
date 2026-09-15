@@ -5,8 +5,8 @@ import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join } from 'node:path'
 import { chromium } from 'playwright-core'
+import { printDurations, runLearnFlows } from './smoke-learn.mjs'
 
-const PORT = 4181
 const BASE = '/sooda/'
 
 /* The app's own version, not a literal. Seeding a hard-coded "already seen" version means
@@ -37,7 +37,11 @@ const server = createServer(async (req, res) => {
   res.writeHead(200, { 'content-type': MIME[extname(rel)] ?? 'application/octet-stream' })
   res.end(file)
 })
-await new Promise((r) => server.listen(PORT, r))
+/* Port 0, not a fixed one: the tutorial flows below open a page per lesson, the run is long,
+ * and a second checkout of this repo smoke-testing at the same time must not fail on a port
+ * clash rather than on the app. */
+await new Promise((r) => server.listen(0, r))
+const PORT = server.address().port
 
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -50,8 +54,17 @@ function check(name, ok, detail = '') {
   console.log(`${ok ? '✓' : '✗'} ${name}${detail ? ` — ${detail}` : ''}`)
 }
 
+/* Development only, and never set in CI: `SMOKE_ONLY=lesson npm run smoke` runs the flows whose
+ * name contains that text. A whole run is several minutes once the eight lessons are in it, and
+ * iterating on one of them should not mean sitting through the other seven. */
+const ONLY = process.env.SMOKE_ONLY ?? ''
+
 /** One flow failing should not hide the rest. */
 async function flow(name, run) {
+  if (ONLY !== '' && !name.includes(ONLY)) {
+    console.log(`· skipped "${name}" (SMOKE_ONLY=${ONLY})`)
+    return
+  }
   try {
     await run()
   } catch (err) {
@@ -85,6 +98,11 @@ async function open({ lang = 'en', query = '', storage = {}, fresh = false } = {
   }
   page.on('pageerror', (err) => check(`no page error (${query || 'root'})`, false, err.message))
   await page.goto(`http://localhost:${PORT}${BASE}${query}`, { waitUntil: 'networkidle' })
+  /* An earlier attempt at this harness measured a directory listing for a whole run, because a
+   * mis-built `--base` leaves `/sooda/` serving the folder rather than the app and every
+   * "element not found" then reads as a broken flow. One assertion makes that impossible. */
+  const title = await page.title()
+  if (!/Sooda/i.test(title)) throw new Error(`the served page is not the app — <title> was "${title}"`)
   await page.waitForTimeout(700)
   return page
 }
@@ -290,8 +308,12 @@ await flow('works with no database at all', async () => {
   await page.close()
 })
 
+await runLearnFlows({ open, check, flow, browser, port: PORT, base: BASE })
+
 await browser.close()
 server.close()
+
+printDurations()
 
 const failed = checks.filter((c) => !c.ok).length
 console.log(`\n${checks.length - failed}/${checks.length} checks passed`)
