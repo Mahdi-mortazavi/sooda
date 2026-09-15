@@ -9,6 +9,10 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { computeCheckIn, type CheckInSource } from '../../lib/checkin'
+import type { Observation } from '../../lib/db'
+import { checkOutlier } from '../../lib/rates'
+import { FALLBACK_RATES } from '../../lib/rates/load'
 import type { TourEvent } from '../coach/events'
 import { TOUR_SHEETS } from '../coach/events'
 import type { LessonStep, SandboxState } from '../coach/types'
@@ -115,13 +119,18 @@ const CASES: Record<string, { pass: TourEvent; fail: TourEvent }> = {
   },
   'everyday.calcRice': { pass: shown('profit'), fail: shown('sell') },
   'everyday.basketRice': { pass: did('add-to-basket'), fail: did('share-link') },
-  'everyday.oil': {
+  /* The near miss is the rice's own purchase price: the mode has not changed since the rice, so
+   * that figure is still sitting in the cost field when this step opens. */
+  'everyday.oilCost': {
+    pass: commit('cost', num(LESSON_INPUTS.everyday.oilCost)),
+    fail: commit('cost', num(LESSON_INPUTS.everyday.riceCost)),
+  },
+  'everyday.oilMargin': {
     pass: commit('margin', num(LESSON_INPUTS.everyday.oilMargin)),
     fail: commit('margin', num(LESSON_INPUTS.everyday.riceMargin)),
   },
   'everyday.calcOil': { pass: shown('profit'), fail: shown('discount') },
   'everyday.basketOil': { pass: did('add-to-basket'), fail: did('copy-result') },
-  'everyday.share': { pass: did('share-link'), fail: did('add-to-basket') },
   'everyday.totals': { pass: openedSheet('basket'), fail: openedSheet('history') },
   'everyday.csv': { pass: did('export-csv'), fail: did('clear-history') },
 
@@ -297,6 +306,32 @@ describe('the challenges that read the practice shop', () => {
     expect(bulk.done(did('bulk-apply'), partial)).toBe(false)
   })
 
+  /** The cost a product's last usable reading left behind — what «تغییری نکرده» writes again. */
+  const lastCostOf = (state: SandboxState, productId: number): number => {
+    const readings = state.observations.filter((o) => o.productId === productId && o.excluded !== true)
+    const last = readings[readings.length - 1]
+    if (last === undefined) throw new Error(`the demo shop has no reading for product ${productId}`)
+    return last.cost
+  }
+
+  /** One row as the check-in sheet would write it, at the next free id. */
+  const reading = (state: SandboxState, productId: number, cost: number): SandboxState => ({
+    ...state,
+    observations: [
+      ...state.observations,
+      {
+        id: Math.max(0, ...state.observations.map((o) => o.id)) + 1,
+        productId,
+        cost,
+        observedAt: PINNED_NOW,
+        source: 'checkin',
+      },
+    ],
+    /* Recording a price stamps the product too, exactly as `recordCost` does — and the predicate
+     * has to stay right about a shop where the product's own cost has already moved under it. */
+    products: state.products.map((p) => (p.id === productId ? { ...p, cost } : p)),
+  })
+
   it('smartRates — counts the learner’s own readings, not the shop’s', () => {
     const record = challengeOf('smartRates', 'record')
     const before = seeded()
@@ -305,39 +340,133 @@ describe('the challenges that read the practice shop', () => {
     expect(before.observations.some((o) => o.source === 'checkin')).toBe(true)
     expect(record.done(did('record-cost'), before)).toBe(false)
 
-    const seedRows = LESSON_EXPECTED.smartRates.seedObservationCount
-    const one: SandboxState = {
-      ...before,
-      observations: [
-        ...before.observations,
-        { id: seedRows + 1, productId: SEED_PRODUCTS.shampoo, cost: 250_000, observedAt: PINNED_NOW, source: 'checkin' },
-      ],
-    }
+    const one = reading(before, SEED_PRODUCTS.notebook, 83_000)
     expect(record.done(did('record-cost'), one), 'one product is not two').toBe(false)
 
-    const twice: SandboxState = {
-      ...one,
-      observations: [
-        ...one.observations,
-        { id: seedRows + 2, productId: SEED_PRODUCTS.shampoo, cost: 251_000, observedAt: PINNED_NOW, source: 'checkin' },
-      ],
-    }
+    const twice = reading(one, SEED_PRODUCTS.notebook, 84_000)
     expect(record.done(did('record-cost'), twice), 'twice on one product is not two products').toBe(false)
 
-    const two: SandboxState = {
-      ...one,
-      observations: [
-        ...one.observations,
-        { id: seedRows + 3, productId: SEED_PRODUCTS.notebook, cost: 78_000, observedAt: PINNED_NOW, source: 'checkin' },
-      ],
+    const two = reading(one, SEED_PRODUCTS.oil, lastCostOf(before, SEED_PRODUCTS.oil))
+    expect(record.done(did('record-cost'), two), 'a price written down and a price confirmed').toBe(true)
+  })
+
+  it('smartRates — two «no change» taps are not a check-in', () => {
+    /* The hole this challenge shipped with. `checkedIn` asked for two products and «تغییری
+     * نکرده» writes an ordinary reading, so two taps on the same button passed a lesson whose
+     * entire claim is that written-down prices are what make the estimate trustworthy — and
+     * «نشانم بده» demonstrated exactly that, twice, in front of the learner. */
+    const record = challengeOf('smartRates', 'record')
+    const before = seeded()
+    let state = before
+    for (const id of [SEED_PRODUCTS.notebook, SEED_PRODUCTS.oil]) state = reading(state, id, lastCostOf(before, id))
+    expect(record.done(did('record-cost'), state)).toBe(false)
+
+    // And the mirror: two prices typed, nothing confirmed, is not the answer the prompt asks for.
+    let typedOnly = before
+    for (const id of [SEED_PRODUCTS.notebook, SEED_PRODUCTS.oil]) {
+      typedOnly = reading(typedOnly, id, lastCostOf(before, id) + 5_000)
     }
-    expect(record.done(did('record-cost'), two)).toBe(true)
+    expect(record.done(did('record-cost'), typedOnly)).toBe(false)
+  })
+
+  it('smartRates — the demo’s own two taps pass it, in the order the sheet offers them', async () => {
+    /* «نشانم بده» has to finish every challenge unaided, and this one is now the only challenge
+     * whose demo types a figure. Replayed here against the practice shop: the price goes to the
+     * product the check-in asks about first, and the confirmation to the second. */
+    const record = challengeOf('smartRates', 'record')
+    const order = await checkInOrder(PINNED_NOW)
+    const first = order[0]
+    const second = order[1]
+    if (first === undefined || second === undefined) throw new Error('the check-in offered fewer than two products')
+
+    const before = seeded()
+    const typed = Number(LESSON_INPUTS.smartRates.checkInCost)
+    const after = reading(reading(before, first, typed), second, lastCostOf(before, second))
+    expect(record.done(did('record-cost'), after)).toBe(true)
   })
 
   it('safety — the backup has to actually be taken', () => {
     const backup = challengeOf('safety', 'backup')
     expect(backup.done(did('backup'), EMPTY)).toBe(true)
     expect(backup.done(did('restore'), EMPTY)).toBe(false)
+  })
+})
+
+/* ── the check-in the smartRates demo drives ──────────────────────────── */
+
+/** The practice shop, shaped the way `computeCheckIn` reads a shop. */
+function checkInSourceOf(now: number): CheckInSource {
+  const seed = buildSeed(now)
+  const byProduct = new Map<number, Observation[]>()
+  for (const observation of seed.observations) {
+    byProduct.set(observation.productId, [...(byProduct.get(observation.productId) ?? []), observation])
+  }
+  return {
+    listProducts: async () => seed.products,
+    observationsByProduct: async () => byProduct,
+    readStoreProfile: async () => seed.profile,
+    hasStoreProfile: async () => true,
+  }
+}
+
+/** Which products the check-in asks about, in the order it asks. */
+async function checkInOrder(now: number): Promise<number[]> {
+  const snapshot = await computeCheckIn(FALLBACK_RATES, checkInSourceOf(now), () => now)
+  return snapshot.items.map((item) => item.product.id)
+}
+
+describe('the check-in the smartRates demo has to survive', () => {
+  /**
+   * The ghost finger types a price into the first card the sheet shows, so which card that is
+   * has to be a property of the demo shop rather than of the day the lesson is taken. It is:
+   * `staleProducts` ranks by how far a price has probably moved since it was written down, and
+   * the seed fixes every reading and every age relative to `now`. A reading added, moved or
+   * repriced in `seed.ts` can change this order, and the failure would otherwise surface as a
+   * demo typing a notebook's price into a bottle of oil — behind an outlier dialog, in front of
+   * the learner, with no test having said a word.
+   */
+  it('offers the same two products in the same order on every clock', async () => {
+    const day = 86_400_000
+    for (const offset of [0, 11 * day, 97 * day, 200 * day, 400 * day, 3 * 365 * day]) {
+      expect(await checkInOrder(PINNED_NOW + offset), `${offset / day} days on`).toEqual([
+        SEED_PRODUCTS.notebook,
+        SEED_PRODUCTS.oil,
+      ])
+    }
+  })
+
+  it('shows the learner a figure the demo’s own price sits beside', async () => {
+    const snapshot = await computeCheckIn(FALLBACK_RATES, checkInSourceOf(PINNED_NOW), () => PINNED_NOW)
+    const first = snapshot.items[0]
+    if (first === undefined) throw new Error('the check-in offered nothing')
+    const typed = Number(LESSON_INPUTS.smartRates.checkInCost)
+
+    // A price, not a confirmation: equal to the last cost, the demo would be marking "no change".
+    expect(typed).not.toBe(first.product.cost)
+    expect(typed).toBeGreaterThan(first.product.cost)
+    /* And within sight of what the card beside the field predicts — the demo must not type a
+     * figure that contradicts the screen it was typed on. */
+    expect(Math.abs(typed - first.predictedCost)).toBeLessThan(first.predictedCost * 0.1)
+
+    /* The dialog the finger cannot dismiss. `submitTyped` runs this before it writes, and an
+     * outlier verdict stops «نشانم بده» dead on a question only a person can answer. */
+    expect(checkOutlier(first.history, { cost: typed, observedAt: snapshot.now }).outlier).toBe(false)
+  })
+
+  it('records with the sheet’s own two buttons', () => {
+    const record = tasks().find((t) => t.lesson.id === 'smartRates' && t.challenge.id === 'record')?.challenge
+    if (record === undefined) throw new Error('no smartRates.record challenge')
+    const actions = record.demo.actions
+    expect(actions.map((a) => a.target)).toEqual([
+      'field-checkin-cost',
+      'btn-checkin-record',
+      'btn-checkin-unchanged',
+    ])
+    expect(actions[0]).toEqual({
+      target: 'field-checkin-cost',
+      type: 'type',
+      value: LESSON_INPUTS.smartRates.checkInCost,
+    })
   })
 })
 
@@ -349,8 +478,26 @@ describe('Mission 1', () => {
     expect(MISSION.challenges).toHaveLength(0)
   })
 
-  it('fits in the plan’s thirty seconds and ends on the real-profit verdict', () => {
-    expect(MISSION.estimateSeconds).toBeLessThanOrEqual(30)
+  it('claims a pace the lessons themselves claim', () => {
+    /*
+     * This used to read `expect(MISSION.estimateSeconds).toBeLessThanOrEqual(30)` beside a
+     * mission that declared 30, which is a constant asserted against itself: it could only ever
+     * fail if somebody raised the number, which is the one change it should have been permitting.
+     *
+     * The estimate is a promise to a first-time user, so measure it against the only scale the
+     * repository has — what the other eight promise for the work they ask for. Seconds per step
+     * is the crudest honest form of that, and the mission may not claim to be quicker per step
+     * than the briskest lesson: at thirty seconds it was claiming six seconds a step against a
+     * fastest-lesson ten, on the one screen whose reader has never seen the app.
+     */
+    const perStep = (seconds: number, steps: number) => seconds / steps
+    const briskest = Math.min(...LESSONS.map((l) => perStep(l.estimateSeconds, l.steps.length)))
+    expect(perStep(MISSION.estimateSeconds, MISSION.steps.length)).toBeGreaterThanOrEqual(briskest)
+    // And still the shortest thing in the tutorial: onboarding offers «آموزش ۶۰ ثانیه‌ای».
+    expect(MISSION.estimateSeconds).toBeLessThanOrEqual(60)
+  })
+
+  it('ends on the real-profit verdict', () => {
     expect(MISSION.showsRate).toBe(true)
     const last = MISSION.steps[MISSION.steps.length - 1]
     // The lens is set two steps earlier; the last thing asked for is the calculation that shows it.

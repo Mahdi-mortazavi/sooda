@@ -75,10 +75,14 @@ export const discountLesson: Lesson = {
   ],
   challenges: [
     {
+      /* A different sale from the one the lesson just ran. The lesson says «قیمت اصلی ۵۰۰٬۰۰۰»
+       * in its first tooltip and then puts that same 500,000 back on the screen at the last
+       * step, so asking for it afterwards marked whether the learner had been listening. The
+       * premise here — 360,000 on the sign, 20% already off — is one they have to reverse. */
       kind: 'number',
       id: 'original',
       promptKey: 'learn.discount.challenge.original',
-      answer: ANSWER.originalPrice,
+      answer: ANSWER.challenge.originalPrice,
       tolerance: TUTORIAL_ROUNDING_STEP,
       unit: 'money',
     },

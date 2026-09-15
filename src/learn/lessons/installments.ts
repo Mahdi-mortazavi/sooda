@@ -8,11 +8,13 @@
 
 import { LESSON_EXPECTED, LESSON_INPUTS } from './expected.generated'
 import { calculated, chose, committed, opened, switchedTo } from './predicates'
-import { TUTORIAL_ROUNDING_STEP } from './rate'
 import type { Lesson } from './types'
 
 const IN = LESSON_INPUTS.installments
 const ANSWER = LESSON_EXPECTED.installments
+
+/** See the challenge below: this is the width of a remembered figure, not of a rounding step. */
+const MONTHLY_TOLERANCE = 50_000
 
 export const installmentsLesson: Lesson = {
   id: 'installments',
@@ -95,11 +97,18 @@ export const installmentsLesson: Lesson = {
   ],
   challenges: [
     {
+      /* Asked from memory, and answered from memory: the challenges run after the practice shop
+       * has been torn down, so there is no calculator to redo 12,000,000 over six months on.
+       * Every other figure a lesson asks for is round; this one is 2,215,170.01, and a rounding
+       * step of slack would have made the question "recite seven digits". Fifty thousand is the
+       * width of "he remembered it was a bit over 2.2 million" — and it still rejects the one
+       * wrong answer worth rejecting, the 2,000,000 of a cash price split six ways, by more than
+       * four times the slack. */
       kind: 'number',
       id: 'monthly',
       promptKey: 'learn.installments.challenge.monthly',
       answer: ANSWER.monthly,
-      tolerance: TUTORIAL_ROUNDING_STEP,
+      tolerance: MONTHLY_TOLERANCE,
       unit: 'money',
     },
     {

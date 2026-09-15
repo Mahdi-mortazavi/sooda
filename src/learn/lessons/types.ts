@@ -82,7 +82,8 @@ export interface TaskChallenge extends ChallengeBase {
 export type Challenge = NumberChallenge | ChoiceChallenge | TaskChallenge
 
 /**
- * Mission 1 — the sixty-second-or-less thing onboarding ends on.
+ * Mission 1 — the sixty-second-or-less thing onboarding ends on, and the sixty seconds
+ * «آموزش ۶۰ ثانیه‌ای را ببینید» promises.
  *
  * Not a ninth `LessonId` on purpose: it is not a Learning Centre card, it has no progress row of
  * its own, and giving it an id from that union would let it be written into the lessons map by a
@@ -106,8 +107,8 @@ export interface Mission {
   /**
    * The step from which the pinned-rate note appears, rather than from step 1.
    *
-   * A lesson can afford to state its assumption up front. The mission cannot: it is thirty
-   * seconds long and it is the first thing anyone reads, and «در این تمرین فرض می‌کنیم قیمت‌ها
+   * A lesson can afford to state its assumption up front. The mission cannot: it is a minute
+   * long and it is the first thing anyone reads, and «در این تمرین فرض می‌کنیم قیمت‌ها
    * ماهی ۳٪ گران می‌شوند.» on screen from step 1 spends a new user's attention on a caveat about
    * something three steps away. The note still has to appear — it is the honesty of every figure
    * that follows — so it appears when the lens engages and the learner has a reason to want it.
@@ -141,8 +142,30 @@ export interface Lesson {
  */
 export interface LessonExpected {
   profit: { sellingPrice: number; profitAmount: number }
-  discount: { finalPrice: number; originalPrice: number }
-  realProfit: { replacement: number; realPercent: number; verdict: ProfitStatus }
+  discount: {
+    finalPrice: number
+    /**
+     * The challenge's own premise, which is NOT the discount the lesson runs.
+     *
+     * The lesson works 30% off 500,000 forwards and then backwards, and says both figures out
+     * loud, so asking for 500,000 afterwards was asking the learner to repeat a number rather
+     * than to work one out. The challenge is given a sale the lesson never ran.
+     */
+    challenge: { finalPrice: number; offPercent: number; originalPrice: number }
+  }
+  realProfit: {
+    replacement: number
+    realPercent: number
+    verdict: ProfitStatus
+    /**
+     * The same oil at a horizon the lesson does not run, which is what the challenge asks about.
+     *
+     * The lesson's own runs are both three months out and both on screen when the question is
+     * asked; a verdict copied off the card teaches nothing. At a shorter horizon the answer
+     * flips, so the learner has to have understood that the horizon is what decides it.
+     */
+    challenge: { months: number; replacement: number; realPercent: number; verdict: ProfitStatus }
+  }
   installments: {
     monthly: number
     total: number
@@ -180,7 +203,8 @@ export interface LessonInputs {
   installments: { cash: string; count: string; flat: string }
   /** `name` is the only non-number here: what «نشانم بده» types into the save sheet. */
   products: { cost: string; margin: string; name: string; newCost: string; bulkPercent: string }
-  smartRates: { manualRate: string }
+  /** `checkInCost` is the price «نشانم بده» records for the first product the check-in offers. */
+  smartRates: { manualRate: string; checkInCost: string }
   everyday: { riceCost: string; riceMargin: string; oilCost: string; oilMargin: string }
   mission: { cost: string; margin: string; months: string }
 }

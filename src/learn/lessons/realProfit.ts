@@ -87,21 +87,33 @@ export const realProfitLesson: Lesson = {
   ],
   challenges: [
     {
+      /*
+       * Asked about ONE month, which the lesson never runs.
+       *
+       * Both of the lesson's own calculations are three months out, and the second of them is
+       * still on the card when the question appears: «در واقع ضرر است» could be read straight
+       * off the screen. The same oil sold within the month is a thin profit instead, so the
+       * answer turns on the one thing the lesson is actually about — how long the money is out
+       * — and cannot be reached by copying. It also closes a quieter hole: the old answer was
+       * derived from the estimate at step 4 while the last run on screen was the supplier's
+       * known price at step 6, two figures that agree today and nothing kept them agreeing.
+       *
+       * Which option is right is still the engine's answer and not the author's: `profitStatus`
+       * judged the shelf price against one month of the pinned rate, and whatever it said stands.
+       */
       kind: 'choice',
       id: 'verdict',
       promptKey: 'learn.realProfit.challenge.verdict.prompt',
-      /* Which option is right is the engine's answer, not the author's: `profitStatus` judged the
-       * shelf price against three months of the pinned rate, and whatever it said stands. */
       options: [
         {
           id: 'stillProfit',
           labelKey: 'learn.realProfit.challenge.verdict.stillProfit',
-          correct: ANSWER.verdict !== 'losing',
+          correct: ANSWER.challenge.verdict !== 'losing',
         },
         {
           id: 'actuallyLoss',
           labelKey: 'learn.realProfit.challenge.verdict.actuallyLoss',
-          correct: ANSWER.verdict === 'losing',
+          correct: ANSWER.challenge.verdict === 'losing',
         },
       ],
     },

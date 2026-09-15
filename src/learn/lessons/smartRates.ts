@@ -9,6 +9,7 @@
 import { REQUESTED_TOUR_ACTIONS } from './actions'
 import { LESSON_EXPECTED, LESSON_INPUTS } from './expected.generated'
 import { closed, opened, tapped } from './predicates'
+import type { Observation } from '../../lib/db'
 import type { SandboxState } from '../coach/types'
 import type { Lesson } from './types'
 
@@ -16,16 +17,53 @@ const IN = LESSON_INPUTS.smartRates
 const ANSWER = LESSON_EXPECTED.smartRates
 
 /**
- * Two products asked about in this check-in.
+ * What the last reading before this one said, for the product it was written against.
+ *
+ * "No change" writes the cost forward unaltered, so the previous reading is the only thing that
+ * separates a price the learner typed from a price they merely confirmed — the event says
+ * `record-cost` either way, and the product's own `cost` is no help because recording a price
+ * moves it. Excluded rows are skipped for the same reason the sheet skips them: a disowned sale
+ * price is not what «تغییری نکرده» would have repeated.
+ */
+function previousCost(state: SandboxState, reading: Observation): number | null {
+  const earlier = state.observations
+    .filter((o) => o.productId === reading.productId && o.excluded !== true && o.id < reading.id)
+    .sort((a, b) => a.id - b.id)
+  const last = earlier[earlier.length - 1]
+  if (last !== undefined) return last.cost
+  /* No earlier reading at all: fall back to the product's stamped cost, which is what the sheet
+   * itself would have repeated. Unreachable in the demo shop — every row there has a history —
+   * but a challenge must not pass or fail on a shape it did not expect. */
+  return state.products.find((p) => p.id === reading.productId)?.cost ?? null
+}
+
+/**
+ * A real check-in: one price written down, and one confirmed.
  *
  * Counted from the shop rather than from the taps, because "record" and "no change" both write an
  * ordinary reading and there is nothing in the event to tell them apart. The demo shop ships with
  * a `checkin` reading of its own, so only rows written after the seed are counted — the seed's ids
  * run 1…`seedObservationCount`, and every row the learner adds lands above that.
+ *
+ * Two distinct products, as before, and now what was done to them: at least one reading that
+ * DIFFERS from what that product last cost, which is a price somebody typed, and at least one
+ * that repeats it, which is «تغییری نکرده». Marking both unchanged used to pass — two taps, no
+ * price — and this lesson's whole claim is that recorded prices are what make the estimate worth
+ * trusting. The prompt has always asked for exactly this; only the marking was lenient.
  */
 function checkedIn(_ev: unknown, state: SandboxState): boolean {
   const fresh = state.observations.filter((o) => o.source === 'checkin' && o.id > ANSWER.seedObservationCount)
-  return new Set(fresh.map((o) => o.productId)).size >= 2
+  if (new Set(fresh.map((o) => o.productId)).size < 2) return false
+
+  let recorded = false
+  let confirmed = false
+  for (const reading of fresh) {
+    const previous = previousCost(state, reading)
+    if (previous === null) continue
+    if (reading.cost === previous) confirmed = true
+    else recorded = true
+  }
+  return recorded && confirmed
 }
 
 export const smartRatesLesson: Lesson = {
@@ -92,13 +130,17 @@ export const smartRatesLesson: Lesson = {
       target: 'checkin-panel',
       before: (ctx) => ctx.navigate({ tab: 'products', sheet: 'check-in' }),
       done: checkedIn,
-      /* «نشانم بده» marks both unchanged. A typed figure would have to be chosen before anyone
-       * knows which product the check-in offers first, and a number that is out of scale for that
-       * product trips the outlier dialog — so the finger takes the path that is right for every
-       * shop, and the prompt is what asks the learner to type a real price for one of them. */
+      /* One price written down, then one confirmed — the two halves of the answer the prompt
+       * asks for, in the order the sheet offers them. The typed figure is safe to script because
+       * the check-in's order is the seed's rather than the clock's: the notebook is always first,
+       * and `lessons.test.ts` pins that. `checkInCost` is its own last price carried forward at
+       * the pinned rate, so it is in the scale the card beside it shows and well inside the
+       * sheet's outlier window — a dialog here would strand the finger behind a question only a
+       * human can answer. */
       demo: {
         actions: [
-          { target: 'btn-checkin-unchanged', type: 'tap' },
+          { target: 'field-checkin-cost', type: 'type', value: IN.checkInCost },
+          { target: 'btn-checkin-record', type: 'tap' },
           { target: 'btn-checkin-unchanged', type: 'tap' },
         ],
       },

@@ -16,12 +16,22 @@ export const LESSON_EXPECTED: LessonExpected = {
   },
   "discount": {
     "finalPrice": 350000,
-    "originalPrice": 500000
+    "challenge": {
+      "finalPrice": 360000,
+      "offPercent": 20,
+      "originalPrice": 450000
+    }
   },
   "realProfit": {
     "replacement": 128941.79,
     "realPercent": -0.73,
-    "verdict": "losing"
+    "verdict": "losing",
+    "challenge": {
+      "months": 1,
+      "replacement": 121540,
+      "realPercent": 5.32,
+      "verdict": "thin"
+    }
   },
   "installments": {
     "monthly": 2215170.01,
@@ -96,7 +106,8 @@ export const LESSON_INPUTS: LessonInputs = {
     "bulkPercent": "10"
   },
   "smartRates": {
-    "manualRate": "4"
+    "manualRate": "4",
+    "checkInCost": "83000"
   },
   "mission": {
     "cost": "100000",

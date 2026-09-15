@@ -1,5 +1,5 @@
 /**
- * Mission 1 — the thirty seconds that decide whether any of the rest gets opened.
+ * Mission 1 — the minute that decides whether any of the rest gets opened.
  *
  * Onboarding's three cards can say what Sooda is for; only this can show it. «آقا رضا» buys a
  * shawl for 100,000 and wants 20%. Four taps later the same sale is worth under 10%, because
@@ -29,10 +29,20 @@ export const MISSION: Mission = {
    * `chip-suggest-<field>`, emitting both a change and a commit when it is tapped. All it needs
    * from here is what to offer — and the value has to come from the same place the answer did. */
   suggestion: { field: 'cost', value: IN.cost, labelKey: 'learn.mission.suggestCost' },
-  /* Five actions, one line of text each. Measured against the plan's thirty seconds rather than a
-   * lesson's ninety: the first step is a single tap on a chip that fills the field for them, and
-   * the only typing left in the whole mission is two digits. */
-  estimateSeconds: 30,
+  /*
+   * Sixty, not the thirty this said while nothing had been timed.
+   *
+   * There is a scale to measure against, and it is the authors' own: divide each lesson's Persian
+   * tooltip words by the seconds it claims, and the eight of them sit between 38 and 56 words a
+   * minute — a shopkeeper reading an instruction, finding the control it names, and doing it.
+   * The mission's five tooltips are 51 words. At thirty seconds that is 102 words a minute, twice
+   * the pace the same authors allowed anyone else, demanded on the one screen whose reader has
+   * never seen the app before and has to find «محاسبه کن» for the first time. With the story card
+   * and the chip label it reads as 134. Sixty seconds puts it at 51 wpm — the middle of the band
+   * — and it is still the shortest thing in the tutorial to *do*: five actions, four of them taps,
+   * two digits of typing in total.
+   */
+  estimateSeconds: 60,
   showsRate: true,
   rateNoteFromStep: 'months',
   steps: [
@@ -86,7 +96,7 @@ export const MISSION: Mission = {
       demo: { actions: [{ target: 'btn-calculate', type: 'tap' }] },
     },
   ],
-  // Onboarding ends on a badge. A quiz here would be a sixth thing to do inside thirty seconds.
+  // Onboarding ends on a badge. A quiz here would be a sixth thing to do inside the minute.
   challenges: [],
 }
 

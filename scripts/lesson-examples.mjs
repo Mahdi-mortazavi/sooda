@@ -52,12 +52,20 @@ const expected = e.computeLessonExpected()
 const inputs = e.computeLessonInputs()
 
 /* Pinned or not, an answer that moves with the clock is a bug in the lesson rather than in the
- * engine, and it would only ever show up months later. Prove it here instead. */
-const later = e.computeLessonExpected(e.PINNED_NOW + 97 * 86_400_000)
-if (JSON.stringify(later) !== JSON.stringify(expected)) {
-  console.error('✗ a challenge answer changed when only the clock moved:')
-  console.error(`    at PINNED_NOW        ${JSON.stringify(expected)}`)
-  console.error(`    97 days later        ${JSON.stringify(later)}`)
+ * engine, and it would only ever show up months later. Prove it here instead.
+ *
+ * The typed-in values are held to the same bar. Most of them are literals and could not drift,
+ * but the price lesson 6's check-in demo records is the demo shop's own last reading carried
+ * forward over its own age — derived from `now` on both sides, and so worth proving cancels. */
+const LATER = e.PINNED_NOW + 97 * 86_400_000
+for (const [what, mine, theirs] of [
+  ['a challenge answer', expected, e.computeLessonExpected(LATER)],
+  ['a figure a lesson types in', inputs, e.computeLessonInputs(LATER)],
+]) {
+  if (JSON.stringify(mine) === JSON.stringify(theirs)) continue
+  console.error(`✗ ${what} changed when only the clock moved:`)
+  console.error(`    at PINNED_NOW        ${JSON.stringify(mine)}`)
+  console.error(`    97 days later        ${JSON.stringify(theirs)}`)
   process.exit(1)
 }
 
@@ -84,14 +92,27 @@ console.log('\n■ profit — bought at 150,000, wants 25%')
 show('قیمت فروش / selling price', expected.profit.sellingPrice)
 show('سود / profit', expected.profit.profitAmount)
 
-console.log('\n■ discount — 30% off 500,000, then back again')
+console.log('\n■ discount — 30% off 500,000, then the lesson’s own answer back again')
 show('قیمت با تخفیف / price after', expected.discount.finalPrice)
-show('قیمت اصلی / original price', expected.discount.originalPrice)
+
+console.log(
+  `\n■ discount challenge — a sale the lesson never runs: ${en(expected.discount.challenge.finalPrice)}` +
+    ` after ${en(expected.discount.challenge.offPercent)}% off`,
+)
+show('قیمت اصلی / original price', expected.discount.challenge.originalPrice)
 
 console.log('\n■ realProfit — the demo shop’s oil, three months on')
 show('خرید دوباره / restock cost', expected.realProfit.replacement)
 show('سود واقعی ٪ / real profit %', expected.realProfit.realPercent)
 show('حکم / verdict', expected.realProfit.verdict)
+
+console.log(
+  `\n■ realProfit challenge — the same oil at ${en(expected.realProfit.challenge.months)} month,` +
+    ' a horizon the lesson does not run',
+)
+show('خرید دوباره / restock cost', expected.realProfit.challenge.replacement)
+show('سود واقعی ٪ / real profit %', expected.realProfit.challenge.realPercent)
+show('حکم / verdict', expected.realProfit.challenge.verdict)
 
 console.log('\n■ installments — 12,000,000 over 6 months, nothing down')
 show('قسط ماهانه / monthly payment', expected.installments.monthly)
@@ -104,6 +125,10 @@ for (const row of expected.products.newCosts) show(`کالای ${row.id} / produ
 
 console.log('\n■ smartRates — rows the check-in challenge must look past')
 show('ردیف‌های آماده / seeded readings', expected.smartRates.seedObservationCount)
+/* The one figure «نشانم بده» types that the app does not put on the screen for it first: the
+ * price it records for the product the check-in asks about first. Printed beside the seeded rows
+ * because the two are read together when the demo shop changes. */
+show('قیمت ثبت‌شده / check-in price typed', Number(inputs.smartRates.checkInCost))
 
 console.log('\n■ everyday — the two basket lines together')
 show('سود مجموع / combined profit', expected.everyday.combinedProfit)

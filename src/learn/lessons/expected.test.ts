@@ -99,30 +99,57 @@ describe('every challenge answer, recomputed from the engine itself', () => {
     expect(Number(LESSON_INPUTS.profit.cost)).toBe(150_000)
   })
 
-  it('discount — the reverse of the forward answer', () => {
+  it('discount — the lesson works its own answer back, and the challenge works a different sale', () => {
     const forward = calcDiscount(500_000, 30)
     expect(Number(LESSON_INPUTS.discount.final)).toBe(forward.finalPrice)
-    const back = calcReverseDiscount(forward.finalPrice, 30)
+    // What the lesson's last step puts on the screen: the price it started from, recovered.
+    expect(calcReverseDiscount(forward.finalPrice, 30).originalPrice).toBe(500_000)
+
+    const premise = LESSON_EXPECTED.discount.challenge
+    const back = calcReverseDiscount(premise.finalPrice, premise.offPercent)
     expect(numberChallenge(discountLesson.challenges, 'original').answer).toBe(back.originalPrice)
-    expect(back.originalPrice).toBe(500_000)
+
+    /* The point of the premise. Every figure the lesson says out loud — the 500,000 it starts
+     * from, the 350,000 it arrives at, the 30% it uses both ways — must be absent from the
+     * question, or the question can be answered by remembering rather than by reversing. */
+    expect(premise.finalPrice).not.toBe(forward.finalPrice)
+    expect(premise.offPercent).not.toBe(30)
+    expect(back.originalPrice).not.toBe(500_000)
+    expect(back.originalPrice).not.toBe(forward.finalPrice)
   })
 
-  it('realProfit — the oil is a profit today and a loss in three months', () => {
+  it('realProfit — the oil is a profit today, a profit in a month, and a loss in three', () => {
     const oil = buildSeed(PINNED_NOW).products.find((p) => p.id === SEED_PRODUCTS.oil)
     if (oil === undefined) throw new Error('the demo shop has no oil')
     expect(Number(LESSON_INPUTS.realProfit.cost)).toBe(oil.cost)
     expect(Number(LESSON_INPUTS.realProfit.price)).toBe(oil.price)
 
     // Nominally in profit — otherwise the lens has nothing to reveal.
-    expect(calcFromSellingPrice(oil.cost, oil.price).profitPercent).toBeGreaterThan(0)
+    const nominal = calcFromSellingPrice(oil.cost, oil.price).profitPercent
+    expect(nominal).toBeGreaterThan(0)
 
+    // What the lesson runs, and what its card is still showing when the question is asked.
     const months = Number(LESSON_INPUTS.realProfit.months)
     const restock = replacementCost(oil.cost, RATE, months)
     const real = realProfitPercent(oil.price, restock)
     expect(real).toBe(LESSON_EXPECTED.realProfit.realPercent)
     expect(real).toBeLessThan(0)
+
+    /* What the challenge asks about: the same oil at a horizon the lesson never ran, where the
+     * answer is the other one. A learner who reads the verdict off the screen gets it wrong,
+     * which is the whole reason the question is worth asking. */
+    const sooner = LESSON_EXPECTED.realProfit.challenge
+    expect(sooner.months).toBeLessThan(months)
+    const soonerRestock = replacementCost(oil.cost, RATE, sooner.months)
+    const soonerReal = realProfitPercent(oil.price, soonerRestock)
+    expect(sooner.replacement).toBe(soonerRestock)
+    expect(sooner.realPercent).toBe(soonerReal)
+    expect(sooner.verdict).toBe(profitStatus(soonerReal, nominal))
+    expect(soonerReal).toBeGreaterThan(0)
+    expect(sooner.verdict).not.toBe(LESSON_EXPECTED.realProfit.verdict)
+
     // The learner is asked to pick between two verdicts; the engine picked one of them already.
-    expect(correctOption(choiceChallenge(realProfitLesson.challenges, 'verdict'))).toBe('actuallyLoss')
+    expect(correctOption(choiceChallenge(realProfitLesson.challenges, 'verdict'))).toBe('stillProfit')
   })
 
   it('installments — the instalment, and whether a flat 2% beats cash', () => {
@@ -152,6 +179,16 @@ describe('every challenge answer, recomputed from the engine itself', () => {
     expect(LESSON_EXPECTED.products.newCosts.length).toBeGreaterThan(0)
   })
 
+  it('installments — the monthly figure is remembered, so its tolerance is a remembering’s width', () => {
+    const monthly = numberChallenge(installmentsLesson.challenges, 'monthly')
+    /* Asked with the practice shop already gone, off a figure with seven significant digits.
+     * The slack has to cover "a bit over 2.2 million" and still reject the answer somebody
+     * reaches for when they have not understood the question: the cash price split six ways. */
+    const naive = Number(LESSON_INPUTS.installments.cash) / Number(LESSON_INPUTS.installments.count)
+    expect(Math.abs(naive - monthly.answer)).toBeGreaterThan(monthly.tolerance * 4)
+    expect(monthly.tolerance).toBeGreaterThanOrEqual(TUTORIAL_ROUNDING_STEP)
+  })
+
   it('everyday — the two basket lines, totalled by the basket', () => {
     const seed = buildSeed(PINNED_NOW).products
     const lines = [SEED_PRODUCTS.rice, SEED_PRODUCTS.oil].map((id) => {
@@ -162,7 +199,18 @@ describe('every challenge answer, recomputed from the engine itself', () => {
       return { mode: 'profit' as const, inputs: [product.cost], results: [price, price - product.cost] }
     })
     const totals = computeBasketTotals(lines)
-    expect(numberChallenge(everydayLesson.challenges, 'combined').answer).toBe(totals[0]?.profit)
+    const combined = numberChallenge(everydayLesson.challenges, 'combined')
+    expect(combined.answer).toBe(totals[0]?.profit)
+
+    /* The answer is what the app shows, off two prices it rounded up; a learner doing the same
+     * two sums exactly lands a little under it. Both roundings have to be inside the tolerance,
+     * or the challenge marks the arithmetic wrong for being right. */
+    const exact = [SEED_PRODUCTS.rice, SEED_PRODUCTS.oil].reduce((sum, id) => {
+      const product = seed.find((p) => p.id === id)
+      if (product === undefined) throw new Error(`the demo shop has no product ${id}`)
+      return sum + calcFromProfitPercent(product.cost, product.targetMarginPercent).profitAmount
+    }, 0)
+    expect(Math.abs(combined.answer - exact)).toBeLessThan(combined.tolerance)
   })
 
   it('leaves the seeded reading count where the check-in challenge expects it', () => {
