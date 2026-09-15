@@ -251,6 +251,41 @@ await flow('drafts and what’s new', async () => {
   await first.close()
 })
 
+/* A browser that refuses a database must cost the user their history and products — never the
+ * calculator, which touches no storage at all. v1.4.0 got this wrong: one Dexie failure
+ * replaced the entire screen with an error page. */
+await flow('works with no database at all', async () => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  await page.addInitScript(() => {
+    const boom = () => {
+      const e = new Error('The operation is insecure.')
+      e.name = 'SecurityError'
+      throw e
+    }
+    Object.defineProperty(window, 'indexedDB', { get: boom, configurable: true })
+  })
+  await page.addInitScript((v) => {
+    try {
+      localStorage.setItem('sooda:lang', 'en')
+      localStorage.setItem('sooda:last-version', v)
+    } catch {
+      /* storage may be refused too; the flow still has to pass */
+    }
+  }, APP_VERSION)
+  await page.goto(`http://localhost:${PORT}${BASE}`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(700)
+
+  await fields(page).nth(0).fill('400000')
+  await fields(page).nth(1).fill('20')
+  await calc(page)
+  const body = await resultText(page)
+  check('no database: the calculator still computes', digits(body).includes('480000'))
+
+  const all = await page.locator('body').innerText()
+  check('no database: the app is not replaced by an error screen', !/can.t store anything/i.test(all))
+  await page.close()
+})
+
 await browser.close()
 server.close()
 

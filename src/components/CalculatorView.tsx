@@ -23,6 +23,7 @@ import type { RoundingStep } from '../lib/rounding'
 import { buildModeShareQuery, parseModeShareQuery } from '../lib/share'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { IconPercent, IconScale, IconTag, IconTagReverse, IconWallet } from './Icons'
+import { ErrorBoundary } from './ErrorBoundary'
 import { LensRow } from './LensRow'
 import { ModeFields } from './ModeFields'
 import type { ProductDraft } from './SaveProductSheet'
@@ -394,6 +395,9 @@ export function CalculatorView({
 
             {result?.product ? (
               <Suspense fallback={null}>
+                {/* The calculator itself touches no database. If the product link cannot reach
+                    one, it disappears — it must never take the result card with it. */}
+                <ErrorBoundary label="the product link" fallback={() => null}>
                 <CalcProductLink
                   cost={result.product.cost}
                   lang={lang}
@@ -401,6 +405,7 @@ export function CalculatorView({
                   rates={rates}
                   onChanged={onProductsChanged}
                 />
+                </ErrorBoundary>
               </Suspense>
             ) : null}
           </motion.div>

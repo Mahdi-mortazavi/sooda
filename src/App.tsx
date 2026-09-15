@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { AmbientBackground } from './components/AmbientBackground'
 import { CalculatorView } from './components/CalculatorView'
 import { IconBasket, IconClock, IconGear } from './components/Icons'
+import { FeatureBoundary } from './components/StorageBoundary'
 import type { ProductDraft } from './components/SaveProductSheet'
 import { TabBar } from './components/TabBar'
 import { useBasketCount } from './hooks/useBasketCount'
@@ -225,6 +226,7 @@ export default function App() {
         />
       ) : (
         <Suspense fallback={null}>
+          <FeatureBoundary label="the products tab">
           <ProductsView
             lang={lang}
             unit={unit}
@@ -237,6 +239,7 @@ export default function App() {
             onRepriceConsumed={() => setRepriceIds(null)}
             onProductsChanged={checkIn.reload}
           />
+          </FeatureBoundary>
         </Suspense>
       )}
 
@@ -267,6 +270,7 @@ export default function App() {
       </footer>
 
       <Suspense fallback={null}>
+        <FeatureBoundary label="a sheet">
         {(historyOpen || historyMounted) && (
           <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} lang={lang} />
         )}
@@ -335,6 +339,7 @@ export default function App() {
         {toastMounted && (
           <Toast open={savedToast} message={t('products.saved')} onDismiss={() => setSavedToast(false)} />
         )}
+        </FeatureBoundary>
       </Suspense>
 
       <TabBar value={tab} onChange={setTab} />
