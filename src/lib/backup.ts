@@ -286,3 +286,13 @@ export function backupFilename(now = Date.now()): string {
   const d = new Date(now)
   return `sooda-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`
 }
+
+/**
+ * The same name with a marker, for a file the tutorial produced.
+ *
+ * A practice backup sitting in the downloads folder under the real name is the kind of thing
+ * someone restores a year later believing it is their shop. It holds five demo products.
+ */
+export function practiceBackupFilename(now = Date.now()): string {
+  return backupFilename(now).replace('sooda-backup-', 'sooda-practice-')
+}

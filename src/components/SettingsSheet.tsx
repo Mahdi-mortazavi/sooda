@@ -4,7 +4,14 @@ import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import type { RatesOrigin } from '../hooks/useRates'
 import type { ThemePreference } from '../hooks/useTheme'
-import { applyBackup, backupFilename, buildBackup, validateBackup, type BackupFile } from '../lib/backup'
+import {
+  applyBackup,
+  backupFilename,
+  buildBackup,
+  practiceBackupFilename,
+  validateBackup,
+  type BackupFile,
+} from '../lib/backup'
 import { formatDate } from '../lib/dates'
 import { clearAllData } from '../lib/db'
 import { vibrate } from '../lib/haptics'
@@ -35,6 +42,7 @@ import { emitTour } from '../learn/coach/events'
 import { SettingsLearnCard } from '../learn/ui/SettingsLearnCard'
 import { clearProgress, exportProgress, importProgress } from '../learn/ui/progress'
 import { LEARN_STORAGE_KEY } from '../learn/ui/entry'
+import { useRepository } from '../learn/ui/useRepository'
 
 declare const __APP_VERSION__: string
 
@@ -113,6 +121,15 @@ export function SettingsSheet({
     setInflationError(null)
   }
 
+  /*
+   * This sheet is on screen during lesson 8, so it has to know which shop it is looking at.
+   * It was the one lesson surface with no repository awareness at all, and it is the surface
+   * that hands the user a file: `buildBackup()` is bound to the real database and walks real
+   * localStorage, so the tutorial's «یک نسخهٔ پشتیبان بگیرید» wrote the shopkeeper's own
+   * products, price history, calculations, draft and badge count to their downloads folder.
+   */
+  const { db: shopDb, practice } = useRepository()
+
   // Seeded from storage once. The switch is the only thing in the app that writes this key.
   const [autoUpdate, setAutoUpdate] = useState(isAutoUpdateEnabled)
 
@@ -121,6 +138,11 @@ export function SettingsSheet({
     emitTour({ type: 'action', name: 'toggle-auto-rates' })
     const next = !autoUpdate
     setAutoUpdate(next)
+    /* During practice the switch moves and nothing else happens. Left alone, lesson 8's one
+     * required tap would invert the shopkeeper's real preference and never put it back — and
+     * `onAutoUpdateChange` would refetch the rates file, the only network request any lesson
+     * causes. The learner still sees exactly what the control does. */
+    if (practice) return
     setAutoUpdateEnabled(next)
     // Switching it back on should fetch straight away, not wait for the next launch.
     if (next) onAutoUpdateChange()
@@ -158,6 +180,15 @@ export function SettingsSheet({
   const exportBackup = async () => {
     vibrate()
     emitTour({ type: 'action', name: 'backup' })
+    if (practice) {
+      /* Dynamic so the practice exporter is not in the settings chunk for everyone who never
+       * opens a lesson. Its `settings` are deliberately empty: a practice backup is about the
+       * demo shop, not about the phone. */
+      const { buildPracticeBackup } = await import('../learn/sandbox/backup')
+      const demo = await buildPracticeBackup(shopDb, Date.now())
+      downloadJson(JSON.stringify(demo, null, 2), practiceBackupFilename())
+      return
+    }
     const file = await buildBackup()
     /* `lib/backup.ts` collects every `sooda:`-prefixed localStorage key; the tutorial's record is
      * deliberately outside that namespace (`sooda.learn.v1`), so it is carried by hand here and
@@ -167,6 +198,10 @@ export function SettingsSheet({
   }
 
   const readBackupFile = async (input: HTMLInputElement) => {
+    /* The cutout that spotlights «پشتیبان‌گیری» contains the Import button too, and restoring
+     * clears and rewrites the real database. One tap off target, mid-lesson, would replace the
+     * shopkeeper's shop with a file from disk. */
+    if (practice) return
     const file = input.files?.[0]
     // Reset immediately, or re-picking the same file fires no change event at all.
     input.value = ''
@@ -191,7 +226,7 @@ export function SettingsSheet({
   }
 
   const restoreBackup = async (mode: 'merge' | 'replace') => {
-    if (!pendingBackup) return
+    if (!pendingBackup || practice) return
     vibrate()
     emitTour({ type: 'action', name: 'restore' })
     await applyBackup(pendingBackup, mode)
@@ -199,6 +234,9 @@ export function SettingsSheet({
      * user's disk — so the one key it cannot write is validated and written here instead. */
     const storedProgress = pendingBackup.settings[LEARN_STORAGE_KEY]
     if (storedProgress !== undefined) importProgress(storedProgress)
+    /* «جایگزینی» means this file is now the shop. A v1.4 file carries no tutorial record, and
+     * keeping the old one would leave progress from a shop that no longer exists. */
+    else if (mode === 'replace') clearProgress()
     setPendingBackup(null)
     setConfirmingReplace(false)
     setBackupRestored(true)
@@ -238,8 +276,14 @@ export function SettingsSheet({
                 vibrate()
                 emitTour({ type: 'action', name: 'install-app' })
                 /* Chromium can be asked directly; iOS Safari has no prompt to ask, so the same
-                 * row opens the walkthrough that InstallPrompt would have shown. */
-                if (install.canNativePrompt) void install.promptInstall()
+                 * row opens the walkthrough that InstallPrompt would have shown.
+                 *
+                 * During practice it is always the walkthrough. Lesson 8 shows the learner where
+                 * installing lives; firing the browser's real add-to-home-screen dialog in the
+                 * middle of a tutorial is an interruption the lesson did not ask for, and the
+                 * step waits for the guide to open, so on Chromium «نشانم بده» could never
+                 * finish it. */
+                if (install.canNativePrompt && !practice) void install.promptInstall()
                 else setGuideOpen(true)
               }}
               className="glass glass-ring flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-start"
@@ -556,6 +600,15 @@ export function SettingsSheet({
                     /* "Erase all data" means all of it. What the shopkeeper learnt is theirs
                      * too, and someone handing their phone over expects it gone. */
                     clearProgress()
+                    /* A tab closed mid-lesson leaves `sooda-practice` on disk until the next
+                     * one starts. It holds only demo rows, but it is a Sooda database, and
+                     * this is the button someone presses before handing their phone over.
+                     * By name, so erasing does not pull the sandbox into this chunk. */
+                    try {
+                      indexedDB.deleteDatabase('sooda-practice')
+                    } catch {
+                      // A browser that refuses IndexedDB has nothing to delete.
+                    }
                     void clearAllData()
                       // The badge counts products to check; with no products it must go too.
                       .then(() => import('../lib/badge').then((b) => b.clearBadge()))

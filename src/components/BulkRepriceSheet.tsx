@@ -79,10 +79,19 @@ export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast,
         onAction: () => {
           // Undo puts the old costs back, so the stale list has to be recomputed again — and it
           // takes back exactly the readings this run created, named rather than re-derived.
-          void repository.restoreProducts(snapshot, observationIds).then(() => {
-            emitTour({ type: 'action', name: 'bulk-undo' })
-            onApplied?.()
-          })
+          void repository
+            .restoreProducts(snapshot, observationIds)
+            .then(() => {
+              emitTour({ type: 'action', name: 'bulk-undo' })
+              onApplied?.()
+            })
+            .catch(() => {
+              /* The products lesson ends on this very reprice, so the toast can still be on
+               * screen when the lesson finishes and the practice database is deleted under it.
+               * The handle then rejects, which is the safe direction — it cannot reach the real
+               * shop — but without this it surfaces as an unhandled rejection. Nothing to
+               * report either way: the shop the undo belonged to no longer exists. */
+            })
         },
       })
       onClose()

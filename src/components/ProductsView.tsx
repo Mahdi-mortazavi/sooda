@@ -78,7 +78,7 @@ export function ProductsView({
   const learn = useLearn()
   /* The demo shop during a lesson, the real one otherwise. Reading from the bound `db` directly
    * would show the shopkeeper's own price list inside the tutorial. */
-  const { db, pinned } = useRepository()
+  const { db, pinned, practice } = useRepository()
 
   const items = useLiveQuery(() => db.products.toArray(), [db], undefined)
   const all = useMemo(() => items ?? [], [items])
@@ -102,7 +102,7 @@ export function ProductsView({
     const map = new Map<number, ProductStatus>()
     for (const p of all) map.set(p.id, productStatus(p, monthlyInflationPercent, now))
     return map
-  }, [all])
+  }, [all, pinned])
 
   const visible = useMemo(() => sortProducts(searchProducts(all, query), sort, statuses), [all, query, sort, statuses])
   /* Read by the tour-sheet effect below without making it depend on the sorted array: a step that
@@ -173,7 +173,8 @@ export function ProductsView({
     vibrate()
     emitTour({ type: 'action', name: 'export-csv' })
     const headers = t('products.csvHeaders', { returnObjects: true }) as string[]
-    downloadCsv(buildProductsCsv(all, headers), 'sooda-products.csv')
+    // Same reason as the history export: a demo file must not wear the real file's name.
+    downloadCsv(buildProductsCsv(all, headers), practice ? 'sooda-practice-products.csv' : 'sooda-products.csv')
   }
 
   const openRow = (product: Product) => {

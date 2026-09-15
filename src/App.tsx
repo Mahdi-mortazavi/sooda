@@ -355,6 +355,10 @@ export default function App() {
         <Suspense fallback={null}>
           <FeatureBoundary label="the products tab">
           <ProductsView
+            /* Remounted across the practice boundary for the same reason CalculatorView is:
+             * nothing from the demo shop — a pending toast, a memoised status list, a search
+             * term — may carry into the real one, or the other way. */
+            key={practice === null ? 'real' : 'practice'}
             lang={lang}
             unit={unit}
             onGoToCalculator={() => setTab('calculator')}

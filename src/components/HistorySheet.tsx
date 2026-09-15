@@ -72,7 +72,12 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
     vibrate()
     emitTour({ type: 'action', name: 'export-csv' })
     const headers = t('history.csvHeaders', { returnObjects: true }) as string[]
-    downloadCsv(buildHistoryCsv(entries, headers, modeLabels), 'sooda-history.csv')
+    /* A practice export under the real name is the kind of file someone opens a year later
+     * believing it is their own trading history. It is the demo shop's. */
+    downloadCsv(
+      buildHistoryCsv(entries, headers, modeLabels),
+      practice ? 'sooda-practice-history.csv' : 'sooda-history.csv',
+    )
   }
 
   const onClearAll = async () => {
