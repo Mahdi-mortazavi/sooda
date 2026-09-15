@@ -2,21 +2,17 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { buildHistoryCsv, downloadCsv } from '../lib/csv'
 import { clearHistory, db, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, normalizeDigits, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit } from '../lib/units'
-import { IconClock, IconDownload, IconPercent, IconScale, IconSearch, IconTag, IconTagReverse, IconTrash } from './Icons'
+import { IconClock, IconDownload, IconSearch, IconTrash } from './Icons'
+import { MODE_ICONS } from '../lib/modes/icons'
+import { entrySummary } from '../lib/modes/summary'
 import { Sheet } from './Sheet'
-
-const MODE_ICONS: Record<Mode, typeof IconPercent> = {
-  profit: IconPercent,
-  sell: IconScale,
-  discount: IconTag,
-  rdiscount: IconTagReverse,
-}
 
 interface HistorySheetProps {
   open: boolean
@@ -37,6 +33,8 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
     sell: t('modes.sell'),
     discount: t('modes.discount'),
     rdiscount: t('modes.rdiscount'),
+    installment: t('modes.installment'),
+    rinstallment: t('modes.rinstallment'),
   }
 
   const filtered = useMemo(() => {
@@ -121,13 +119,13 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
           <button
             type="button"
             onClick={onExport}
-            className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+            className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
           >
             <IconDownload size={18} />
             {t('actions.exportCsv')}
           </button>
           {confirmingClear ? (
-            <div className="flex flex-1 items-center justify-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => void onClearAll()}
@@ -147,7 +145,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
             <button
               type="button"
               onClick={() => setConfirmingClear(true)}
-              className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-loss-600 dark:text-loss-400"
+              className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-loss-600 dark:text-loss-400"
             >
               <IconTrash size={18} />
               {t('actions.clearAll')}
@@ -194,26 +192,11 @@ function HistoryItem({
   const fmt = (v: number) => formatNumber(v, lang)
   const fmtU = (v: number) => formatAmountWithUnit(v, lang, entry.unit ?? 'none')
   const pct = t('fields.percentUnit')
-  // The summary line renders dir=ltr, so the arrow always points forward.
-  const arrow = '→'
-
-  let summary: string
-  let isLoss = false
-  switch (entry.mode) {
-    case 'profit':
-      summary = `${fmt(entry.inputs[0])} + ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
-      break
-    case 'sell':
-      isLoss = entry.results[1] < 0
-      summary = `${fmt(entry.inputs[0])} ${arrow} ${fmt(entry.inputs[1])} = ${fmt(entry.results[0])}${pct}`
-      break
-    case 'discount':
-      summary = `${fmt(entry.inputs[0])} − ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
-      break
-    case 'rdiscount':
-      summary = `${fmt(entry.inputs[0])} @ ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
-      break
-  }
+  const { text: summary, isLoss } = entrySummary(entry.mode, entry.inputs, entry.results, {
+    number: fmt,
+    money: fmtU,
+    percent: pct,
+  })
 
   return (
     <motion.li

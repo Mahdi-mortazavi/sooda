@@ -35,6 +35,11 @@ export function parseAmount(raw: string): number {
   return Number.parseFloat(cleaned)
 }
 
+/** Safe positional read of a stored input/result row — rows may be shorter than a mode expects. */
+export function at(values: number[], index: number): number {
+  return values[index] ?? 0
+}
+
 export type AppLanguage = 'en' | 'fa'
 
 const LOCALES: Record<AppLanguage, string> = { en: 'en-US', fa: 'fa-IR' }

@@ -1,57 +1,42 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { AmbientBackground } from './components/AmbientBackground'
-import {
-  IconBasket,
-  IconClock,
-  IconGear,
-  IconMoon,
-  IconPercent,
-  IconScale,
-  IconSun,
-  IconTag,
-  IconTagReverse,
-} from './components/Icons'
-import { InstallPrompt } from './components/InstallPrompt'
-import { NumberField } from './components/NumberField'
-import { ResultCard, type ResultDisplay } from './components/ResultCard'
-import { SegmentedControl } from './components/SegmentedControl'
-import { WelcomeLanguage } from './components/WelcomeLanguage'
+import { CalculatorView } from './components/CalculatorView'
+import { IconBasket, IconClock, IconGear } from './components/Icons'
+import type { ProductDraft } from './components/SaveProductSheet'
+import { TabBar } from './components/TabBar'
 import { useBasketCount } from './hooks/useBasketCount'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useTheme } from './hooks/useTheme'
 import { LANG_STORAGE_KEY, setLanguage } from './i18n'
-import {
-  MODE_RULES,
-  calcDiscount,
-  calcFromProfitPercent,
-  calcFromSellingPrice,
-  calcReverseDiscount,
-  validateValue,
-  type Mode,
-  type ValidationError,
-} from './lib/calc'
 import { vibrate } from './lib/haptics'
+import { readAnnualInflationPercent, storeAnnualInflationPercent } from './lib/inflation'
 import { TELEGRAM_URL } from './lib/links'
-import { MODE_FIELD_KEYS, MODE_SECOND_IS_PERCENT, SEGMENT_MODES, segmentIndexOf } from './lib/modes'
-import { formatNumber, parseAmount, type AppLanguage } from './lib/numbers'
-import { buildShareQuery, parseShareQuery } from './lib/share'
-import { formatAmountWithUnit, readStoredUnit, storeUnit, type Unit } from './lib/units'
+import { formatNumber, type AppLanguage } from './lib/numbers'
+import { readRoundingStep, storeRoundingStep, type RoundingStep } from './lib/rounding'
+import { parseModeShareQuery, parseTabQuery, type AppTab } from './lib/share'
+import { resolveLastSeenVersion, shouldShowWhatsNew, storeLastSeenVersion } from './lib/update'
+import { readStoredUnit, storeUnit, type Unit } from './lib/units'
 
-// Sheets (and Dexie behind them) load on demand to keep the initial bundle lean.
+declare const __APP_VERSION__: string
+
+// Sheets, the products tab and Dexie behind them load on demand to keep the initial bundle lean.
 const HistorySheet = lazy(() => import('./components/HistorySheet').then((m) => ({ default: m.HistorySheet })))
 const SettingsSheet = lazy(() => import('./components/SettingsSheet').then((m) => ({ default: m.SettingsSheet })))
 const BasketSheet = lazy(() => import('./components/BasketSheet').then((m) => ({ default: m.BasketSheet })))
-
-type FieldErrors = [ValidationError | null, ValidationError | null]
-type SegmentMode = (typeof SEGMENT_MODES)[number]
-
-interface ComputedSnapshot {
-  inputs: [number, number]
-  results: [number, number]
-  unit: Unit
-}
+const ProductsView = lazy(() => import('./components/ProductsView').then((m) => ({ default: m.ProductsView })))
+const WhatsNewSheet = lazy(() => import('./components/WhatsNewSheet').then((m) => ({ default: m.WhatsNewSheet })))
+const SaveProductSheet = lazy(() =>
+  import('./components/SaveProductSheet').then((m) => ({ default: m.SaveProductSheet })),
+)
+const Toast = lazy(() => import('./components/Toast').then((m) => ({ default: m.Toast })))
+// Onboarding runs once and the install banner waits a couple of seconds either way,
+// so neither belongs in the bytes that decide first paint.
+const WelcomeLanguage = lazy(() =>
+  import('./components/WelcomeLanguage').then((m) => ({ default: m.WelcomeLanguage })),
+)
+const InstallPrompt = lazy(() => import('./components/InstallPrompt').then((m) => ({ default: m.InstallPrompt })))
 
 function hasStoredLanguage(): boolean {
   try {
@@ -65,49 +50,24 @@ function hasStoredLanguage(): boolean {
 export default function App() {
   const { t, i18n } = useTranslation()
   const lang = (i18n.language.startsWith('fa') ? 'fa' : 'en') as AppLanguage
-  const { preference, isDark, setPreference, toggle } = useTheme()
-  const reducedMotion = useReducedMotion()
+  const { preference, setPreference } = useTheme()
   const install = useInstallPrompt()
   const basketCount = useBasketCount()
 
-  // A shared calculation link (?m=…&a=…&b=…) pre-fills and auto-computes;
-  // mode-only links (?m=…) from PWA shortcuts just open the right calculator.
-  const shared = useMemo(() => parseShareQuery(window.location.search), [])
-  const sharedRan = useRef(false)
-
   const [needsLang, setNeedsLang] = useState(() => !hasStoredLanguage())
-  const [mode, setMode] = useState<Mode>(shared?.mode ?? 'profit')
-  const [prevSegment, setPrevSegment] = useState(() => segmentIndexOf(shared?.mode ?? 'profit'))
-  const [unit, setUnitState] = useState<Unit>(() => (shared && shared.unit !== 'none' ? shared.unit : readStoredUnit()))
-  const [inputs, setInputs] = useState<Record<Mode, [string, string]>>(() => {
-    const empty: Record<Mode, [string, string]> = {
-      profit: ['', ''],
-      sell: ['', ''],
-      discount: ['', ''],
-      rdiscount: ['', ''],
-    }
-    if (shared && shared.a !== null && shared.b !== null) empty[shared.mode] = [String(shared.a), String(shared.b)]
-    return empty
-  })
-  const [errors, setErrors] = useState<Record<Mode, FieldErrors>>({
-    profit: [null, null],
-    sell: [null, null],
-    discount: [null, null],
-    rdiscount: [null, null],
-  })
-  const [results, setResults] = useState<Record<Mode, ResultDisplay | null>>({
-    profit: null,
-    sell: null,
-    discount: null,
-    rdiscount: null,
-  })
-  // Raw numbers behind the latest result per mode, for add-to-basket.
-  const lastComputed = useRef<Record<Mode, ComputedSnapshot | null>>({
-    profit: null,
-    sell: null,
-    discount: null,
-    rdiscount: null,
-  })
+  // A shared link carries the sender's currency; showing their Toman figure in the
+  // recipient's Rial would be a tenfold error, so the link wins over the stored unit.
+  const sharedUnit = useMemo(() => parseModeShareQuery(window.location.search)?.unit ?? 'none', [])
+  const [unit, setUnitState] = useState<Unit>(() => (sharedUnit !== 'none' ? sharedUnit : readStoredUnit()))
+  const [roundingStep, setRoundingStepState] = useState<RoundingStep>(readRoundingStep)
+  const [annualInflationPercent, setAnnualInflation] = useState<number>(readAnnualInflationPercent)
+
+  // A ?tab=products shortcut wins over whatever tab the draft remembered.
+  /* The URL is the only source of truth for the tab: setTab replaceStates it, so it already
+   * survives the reload a new service worker triggers. Restoring it from the draft as well
+   * would let a saved 'products' tab swallow an incoming ?m=…&a=…&b=… calculation. */
+  const [tab, setTabState] = useState<AppTab>(() => parseTabQuery(window.location.search) ?? 'calculator')
+
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [basketOpen, setBasketOpen] = useState(false)
@@ -116,219 +76,94 @@ export default function App() {
   const [settingsMounted, setSettingsMounted] = useState(false)
   const [basketMounted, setBasketMounted] = useState(false)
 
-  const rtl = lang === 'fa'
-  const segmentIndex = segmentIndexOf(mode)
-  // Slide direction: +1 when moving toward the next segment, mirrored for RTL.
-  const direction = (segmentIndex >= prevSegment ? 1 : -1) * (rtl ? -1 : 1)
-  const isDiscountSegment = segmentIndex === 2
+  // Hold the install banner's chunk back until the first screen has settled.
+  const [installReady, setInstallReady] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setInstallReady(true), 1500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const [saveDraft, setSaveDraft] = useState<ProductDraft | null>(null)
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [savedToast, setSavedToast] = useState(false)
+  // Kept mounted after the first toast so its slide-out can play.
+  const [toastMounted, setToastMounted] = useState(false)
+
+  // A v1.2.0 install has no stored version, so it is inferred from the keys it did leave behind.
+  const [whatsNewOpen, setWhatsNewOpen] = useState(() =>
+    shouldShowWhatsNew(__APP_VERSION__, resolveLastSeenVersion()),
+  )
+  useEffect(() => {
+    storeLastSeenVersion(__APP_VERSION__)
+  }, [])
 
   const setUnit = useCallback((u: Unit) => {
     setUnitState(u)
     storeUnit(u)
   }, [])
 
-  const onSegmentChange = useCallback(
-    (next: SegmentMode) => {
-      setPrevSegment(segmentIndexOf(mode))
-      setMode(next)
-      // Keep the viewport anchored — prevents the page-jump feel on mobile.
-      if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
-    },
-    [mode, reducedMotion],
-  )
-
-  const onDiscountDirectionChange = useCallback((next: Mode) => {
-    setMode(next)
+  const setRoundingStep = useCallback((step: RoundingStep) => {
+    setRoundingStepState(step)
+    storeRoundingStep(step)
   }, [])
 
-  const setInput = (index: 0 | 1, value: string) => {
-    setInputs((prev) => {
-      const next: [string, string] = [...prev[mode]]
-      next[index] = value
-      return { ...prev, [mode]: next }
-    })
-    setErrors((prev) =>
-      prev[mode][index] ? { ...prev, [mode]: index === 0 ? [null, prev[mode][1]] : [prev[mode][0], null] } : prev,
-    )
-  }
+  const onInflationChange = useCallback((percent: number | null) => {
+    // Storage first: Settings reads hasInflationOverride() during render.
+    storeAnnualInflationPercent(percent)
+    setAnnualInflation(readAnnualInflationPercent())
+  }, [])
 
-  const pct = t('fields.percentUnit')
-  const fmtMoney = useCallback((v: number) => formatAmountWithUnit(v, lang, unit), [lang, unit])
+  const setTab = useCallback((next: AppTab) => {
+    setTabState(next)
+    // Keep the URL shareable and shortcut-addressable without adding history entries.
+    const url = next === 'products' ? `${import.meta.env.BASE_URL}?tab=products` : import.meta.env.BASE_URL
+    window.history.replaceState({}, '', url)
+  }, [])
 
-  const calculate = useCallback(
-    async (saveToHistory = true) => {
-      vibrate()
-      const [rawA, rawB] = inputs[mode]
-      const a = parseAmount(rawA)
-      const b = parseAmount(rawB)
-      const [ruleA, ruleB] = MODE_RULES[mode]
-      const errA = validateValue(a, ruleA, rawA.trim() === '')
-      const errB = validateValue(b, ruleB, rawB.trim() === '')
-      if (errA || errB) {
-        setErrors((prev) => ({ ...prev, [mode]: [errA, errB] }))
-        setResults((prev) => ({ ...prev, [mode]: null }))
-        return
-      }
-      setErrors((prev) => ({ ...prev, [mode]: [null, null] }))
+  const openSettings = useCallback(() => {
+    setSettingsMounted(true)
+    setSettingsOpen(true)
+  }, [])
 
-      let display: ResultDisplay
-      let stored: [number, number]
-      const key = `${mode}:${a}:${b}:${Date.now()}`
-      if (mode === 'profit') {
-        const r = calcFromProfitPercent(a, b)
-        stored = [r.sellingPrice, r.profitAmount]
-        display = {
-          key,
-          primaryLabel: t('results.sellingPrice'),
-          primaryValue: r.sellingPrice,
-          secondaryLabel: t('results.profitAmount'),
-          secondaryValue: r.profitAmount,
-          isLoss: false,
-          copyText: `${t('results.sellingPrice')}: ${fmtMoney(r.sellingPrice)} — ${t('results.profitAmount')}: ${fmtMoney(r.profitAmount)}`,
-        }
-      } else if (mode === 'sell') {
-        const r = calcFromSellingPrice(a, b)
-        stored = [r.profitPercent, r.profitAmount]
-        const pctLabel = r.isLoss ? t('results.lossPercent') : t('results.profitPercent')
-        const amtLabel = r.isLoss ? t('results.lossAmount') : t('results.profitAmount')
-        display = {
-          key,
-          primaryLabel: pctLabel,
-          primaryValue: r.profitPercent,
-          primaryUnit: pct,
-          secondaryLabel: amtLabel,
-          secondaryValue: r.profitAmount,
-          isLoss: r.isLoss,
-          notice: r.isLoss ? t('results.lossNotice') : r.profitAmount === 0 ? t('results.breakEven') : undefined,
-          copyText: `${pctLabel}: ${formatNumber(r.profitPercent, lang)}${pct} — ${amtLabel}: ${fmtMoney(r.profitAmount)}`,
-        }
-      } else if (mode === 'discount') {
-        const r = calcDiscount(a, b)
-        stored = [r.finalPrice, r.savedAmount]
-        display = {
-          key,
-          primaryLabel: t('results.finalPrice'),
-          primaryValue: r.finalPrice,
-          secondaryLabel: t('results.savedAmount'),
-          secondaryValue: r.savedAmount,
-          isLoss: false,
-          copyText: `${t('results.finalPrice')}: ${fmtMoney(r.finalPrice)} — ${t('results.savedAmount')}: ${fmtMoney(r.savedAmount)}`,
-        }
-      } else {
-        const r = calcReverseDiscount(a, b)
-        stored = [r.originalPrice, r.savedAmount]
-        display = {
-          key,
-          primaryLabel: t('results.originalPrice'),
-          primaryValue: r.originalPrice,
-          secondaryLabel: t('results.savedAmount'),
-          secondaryValue: r.savedAmount,
-          isLoss: false,
-          copyText: `${t('results.originalPrice')}: ${fmtMoney(r.originalPrice)} — ${t('results.savedAmount')}: ${fmtMoney(r.savedAmount)}`,
-        }
-      }
-
-      setResults((prev) => ({ ...prev, [mode]: display }))
-      lastComputed.current[mode] = { inputs: [a, b], results: stored, unit }
-      if (saveToHistory) {
-        const { addHistoryEntry } = await import('./lib/db')
-        await addHistoryEntry({ mode, inputs: [a, b], results: stored, unit, createdAt: Date.now() })
-      }
-    },
-    [inputs, mode, t, fmtMoney, pct, lang, unit],
-  )
-
-  const addToBasket = useCallback(async () => {
-    const snap = lastComputed.current[mode]
-    if (!snap) return
-    const { addBasketItem } = await import('./lib/db')
-    await addBasketItem({ mode, inputs: snap.inputs, results: snap.results, unit: snap.unit, createdAt: Date.now() })
-  }, [mode])
-
-  // Auto-compute a shared link once (after the language is known), then clean the URL.
-  useEffect(() => {
-    if (!shared || sharedRan.current || needsLang) return
-    sharedRan.current = true
-    if (shared.a !== null && shared.b !== null) void calculate(false)
-    window.history.replaceState({}, '', import.meta.env.BASE_URL)
-  }, [shared, needsLang, calculate])
-
-  const shareUrl = useMemo(() => {
-    const [rawA, rawB] = inputs[mode]
-    const a = parseAmount(rawA)
-    const b = parseAmount(rawB)
-    if (!Number.isFinite(a) || !Number.isFinite(b)) return null
-    return `${window.location.origin}${import.meta.env.BASE_URL}${buildShareQuery({ mode, a, b, unit })}`
-  }, [inputs, mode, unit])
-
-  const fieldError = (index: 0 | 1): string | null => {
-    const err = errors[mode][index]
-    return err ? t(`errors.${err}`) : null
-  }
-
-  const [fieldKeyA, fieldKeyB] = MODE_FIELD_KEYS[mode]
-  const secondIsPercent = MODE_SECOND_IS_PERCENT[mode]
-  const result = results[mode]
+  const onSaveProduct = useCallback((draft: ProductDraft) => {
+    setSaveDraft(draft)
+    setSaveOpen(true)
+  }, [])
 
   const chooseLanguage = (l: AppLanguage) => {
     void setLanguage(l)
     setNeedsLang(false)
   }
 
-  const modeOptions = useMemo(
+  const headerButtons = useMemo(
     () => [
       {
-        value: 'profit' as SegmentMode,
-        label: (
-          <>
-            <IconPercent size={16} /> {t('modes.profit')}
-          </>
-        ),
+        key: 'basket',
+        label: t('basket.open'),
+        icon: <IconBasket />,
+        badge: basketCount,
+        onClick: () => {
+          setBasketMounted(true)
+          setBasketOpen(true)
+        },
       },
       {
-        value: 'sell' as SegmentMode,
-        label: (
-          <>
-            <IconScale size={16} /> {t('modes.sell')}
-          </>
-        ),
+        key: 'history',
+        label: t('history.open'),
+        icon: <IconClock />,
+        badge: 0,
+        onClick: () => {
+          setHistoryMounted(true)
+          setHistoryOpen(true)
+        },
       },
-      {
-        value: 'discount' as SegmentMode,
-        label: (
-          <>
-            <IconTag size={16} /> {t('modes.discount')}
-          </>
-        ),
-      },
+      { key: 'settings', label: t('settings.open'), icon: <IconGear />, badge: 0, onClick: openSettings },
     ],
-    [t],
-  )
-
-  const directionOptions = useMemo(
-    () => [
-      {
-        value: 'discount' as Mode,
-        label: (
-          <>
-            <IconTag size={14} /> {t('discountDirection.forward')}
-          </>
-        ),
-      },
-      {
-        value: 'rdiscount' as Mode,
-        label: (
-          <>
-            <IconTagReverse size={14} /> {t('discountDirection.reverse')}
-          </>
-        ),
-      },
-    ],
-    [t],
+    [t, basketCount, openSettings],
   )
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pb-28 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <AmbientBackground />
 
       <header className="mb-6 flex items-start justify-between">
@@ -337,141 +172,38 @@ export default function App() {
           <p className="mt-0.5 text-[13px] font-medium text-[var(--text-secondary)]">{t('app.tagline')}</p>
         </div>
         <div className="mt-1 flex gap-1.5">
-          <HeaderButton onClick={toggle} label={t('settings.toggleTheme')}>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={isDark ? 'moon' : 'sun'}
-                initial={reducedMotion ? false : { rotate: -90, opacity: 0, scale: 0.5 }}
-                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                exit={reducedMotion ? { opacity: 0 } : { rotate: 90, opacity: 0, scale: 0.5 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                className="flex"
-              >
-                {isDark ? <IconMoon /> : <IconSun />}
-              </motion.span>
-            </AnimatePresence>
-          </HeaderButton>
-          <HeaderButton
-            onClick={() => {
-              setBasketMounted(true)
-              setBasketOpen(true)
-            }}
-            label={t('basket.open')}
-          >
-            <IconBasket />
-            {basketCount > 0 && (
-              <span
-                aria-hidden
-                className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-fill-strong)] px-1 text-[11px] font-bold leading-none text-white dark:text-[hsl(168_90%_8%)]"
-              >
-                {formatNumber(basketCount, lang, 0)}
-              </span>
-            )}
-          </HeaderButton>
-          <HeaderButton
-            onClick={() => {
-              setHistoryMounted(true)
-              setHistoryOpen(true)
-            }}
-            label={t('history.open')}
-          >
-            <IconClock />
-          </HeaderButton>
-          <HeaderButton
-            onClick={() => {
-              setSettingsMounted(true)
-              setSettingsOpen(true)
-            }}
-            label={t('settings.open')}
-          >
-            <IconGear />
-          </HeaderButton>
+          {headerButtons.map((button) => (
+            <HeaderButton key={button.key} onClick={button.onClick} label={button.label}>
+              {button.icon}
+              {button.badge > 0 && (
+                <span
+                  aria-hidden
+                  className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-fill-strong)] px-1 text-[11px] font-bold leading-none text-white dark:text-[hsl(168_90%_8%)]"
+                >
+                  {formatNumber(button.badge, lang, 0)}
+                </span>
+              )}
+            </HeaderButton>
+          ))}
         </div>
       </header>
 
-      <main className="flex flex-col gap-4">
-        <SegmentedControl<SegmentMode>
-          layoutId="mode-segment"
-          ariaLabel={t('results.title')}
-          value={SEGMENT_MODES[segmentIndex] as SegmentMode}
-          onChange={onSegmentChange}
-          options={modeOptions}
+      {tab === 'calculator' ? (
+        <CalculatorView
+          lang={lang}
+          unit={unit}
+          ready={!needsLang}
+          annualInflationPercent={annualInflationPercent}
+          roundingStep={roundingStep}
+          onOpenSettings={openSettings}
+          onSaveProduct={onSaveProduct}
+          tab={tab}
         />
-
-        <AnimatePresence initial={false}>
-          {isDiscountSegment && (
-            <motion.div
-              key="discount-direction"
-              initial={reducedMotion ? false : { opacity: 0, height: 0, marginTop: -16 }}
-              animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
-              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0, marginTop: -16 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 36 }}
-              className="overflow-hidden"
-            >
-              <SegmentedControl<Mode>
-                layoutId="discount-direction"
-                ariaLabel={t('modes.discount')}
-                value={mode}
-                onChange={onDiscountDirectionChange}
-                options={directionOptions}
-                size="sm"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* overflow-x is clipped here so the slide transition can never widen the page (mobile shake fix) */}
-        <div className="relative -mx-5 overflow-x-clip px-5">
-          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-            <motion.div
-              key={mode}
-              custom={direction}
-              initial={reducedMotion ? false : { opacity: 0, x: 28 * direction }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -28 * direction }}
-              transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-              className="flex flex-col gap-4"
-            >
-              <div className="glass glass-ring rounded-3xl">
-                <NumberField
-                  id={`${mode}-a`}
-                  label={t(fieldKeyA)}
-                  value={inputs[mode][0]}
-                  onChange={(v) => setInput(0, v)}
-                  placeholder={t('fields.amountPlaceholder')}
-                  lang={lang}
-                  error={fieldError(0)}
-                />
-                <div aria-hidden className="mx-5 border-t border-[var(--separator)]" />
-                <NumberField
-                  id={`${mode}-b`}
-                  label={t(fieldKeyB)}
-                  value={inputs[mode][1]}
-                  onChange={(v) => setInput(1, v)}
-                  placeholder={secondIsPercent ? t('fields.percentPlaceholder') : t('fields.amountPlaceholder')}
-                  lang={lang}
-                  unit={secondIsPercent ? pct : undefined}
-                  error={fieldError(1)}
-                />
-              </div>
-
-              <motion.button
-                type="button"
-                onClick={() => void calculate()}
-                whileTap={reducedMotion ? undefined : { scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                className="w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white shadow-[0_10px_30px_-6px_hsl(165_80%_30%/0.55),inset_0_1px_0_rgba(255,255,255,0.25)] dark:text-[hsl(168_90%_8%)] dark:shadow-[0_10px_34px_-6px_hsl(165_85%_45%/0.4),inset_0_1px_0_rgba(255,255,255,0.4)]"
-              >
-                {t('actions.calculate')}
-              </motion.button>
-
-              {result && (
-                <ResultCard result={result} lang={lang} unit={unit} shareUrl={shareUrl} onAddToBasket={addToBasket} />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+      ) : (
+        <Suspense fallback={null}>
+          <ProductsView lang={lang} unit={unit} onGoToCalculator={() => setTab('calculator')} />
+        </Suspense>
+      )}
 
       <footer className="mt-auto pb-2 pt-10 text-center">
         <p className="text-[12px] text-[var(--text-tertiary)]">{t('settings.privacy')}</p>
@@ -516,12 +248,39 @@ export default function App() {
             onThemeChange={setPreference}
             unit={unit}
             onUnitChange={setUnit}
+            roundingStep={roundingStep}
+            onRoundingChange={setRoundingStep}
+            annualInflationPercent={annualInflationPercent}
+            onInflationChange={onInflationChange}
           />
+        )}
+        {saveOpen && (
+          <SaveProductSheet
+            open={saveOpen}
+            onClose={() => setSaveOpen(false)}
+            draft={saveDraft}
+            lang={lang}
+            onSaved={() => {
+              setToastMounted(true)
+              setSavedToast(true)
+            }}
+          />
+        )}
+        {whatsNewOpen && !needsLang && (
+          <WhatsNewSheet open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} version={__APP_VERSION__} />
+        )}
+
+        {toastMounted && (
+          <Toast open={savedToast} message={t('products.saved')} onDismiss={() => setSavedToast(false)} />
         )}
       </Suspense>
 
-      <WelcomeLanguage open={needsLang} onChoose={chooseLanguage} />
-      <InstallPrompt state={install} ready={!needsLang} />
+      <TabBar value={tab} onChange={setTab} />
+
+      <Suspense fallback={null}>
+        {needsLang && <WelcomeLanguage open={needsLang} onChoose={chooseLanguage} />}
+        {installReady && <InstallPrompt state={install} ready={!needsLang} />}
+      </Suspense>
     </div>
   )
 }

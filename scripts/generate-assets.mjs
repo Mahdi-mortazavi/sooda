@@ -47,6 +47,9 @@ const GLYPHS = {
   discount: `<g stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M84 133V95a9 9 0 0 1 9-9h38a11 11 0 0 1 8 3l34 34a11 11 0 0 1 0 15l-32 32a11 11 0 0 1-15 0l-39-39a9 9 0 0 1-3-8Z"/>
     <circle cx="109" cy="111" r="7" fill="#fff" stroke="none"/></g>`,
+  products: `<g stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M186 98v60a12 12 0 0 1-6 10l-46 26a12 12 0 0 1-12 0l-46-26a12 12 0 0 1-6-10V98a12 12 0 0 1 6-10l46-26a12 12 0 0 1 12 0l46 26a12 12 0 0 1 6 10Z"/>
+    <path d="m72 92 56 32 56-32M128 124v66"/></g>`,
 }
 for (const [key, glyph] of Object.entries(GLYPHS)) {
   const svg = `<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">

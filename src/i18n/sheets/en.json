@@ -1,0 +1,132 @@
+{
+  "history": {
+    "title": "History",
+    "searchPlaceholder": "Search history…",
+    "empty": {
+      "title": "Nothing here yet",
+      "body": "Your calculations will appear here — saved privately on this device."
+    },
+    "noMatches": "No matches for your search.",
+    "deleteEntry": "Delete entry",
+    "csvHeaders": [
+      "Date",
+      "Mode",
+      "Input 1",
+      "Input 2",
+      "Result 1",
+      "Result 2",
+      "Unit"
+    ]
+  },
+  "basket": {
+    "title": "Basket",
+    "empty": {
+      "title": "Basket is empty",
+      "body": "Calculate something, then tap the basket button on the result to sum several items together."
+    },
+    "items": "items",
+    "deleteItem": "Remove from basket",
+    "totals": "Totals",
+    "totalCost": "Total cost",
+    "totalRevenue": "Total revenue",
+    "totalProfit": "Total profit",
+    "totalLoss": "Total loss",
+    "overallMargin": "Overall margin",
+    "totalOriginal": "Total original price",
+    "totalPay": "You pay in total",
+    "totalSaved": "Total saved",
+    "sellerSection": "Sales",
+    "shopperSection": "Purchases"
+  },
+  "products": {
+    "saveTitle": "Name this product",
+    "name": "Name",
+    "namePlaceholder": "Rice, 10 kg",
+    "title": "My products",
+    "empty": {
+      "title": "No products yet",
+      "body": "Save a product once and Sooda will tell you when its price falls behind the cost of buying it again.",
+      "cta": "Go to the calculator"
+    },
+    "search": "Search products…",
+    "sortRisk": "By risk",
+    "sortName": "By name",
+    "sortUpdated": "Recently updated",
+    "healthHealthy": "Healthy",
+    "healthThin": "Thin",
+    "healthLosing": "Losing",
+    "costAge": "Purchase price is {{count}} months old",
+    "targetMargin": "Target margin",
+    "note": "Note",
+    "realMargin": "Real margin",
+    "count": "{{count}} products",
+    "detailTitle": "Product details",
+    "newCost": "New purchase price",
+    "newCostApply": "Use this price",
+    "suggestedPrice": "Suggested price",
+    "delete": "Delete product",
+    "bulkOpen": "Reprice",
+    "bulkTitle": "Reprice products",
+    "bulkSelectAll": "Select all",
+    "bulkSelected": "{{count}} selected",
+    "bulkCostUp": "Purchase price went up {{percent}}%",
+    "bulkRetarget": "Bring selling price back to target margin",
+    "bulkPercent": "Percent increase",
+    "bulkPreview": "Preview",
+    "bulkApply": "Apply",
+    "bulkApplied": "Prices updated",
+    "bulkUndo": "Undo",
+    "bulkNoChange": "Nothing would change.",
+    "exportCsv": "Export products CSV",
+    "csvHeaders": [
+      "Name",
+      "Purchase price",
+      "Target margin",
+      "Selling price",
+      "Unit",
+      "Note",
+      "Cost updated",
+      "Last updated"
+    ]
+  },
+  "whatsNew": {
+    "title": "What’s new in Sooda {{version}}",
+    "gotIt": "Got it",
+    "b1": "See whether your profit still buys the same goods back.",
+    "b2": "Price an installment deal without quietly losing money.",
+    "b3": "Save your products and reprice them all at once."
+  },
+  "installment": {
+    "schedule": {
+      "title": "Payment schedule",
+      "row": "Installment {{index}}",
+      "copy": "Copy schedule",
+      "copied": "Schedule copied!",
+      "share": "Share schedule",
+      "downLine": "Down payment: {{amount}}",
+      "totalLine": "Total: {{amount}}",
+      "heading": "Payment schedule"
+    }
+  },
+  "settings": {
+    "inflation": "Annual inflation",
+    "inflationHint": "Used to estimate what buying the same goods again will cost.",
+    "inflationSource": "Source: {{source}} · {{date}}",
+    "inflationCustom": "Your value",
+    "inflationReset": "Reset to default",
+    "rounding": "Round selling prices",
+    "roundingNone": "Off",
+    "roundingHint": "Always rounds up, so your margin never shrinks.",
+    "backup": "Backup",
+    "backupHint": "One file with your products, history and settings.",
+    "backupExport": "Export backup",
+    "backupImport": "Restore backup",
+    "backupMerge": "Merge",
+    "backupReplace": "Replace",
+    "backupMergeHint": "Keeps what you have and adds what is missing.",
+    "backupReplaceHint": "Erases what is on this device first.",
+    "backupDone": "Restored",
+    "backupInvalid": "That file isn’t a Sooda backup.",
+    "upToDate": "Up to date"
+  }
+}

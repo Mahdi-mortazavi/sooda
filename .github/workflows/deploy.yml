@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 # Deploys by publishing dist/ to the gh-pages branch. GitHub enables Pages
@@ -10,9 +11,12 @@ on:
 permissions:
   contents: write
 
+# Deploys serialise on one group so two pushes never race the gh-pages branch.
+# Pull-request checks get their own group per branch, so they neither queue behind a
+# deploy nor block one, and a new push supersedes the run it replaces.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-deploy:
@@ -34,10 +38,20 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: i18n parity
+        run: npm run i18n:check
+
       - name: Build
         run: npm run build
+        env:
+          # Stamped into dist/version.json so a deploy can be identified over the wire.
+          SOODA_COMMIT: ${{ github.sha }}
+
+      - name: Bundle budget
+        run: npm run budget
 
       - name: Deploy to gh-pages
+        if: github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

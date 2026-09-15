@@ -7,7 +7,9 @@
     "profit": "Profit %",
     "sell": "Sell price",
     "discount": "Discount",
-    "rdiscount": "Reverse discount"
+    "rdiscount": "Reverse discount",
+    "installment": "Installments",
+    "rinstallment": "Installment check"
   },
   "fields": {
     "purchasePrice": "Purchase price",
@@ -54,27 +56,9 @@
     "notPositive": "Must be greater than zero",
     "tooLarge": "That number is too large",
     "discountRange": "Discount must be between 0 and 100",
-    "reverseDiscountRange": "Discount must be from 0 up to (not including) 100"
-  },
-  "history": {
-    "title": "History",
-    "open": "Open history",
-    "searchPlaceholder": "Search history…",
-    "empty": {
-      "title": "Nothing here yet",
-      "body": "Your calculations will appear here — saved privately on this device."
-    },
-    "noMatches": "No matches for your search.",
-    "deleteEntry": "Delete entry",
-    "csvHeaders": [
-      "Date",
-      "Mode",
-      "Input 1",
-      "Input 2",
-      "Result 1",
-      "Result 2",
-      "Unit"
-    ]
+    "reverseDiscountRange": "Discount must be from 0 up to (not including) 100",
+    "downPaymentTooHigh": "Down payment must be less than the cash price",
+    "installmentCountInvalid": "Enter a whole number of installments"
   },
   "settings": {
     "title": "Settings",
@@ -110,28 +94,57 @@
     "iosStep3": "Tap “Add” — done! Sooda now works offline like a native app.",
     "dismiss": "Dismiss install prompt"
   },
-  "basket": {
-    "title": "Basket",
-    "open": "Open basket",
-    "add": "Add to basket",
-    "added": "Added to basket!",
-    "empty": {
-      "title": "Basket is empty",
-      "body": "Calculate something, then tap the basket button on the result to sum several items together."
-    },
-    "items": "items",
-    "deleteItem": "Remove from basket",
-    "totals": "Totals",
-    "totalCost": "Total cost",
-    "totalRevenue": "Total revenue",
-    "totalProfit": "Total profit",
-    "totalLoss": "Total loss",
-    "overallMargin": "Overall margin",
-    "totalOriginal": "Total original price",
-    "totalPay": "You pay in total",
-    "totalSaved": "Total saved",
-    "sellerSection": "Sales",
-    "shopperSection": "Purchases"
+  "lens": {
+    "title": "When does the money come back?",
+    "now": "Now",
+    "m1": "1 mo",
+    "m3": "3 mo",
+    "m6": "6 mo",
+    "m12": "12 mo",
+    "sourceKnown": "I know today’s restock price",
+    "sourceInflation": "Estimate with inflation",
+    "replacementField": "Today’s restock price",
+    "inflationChip": "Annual inflation {{percent}}",
+    "blockTitle": "Real profit",
+    "nominalProfit": "Nominal profit",
+    "realProfit": "Real profit",
+    "statusHealthy": "Healthy",
+    "statusThin": "Thin",
+    "statusLosing": "Losing",
+    "losingNotice": "At this price you can’t buy the same goods again.",
+    "explainer": "If your money comes back in {{months}} months, buying the same goods again will cost about {{amount}}.",
+    "suggestedPrice": "Suggested price",
+    "gapVsNaive": "Above the simple price",
+    "replacementCost": "Restock cost",
+    "exact": "Exact: {{value}}"
+  },
+  "installment": {
+    "cash": "Cash",
+    "installments": "Installments",
+    "forward": "How much to add?",
+    "reverse": "Is my deal profitable?",
+    "cashPrice": "Cash price",
+    "count": "Number of installments",
+    "countCustom": "Custom",
+    "downPayment": "Down payment",
+    "downPaymentAmount": "Amount",
+    "downPaymentPercent": "Percent",
+    "flatMonthlyInput": "Monthly percent you charge",
+    "monthly": "Monthly installment",
+    "total": "Total received",
+    "markup": "Required markup",
+    "flatMonthly": "Simple monthly rate",
+    "explainer": "This much only keeps you from losing; your profit is in the cash price.",
+    "realGain": "Real gain vs. a cash sale",
+    "realLoss": "Real loss vs. a cash sale",
+    "presentValue": "What this money is worth today",
+    "schedule": {
+      "open": "See schedule"
+    }
+  },
+  "tabs": {
+    "calculator": "Calculator",
+    "products": "My products"
   },
   "dev": {
     "craftedBy": "Crafted with 💚 by",
@@ -140,5 +153,17 @@
     "contact": "Contact & suggestions",
     "telegram": "Telegram",
     "blessing": "May your work be blessed and your profit abundant 🌿✨"
+  },
+  "basket": {
+    "open": "Open basket",
+    "add": "Add to basket",
+    "added": "Added to basket!"
+  },
+  "history": {
+    "open": "Open history"
+  },
+  "products": {
+    "save": "Save to my products",
+    "saved": "Saved!"
   }
 }

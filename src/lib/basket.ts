@@ -1,11 +1,13 @@
 import { round2, type Mode } from './calc'
+import { at } from './numbers'
 import type { Unit } from './units'
 
 /** Minimal shape needed to total a basket line (matches BasketItem). */
 export interface BasketLine {
   mode: Mode
-  inputs: [number, number]
-  results: [number, number]
+  /** Positional, variable length — v1.2.0 rows hold exactly two entries. */
+  inputs: number[]
+  results: number[]
   unit?: Unit
 }
 
@@ -51,6 +53,10 @@ function emptyTotals(unit: Unit): BasketTotals {
 export function computeBasketTotals(lines: BasketLine[]): BasketTotals[] {
   const groups = new Map<Unit, BasketTotals>()
   for (const line of lines) {
+    /* Instalment plans are a financing question, not a cost/revenue pair — there is no
+     * purchase price in one. Skipping them here keeps a basket that holds only instalment
+     * rows from rendering a totals card with nothing in it. */
+    if (line.mode === 'installment' || line.mode === 'rinstallment') continue
     const unit = line.unit ?? 'none'
     let g = groups.get(unit)
     if (!g) {
@@ -60,27 +66,27 @@ export function computeBasketTotals(lines: BasketLine[]): BasketTotals[] {
     switch (line.mode) {
       case 'profit':
         g.sellerCount++
-        g.cost += line.inputs[0]
-        g.revenue += line.results[0]
-        g.profit += line.results[1]
+        g.cost += at(line.inputs, 0)
+        g.revenue += at(line.results, 0)
+        g.profit += at(line.results, 1)
         break
       case 'sell':
         g.sellerCount++
-        g.cost += line.inputs[0]
-        g.revenue += line.inputs[1]
-        g.profit += line.results[1]
+        g.cost += at(line.inputs, 0)
+        g.revenue += at(line.inputs, 1)
+        g.profit += at(line.results, 1)
         break
       case 'discount':
         g.shopperCount++
-        g.original += line.inputs[0]
-        g.pay += line.results[0]
-        g.saved += line.results[1]
+        g.original += at(line.inputs, 0)
+        g.pay += at(line.results, 0)
+        g.saved += at(line.results, 1)
         break
       case 'rdiscount':
         g.shopperCount++
-        g.original += line.results[0]
-        g.pay += line.inputs[0]
-        g.saved += line.results[1]
+        g.original += at(line.results, 0)
+        g.pay += at(line.inputs, 0)
+        g.saved += at(line.results, 1)
         break
     }
   }

@@ -225,3 +225,95 @@ export function IconTelegram(props: IconProps) {
     </svg>
   )
 }
+
+export function IconBox(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M21 8.2v7.6a1.6 1.6 0 0 1-.83 1.4l-7.4 4.1a1.6 1.6 0 0 1-1.54 0l-7.4-4.1A1.6 1.6 0 0 1 3 15.8V8.2a1.6 1.6 0 0 1 .83-1.4l7.4-4.1a1.6 1.6 0 0 1 1.54 0l7.4 4.1A1.6 1.6 0 0 1 21 8.2Z" />
+      <path d="M3.4 7.3 12 12l8.6-4.7M12 12v9.6" />
+    </svg>
+  )
+}
+
+export function IconCalculator(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4.5" y="2.8" width="15" height="18.4" rx="2.6" />
+      <path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01" />
+    </svg>
+  )
+}
+
+export function IconBookmarkPlus(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M18 21 12 17l-6 4V5.4A2.4 2.4 0 0 1 8.4 3h7.2A2.4 2.4 0 0 1 18 5.4Z" />
+      <path d="M12 7.6v4.2M9.9 9.7h4.2" />
+    </svg>
+  )
+}
+
+export function IconCalendar(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.2" y="5" width="17.6" height="16" rx="2.6" />
+      <path d="M3.2 9.8h17.6M8 3v3.6M16 3v3.6" />
+    </svg>
+  )
+}
+
+export function IconWallet(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h12.5A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5H6a2.5 2.5 0 0 1-2.5-2.5Z" />
+      <path d="M3.5 9.8V6.9A1.9 1.9 0 0 1 5.4 5h10.3" />
+      <circle cx="16.8" cy="13" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function IconUndo(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 9h9.5a5.5 5.5 0 0 1 0 11H8" />
+      <path d="m7.6 5.2-3.7 3.9 3.7 3.7" />
+    </svg>
+  )
+}
+
+export function IconUpload(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 16.2V4.4M8.2 8.1 12 4.2l3.8 3.9" />
+      <path d="M4.5 15v3.6A2.4 2.4 0 0 0 6.9 21h10.2a2.4 2.4 0 0 0 2.4-2.4V15" />
+    </svg>
+  )
+}
+
+export function IconTrendUp(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m4 16.5 5-5.2 3.4 3.4L20 7" />
+      <path d="M15.4 7H20v4.6" />
+    </svg>
+  )
+}
+
+export function IconAlert(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.6v5M12 16.2h.01" />
+    </svg>
+  )
+}
+
+export function IconTarget(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="8.6" />
+      <circle cx="12" cy="12" r="4.4" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
