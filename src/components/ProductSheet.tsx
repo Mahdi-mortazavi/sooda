@@ -4,14 +4,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import type { Product, StoreProfile } from '../lib/db'
-import { listObservations, recordCost } from '../lib/observations'
+import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
+import { HelpButton, useLearn } from '../learn/ui/entry'
 import { fxAt, fxLatest, productRate } from '../lib/rates'
 import { resolveRateSettings } from '../lib/rates/resolve'
 import type { RatesFile } from '../lib/rates/schema'
 import { vibrate } from '../lib/haptics'
 import { readMonthlyInflationPercent, suggestedPrice } from '../lib/inflation'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
-import { deleteProduct, productStatus, updateProduct, type ProductHealth, type ProductStatus } from '../lib/products'
+import { productStatus, type ProductHealth, type ProductStatus } from '../lib/products'
 import { readRoundingStep, roundUpTo } from '../lib/rounding'
 import { UNITS, formatAmountWithUnit, unitShortLabel, type Unit } from '../lib/units'
 import { IconAlert, IconCheck, IconTarget, IconTrash, IconTrendUp } from './Icons'
@@ -48,6 +50,10 @@ export function ProductSheet({
 }: ProductSheetProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
+  /* Practice runs this whole sheet against the demo shop, so every write below goes through the
+   * injected repository rather than the exports bound to the shopkeeper's own database. */
+  const { repository } = useRepository()
+  const learn = useLearn()
   const productId = product?.id ?? null
 
   const [name, setName] = useState('')
@@ -108,8 +114,8 @@ export function ProductSheet({
   /* Only this product's readings, and only while the sheet is open. `null` (loading) is
    * distinct from `[]` (a product with no history), which is what the card's empty copy is for. */
   const observations = useLiveQuery(
-    () => (open && productId !== null ? listObservations(productId) : Promise.resolve([])),
-    [open, productId],
+    () => (open && productId !== null ? repository.listObservations(productId) : Promise.resolve([])),
+    [open, productId, repository],
     undefined,
   )
 
@@ -133,6 +139,12 @@ export function ProductSheet({
     })
   }, [product, observations, rateSettings, rates, rateNow])
 
+  /* The rate card is the most surprising thing in the app — a number the app worked out rather
+   * than one the shopkeeper typed — so its first appearance earns the one-line hint. */
+  useEffect(() => {
+    if (open && productId !== null) learn?.tip('rate')
+  }, [open, productId, learn])
+
   const history = useMemo(
     () => (observations ?? []).filter((o) => o.excluded !== true).map((o) => o.cost),
     [observations],
@@ -151,7 +163,7 @@ export function ProductSheet({
   const onManualRateChange = async (monthlyPercent: number | null) => {
     if (!product) return
     // undefined clears the column; null from the card means "back to the automatic estimate".
-    await updateProduct(product.id, { manualMonthlyPercent: monthlyPercent ?? undefined })
+    await repository.updateProduct(product.id, { manualMonthlyPercent: monthlyPercent ?? undefined })
     onProductsChanged?.()
   }
 
@@ -176,14 +188,15 @@ export function ProductSheet({
      * later ride the dollar rather than the blended rate. */
     const observedAt = Date.now()
     const fxToday = rates ? fxAt(rates.fx.series, observedAt) : null
-    await recordCost({
+    await repository.recordCost({
       productId: product.id,
       cost: newCostValue,
       observedAt,
       ...(fxToday === null ? {} : { fxAtDate: fxToday }),
       source: 'update',
     })
-    await updateProduct(product.id, { price: suggested })
+    await repository.updateProduct(product.id, { price: suggested })
+    emitTour({ type: 'action', name: 'apply-new-cost' })
     onProductsChanged?.()
     onToast(t('products.saved'))
   }
@@ -195,7 +208,7 @@ export function ProductSheet({
       return
     }
     vibrate()
-    await updateProduct(product.id, {
+    await repository.updateProduct(product.id, {
       name: name.trim(),
       cost: costValue,
       targetMarginPercent: marginValue,
@@ -210,7 +223,8 @@ export function ProductSheet({
   const onDelete = async () => {
     if (!product) return
     vibrate()
-    await deleteProduct(product.id)
+    await repository.deleteProduct(product.id)
+    emitTour({ type: 'action', name: 'delete-product' })
     setConfirmingDelete(false)
     onClose()
   }
@@ -292,6 +306,13 @@ export function ProductSheet({
           </div>
 
           {rate ? (
+            <div className="relative">
+            {/* Sits over the card's own corner rather than in its header: the rate card is shared
+              * with nothing else, and threading a button through it would widen its props for
+              * one caller. */}
+            <div className="absolute end-3 top-3 z-10">
+              <HelpButton lesson="smartRates" />
+            </div>
             <RateCard
               rate={rate}
               history={history}
@@ -301,11 +322,13 @@ export function ProductSheet({
               fxChangePercent={fxChangePercent}
               onManualChange={(monthlyPercent) => void onManualRateChange(monthlyPercent)}
             />
+            </div>
           ) : null}
 
-          <section aria-label={t('products.newCost')}>
+          <section data-tour="product-new-cost" aria-label={t('products.newCost')}>
             <motion.button
               type="button"
+              data-tour="btn-new-cost-open"
               onClick={() => {
                 vibrate()
                 setNewCostOpen((v) => !v)
@@ -336,6 +359,8 @@ export function ProductSheet({
                       onChange={setNewCost}
                       placeholder={t('fields.amountPlaceholder')}
                       lang={lang}
+                      tourField="new-cost"
+                      tour="field-new-cost"
                     />
                     {suggested !== null ? (
                       <>
@@ -351,6 +376,7 @@ export function ProductSheet({
                           </div>
                           <motion.button
                             type="button"
+                            data-tour="btn-new-cost-apply"
                             onClick={() => void onApplyNewCost()}
                             whileTap={reducedMotion ? undefined : { scale: 0.96 }}
                             className="flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--accent-fill-strong)] px-4 py-2 text-[13px] font-bold text-white dark:text-[hsl(168_90%_8%)]"

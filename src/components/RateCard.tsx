@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { vibrate } from '../lib/haptics'
+import { emitTour } from '../learn/coach/events'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
 import { categoryLabelKey, type CategoryId, type ImportDependency } from '../lib/rates/categories'
 import type { Confidence, ProductRate } from '../lib/rates'
@@ -83,13 +84,14 @@ export function RateCard({
     // A rate at or below −100%/month has no logarithm; the engine would ignore it anyway.
     if (!Number.isFinite(parsed) || parsed <= -100) return
     vibrate()
+    emitTour({ type: 'action', name: 'rate-manual' })
     onManualChange(parsed)
     setEditing(false)
     setCustom('')
   }
 
   return (
-    <section className="glass glass-ring rounded-3xl p-4" aria-label={t('rate.cardLabel')}>
+    <section data-tour="rate-card" className="glass glass-ring rounded-3xl p-4" aria-label={t('rate.cardLabel')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
     <p className="text-[14.5px] font-semibold leading-snug">{headline}</p>
@@ -122,8 +124,12 @@ export function RateCard({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
+          data-tour="btn-rate-why"
           onClick={() => {
             vibrate()
+            /* Requested by `src/learn/lessons/actions.ts`; `coach` still has to append these
+               four to `TOUR_ACTIONS`, which `missingTourActions()` reports until it does. */
+            emitTour({ type: 'action', name: 'rate-why' })
             setWhyOpen((open) => !open)
           }}
           aria-expanded={whyOpen}
@@ -134,8 +140,10 @@ export function RateCard({
         {rate.manual ? (
           <button
             type="button"
+            data-tour="btn-rate-auto"
             onClick={() => {
               vibrate()
+              emitTour({ type: 'action', name: 'rate-auto' })
               onManualChange(null)
             }}
             className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[var(--text-secondary)] underline-offset-2 hover:underline"
@@ -145,6 +153,7 @@ export function RateCard({
         ) : (
           <button
             type="button"
+            data-tour="btn-rate-manual"
             onClick={() => {
               vibrate()
               setEditing((open) => !open)
@@ -213,6 +222,7 @@ export function RateCard({
                     type="button"
                     onClick={() => {
                       vibrate()
+                      emitTour({ type: 'action', name: 'rate-manual' })
                       onManualChange(preset)
                       setEditing(false)
                     }}
@@ -233,10 +243,13 @@ export function RateCard({
                     placeholder={t('fields.percentPlaceholder')}
                     lang={lang}
                     unit={pct}
+                    tourField="manual-rate"
+                    tour="field-manual-rate"
                   />
                 </div>
                 <button
                   type="button"
+                  data-tour="btn-manual-commit"
                   onClick={commitCustom}
                   aria-label={t('rate.manualTitle')}
                   className="me-4 mb-3.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-fill-strong)] text-white dark:text-[hsl(168_90%_8%)]"

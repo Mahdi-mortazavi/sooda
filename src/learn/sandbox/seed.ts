@@ -101,7 +101,7 @@ const SEED: SeedSpec[] = [
     id: SEED_PRODUCTS.oil,
     nameKey: 'learn.sandbox.products.oil',
     // «روغن» alone reads as روغن جامد, or as motor oil.
-    name: 'روغن مایع آفتابگردان ۱.۸ لیتری',
+    name: 'روغن مایع آفتابگردان ۱٫۸ لیتری',
     category: 'food',
     // Price-regulated: the margin a shopkeeper actually gets on it is single digits.
     targetMarginPercent: 8,
