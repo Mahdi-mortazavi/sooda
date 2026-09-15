@@ -208,6 +208,11 @@ one national number for the whole market.
 2. Record the new purchase price each time you restock.
 3. On a product's page, open **Why this number?**
 
+<div align="center">
+<img src="docs/screenshots/en/profile-light.png" width="240" alt="Store profile — what do you sell?" />
+<img src="docs/screenshots/en/rate-why-dark.png" width="240" alt="Rate card with Why this number? open" />
+</div>
+
 **Example** — a product with three purchase prices recorded over six months (320,000 · 355,000 · 400,000):
 
 | | |
@@ -216,6 +221,11 @@ one national number for the whole market.
 | From your own prices | 60% |
 | Estimate quality | low |
 | Restock cost today (estimate) | about 418,636 |
+
+<div align="center">
+<img src="docs/screenshots/en/checkin-light.png" width="240" alt="Price check-in" />
+<img src="docs/screenshots/en/rate-fx-dark.png" width="240" alt="Imported product — the dollar line" />
+</div>
 
 **Tip** — "low" means Sooda has no national figures yet and is going on your prices alone.
 Every purchase price you record sharpens it. For an imported product, Sooda separately shows
@@ -310,6 +320,10 @@ Yes — free and open source under the MIT licence.
 | My products | Basket | History |
 | :---: | :---: | :---: |
 | <img src="docs/screenshots/en/products-light.png" width="240" alt="My products" /> | <img src="docs/screenshots/en/basket-dark.png" width="240" alt="Basket totals" /> | <img src="docs/screenshots/en/history-light.png" width="240" alt="History" /> |
+
+| Smart rate & "Why this number?" | Price check-in | Store profile |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/en/rate-why-dark.png" width="240" alt="Rate card" /> | <img src="docs/screenshots/en/checkin-light.png" width="240" alt="Price check-in" /> | <img src="docs/screenshots/en/profile-light.png" width="240" alt="Store profile" /> |
 
 | First launch | iOS install guide | Settings |
 | :---: | :---: | :---: |

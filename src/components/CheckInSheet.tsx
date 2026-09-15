@@ -264,7 +264,11 @@ export function CheckInSheet({ open, onClose, items, lang, unit, now, onFinish, 
               <p className="mt-2.5 flex items-start gap-1.5 border-t border-[var(--separator)] pt-2.5 text-[13.5px] leading-relaxed text-[var(--accent-text)]">
                 <IconTrendUp size={15} className="mt-px shrink-0" />
                 {t('checkin.predicted', {
-                  amount: formatAmountWithUnit(current.predictedCost, lang, current.product.unit ?? unit),
+                  /* Rounded here, at the display boundary, and nowhere earlier. The engine keeps
+                   * the prediction unrounded, but showing "۱۶۷٬۹۰۵٫۳۵ تومان" puts two decimals on
+                   * a currency that has none, and claims a precision the word "probably" in this
+                   * very sentence disclaims. */
+                  amount: formatAmountWithUnit(Math.round(current.predictedCost), lang, current.product.unit ?? unit),
                 })}
               </p>
             </motion.section>

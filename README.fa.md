@@ -223,6 +223,11 @@
 ۲. هر بار جنس می‌خرید، قیمت خرید جدید را ثبت کنید.
 ۳. در صفحهٔ هر کالا، **«چرا این عدد؟»** را باز کنید.
 
+<div align="center">
+<img src="docs/screenshots/fa/profile-dark.png" width="240" alt="مشخصات مغازه — چه چیزی می‌فروشید؟" />
+<img src="docs/screenshots/fa/rate-why-light.png" width="240" alt="کارت نرخ گرانی با «چرا این عدد؟» باز" />
+</div>
+
 **مثال** — کالایی با سه قیمت خرید ثبت‌شده در شش ماه (۳۲۰٬۰۰۰ · ۳۵۵٬۰۰۰ · ۴۰۰٬۰۰۰):
 
 | | |
@@ -231,6 +236,11 @@
 | از روی قیمت‌های خودتان | ۶۰٪ |
 | دقت تخمین | کم |
 | قیمت خرید امروز (تخمین) | حدود ۴۱۸٬۶۳۶ |
+
+<div align="center">
+<img src="docs/screenshots/fa/checkin-dark.png" width="240" alt="بررسی قیمت‌ها" />
+<img src="docs/screenshots/fa/rate-fx-light.png" width="240" alt="کالای وارداتی — خط دلار" />
+</div>
 
 **نکته** — «دقت تخمین: کم» یعنی سودا هنوز آمار کشوری ندارد و فقط روی قیمت‌های خودتان
 حساب می‌کند. هر قیمت خریدی که ثبت کنید این عدد را دقیق‌تر می‌کند. برای کالای وارداتی،
@@ -374,6 +384,10 @@
 | کالاهای من | سبد محاسبه | تاریخچه |
 | :---: | :---: | :---: |
 | <img src="docs/screenshots/fa/products-dark.png" width="240" alt="کالاهای من" /> | <img src="docs/screenshots/fa/basket-light.png" width="240" alt="سبد محاسبه" /> | <img src="docs/screenshots/fa/history-dark.png" width="240" alt="تاریخچه" /> |
+
+| نرخ گرانی و «چرا این عدد؟» | بررسی قیمت‌ها | مشخصات مغازه |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/fa/rate-why-light.png" width="240" alt="کارت نرخ گرانی" /> | <img src="docs/screenshots/fa/checkin-dark.png" width="240" alt="بررسی قیمت‌ها" /> | <img src="docs/screenshots/fa/profile-dark.png" width="240" alt="مشخصات مغازه" /> |
 
 | اولین اجرا | نصب روی آیفون | تنظیمات |
 | :---: | :---: | :---: |
