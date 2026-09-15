@@ -53,6 +53,10 @@ function emptyTotals(unit: Unit): BasketTotals {
 export function computeBasketTotals(lines: BasketLine[]): BasketTotals[] {
   const groups = new Map<Unit, BasketTotals>()
   for (const line of lines) {
+    /* Instalment plans are a financing question, not a cost/revenue pair — there is no
+     * purchase price in one. Skipping them here keeps a basket that holds only instalment
+     * rows from rendering a totals card with nothing in it. */
+    if (line.mode === 'installment' || line.mode === 'rinstallment') continue
     const unit = line.unit ?? 'none'
     let g = groups.get(unit)
     if (!g) {

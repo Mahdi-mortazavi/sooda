@@ -10,13 +10,12 @@ import { useBasketCount } from './hooks/useBasketCount'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { useTheme } from './hooks/useTheme'
 import { LANG_STORAGE_KEY, setLanguage } from './i18n'
-import { readDraft } from './lib/drafts'
 import { vibrate } from './lib/haptics'
 import { readAnnualInflationPercent, storeAnnualInflationPercent } from './lib/inflation'
 import { TELEGRAM_URL } from './lib/links'
 import { formatNumber, type AppLanguage } from './lib/numbers'
 import { readRoundingStep, storeRoundingStep, type RoundingStep } from './lib/rounding'
-import { parseTabQuery, type AppTab } from './lib/share'
+import { parseModeShareQuery, parseTabQuery, type AppTab } from './lib/share'
 import { resolveLastSeenVersion, shouldShowWhatsNew, storeLastSeenVersion } from './lib/update'
 import { readStoredUnit, storeUnit, type Unit } from './lib/units'
 
@@ -56,12 +55,18 @@ export default function App() {
   const basketCount = useBasketCount()
 
   const [needsLang, setNeedsLang] = useState(() => !hasStoredLanguage())
-  const [unit, setUnitState] = useState<Unit>(readStoredUnit)
+  // A shared link carries the sender's currency; showing their Toman figure in the
+  // recipient's Rial would be a tenfold error, so the link wins over the stored unit.
+  const sharedUnit = useMemo(() => parseModeShareQuery(window.location.search)?.unit ?? 'none', [])
+  const [unit, setUnitState] = useState<Unit>(() => (sharedUnit !== 'none' ? sharedUnit : readStoredUnit()))
   const [roundingStep, setRoundingStepState] = useState<RoundingStep>(readRoundingStep)
   const [annualInflationPercent, setAnnualInflation] = useState<number>(readAnnualInflationPercent)
 
   // A ?tab=products shortcut wins over whatever tab the draft remembered.
-  const [tab, setTabState] = useState<AppTab>(() => parseTabQuery(window.location.search) ?? readDraft()?.tab ?? 'calculator')
+  /* The URL is the only source of truth for the tab: setTab replaceStates it, so it already
+   * survives the reload a new service worker triggers. Restoring it from the draft as well
+   * would let a saved 'products' tab swallow an incoming ?m=…&a=…&b=… calculation. */
+  const [tab, setTabState] = useState<AppTab>(() => parseTabQuery(window.location.search) ?? 'calculator')
 
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)

@@ -139,7 +139,7 @@ export function ScheduleSheet({ open, onClose, schedule, lang, unit }: ScheduleS
             <button
               type="button"
               onClick={() => void onShare()}
-              className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+              className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
             >
               {shared ? <IconCheck size={18} /> : <IconLink size={18} />}
               {t('installment.schedule.share')}
@@ -147,7 +147,7 @@ export function ScheduleSheet({ open, onClose, schedule, lang, unit }: ScheduleS
             <button
               type="button"
               onClick={() => void onCopy()}
-              className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+              className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
             >
               {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
               {copied ? t('installment.schedule.copied') : t('installment.schedule.copy')}

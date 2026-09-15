@@ -35,6 +35,12 @@
   --color-accent-800: hsl(167 85% 20%);
   --color-accent-900: hsl(168 80% 15%);
 
+  /* Amber for the "thin margin" state. The 700 step is the one that clears 4.5:1 on the
+     light glass at chip size; Tailwind's amber-600 measures 2.7:1 there. */
+  --color-warn-500: hsl(38 92% 50%);
+  --color-warn-700: hsl(30 92% 34%);
+  --color-warn-400: hsl(43 96% 62%);
+  --color-loss-700: hsl(3 78% 36%);
   --color-loss-500: hsl(3 85% 56%);
   --color-loss-600: hsl(3 75% 44%);
   --color-loss-400: hsl(3 95% 68%);

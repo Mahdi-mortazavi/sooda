@@ -73,9 +73,16 @@ export function calcInstallmentReverse(
 
 export type InstallmentError = 'downPaymentTooHigh' | 'installmentCountInvalid'
 
-/** downPaymentTooHigh when D ≥ P; installmentCountInvalid when n is not a positive integer. */
+/**
+ * Ten years of monthly payments — far beyond the 24 the chips offer, and low enough that
+ * building the schedule for one stays instant. Without a ceiling a custom term of 1e8
+ * is a perfectly valid positive integer and hangs the app building 1e8 rows.
+ */
+export const MAX_INSTALLMENTS = 120
+
+/** downPaymentTooHigh when D ≥ P; installmentCountInvalid when n is not a whole term in range. */
 export function validateInstallment(cashPrice: number, downPayment: number, n: number): InstallmentError | null {
   if (downPayment >= cashPrice) return 'downPaymentTooHigh'
-  if (!Number.isInteger(n) || n <= 0) return 'installmentCountInvalid'
+  if (!Number.isInteger(n) || n <= 0 || n > MAX_INSTALLMENTS) return 'installmentCountInvalid'
   return null
 }

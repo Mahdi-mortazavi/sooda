@@ -14,6 +14,9 @@ export const INSTALLMENT_BASE_FIELDS: FieldSpec[] = [
     allowCustom: true,
     defaultValue: '6',
   },
+  { key: 'down', labelKey: 'installment.downPayment', kind: 'money', rule: { nonNegative: true }, optional: true },
+  /* Sits under the amount it governs, so "Amount | Percent" reads as a property of the
+     down payment rather than as an orphaned choice above it. */
   {
     key: 'downMode',
     labelKey: 'installment.downPayment',
@@ -23,7 +26,6 @@ export const INSTALLMENT_BASE_FIELDS: FieldSpec[] = [
     optionLabelKeys: ['installment.downPaymentAmount', 'installment.downPaymentPercent'],
     defaultValue: 'amount',
   },
-  { key: 'down', labelKey: 'installment.downPayment', kind: 'money', rule: { nonNegative: true }, optional: true },
 ]
 
 /** The reverse check also asks what flat monthly rate the seller charges today. */

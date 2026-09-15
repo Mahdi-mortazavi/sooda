@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Product } from './db'
+import type { RoundingStep } from './rounding'
 import {
   buildProductsCsv,
   previewBulk,
   productStatus,
   searchProducts,
   sortProducts,
+  type BulkOp,
   type ProductStatus,
 } from './products'
 
@@ -147,34 +149,69 @@ describe('searchProducts', () => {
 })
 
 describe('previewBulk', () => {
-  const items = [product({ id: 1, name: 'A', cost: 100_000, targetMarginPercent: 30, price: 120_000 })]
+  /* A cost stamped today, so 'retarget' has no inflation to age it by and the two
+   * operations can be compared against plain arithmetic. */
+  const NOW = Date.UTC(2026, 8, 15)
+  const items = [
+    product({ id: 1, name: 'A', cost: 100_000, targetMarginPercent: 30, price: 120_000, costUpdatedAt: NOW }),
+  ]
+  const preview = (op: BulkOp, step: RoundingStep = 0, inflation = 40, now = NOW) =>
+    previewBulk(items, op, step, inflation, now)
 
   it('raises cost then reprices to the target margin', () => {
-    expect(previewBulk(items, { kind: 'costUp', percent: 15 }, 0)).toEqual([
+    expect(preview({ kind: 'costUp', percent: 15 })).toEqual([
       { id: 1, name: 'A', oldPrice: 120_000, newPrice: 149_500, oldCost: 100_000, newCost: 115_000 },
     ])
   })
 
   it('rounds the new price up to the chosen step', () => {
-    expect(previewBulk(items, { kind: 'costUp', percent: 15 }, 5000)[0]!.newPrice).toBe(150_000)
-    expect(previewBulk(items, { kind: 'costUp', percent: 15 }, 50_000)[0]!.newPrice).toBe(150_000)
+    expect(preview({ kind: 'costUp', percent: 15 }, 5000)[0]!.newPrice).toBe(150_000)
+    expect(preview({ kind: 'costUp', percent: 15 }, 50_000)[0]!.newPrice).toBe(150_000)
   })
 
-  it('retargets without touching cost', () => {
-    expect(previewBulk(items, { kind: 'retarget' }, 0)).toEqual([
+  it('retargets a fresh cost without touching it', () => {
+    expect(preview({ kind: 'retarget' })).toEqual([
       { id: 1, name: 'A', oldPrice: 120_000, newPrice: 130_000, oldCost: 100_000, newCost: 100_000 },
     ])
   })
 
+  it('retargets against the replacement cost, so the row is not instantly losing again', () => {
+    const stale = [
+      product({
+        id: 3,
+        name: 'C',
+        cost: 100_000,
+        targetMarginPercent: 20,
+        price: 120_000,
+        costUpdatedAt: Date.UTC(2025, 8, 15),
+      }),
+    ]
+    const [row] = previewBulk(stale, { kind: 'retarget' }, 0, 40, NOW)
+    const status = productStatus({ ...stale[0]!, price: row!.newPrice }, 40, NOW)
+    // The whole point: after repricing, the products list must call the row healthy.
+    expect(status.health).toBe('healthy')
+    expect(status.realMarginPercent).toBeCloseTo(20, 1)
+    // The purchase price the user actually paid is left alone.
+    expect(row!.newCost).toBe(100_000)
+  })
+
+  it('refuses to invert a cost, whatever the user types', () => {
+    const [row] = preview({ kind: 'costUp', percent: -200 })
+    expect(row!.newCost).toBe(0)
+    expect(row!.newPrice).toBe(0)
+  })
+
   it('still returns rows that would not change, so the caller decides what to hide', () => {
-    const settled = [product({ id: 2, name: 'B', cost: 100_000, targetMarginPercent: 30, price: 130_000 })]
-    expect(previewBulk(settled, { kind: 'retarget' }, 0)).toEqual([
+    const settled = [
+      product({ id: 2, name: 'B', cost: 100_000, targetMarginPercent: 30, price: 130_000, costUpdatedAt: NOW }),
+    ]
+    expect(previewBulk(settled, { kind: 'retarget' }, 0, 40, NOW)).toEqual([
       { id: 2, name: 'B', oldPrice: 130_000, newPrice: 130_000, oldCost: 100_000, newCost: 100_000 },
     ])
   })
 
   it('returns nothing for an empty selection', () => {
-    expect(previewBulk([], { kind: 'costUp', percent: 15 }, 1000)).toEqual([])
+    expect(previewBulk([], { kind: 'costUp', percent: 15 }, 1000, 40, NOW)).toEqual([])
   })
 })
 
@@ -214,5 +251,30 @@ describe('buildProductsCsv', () => {
     const csv = buildProductsCsv([product({ id: 1, name: 'Tea "A", B\nC' })], headers)
     expect(csv.split('﻿')[1]!.startsWith(headers.join(','))).toBe(true)
     expect(csv).toContain('"Tea ""A"", B\nC"')
+  })
+})
+
+describe('productStatus guards', () => {
+  const NOW = Date.UTC(2026, 8, 15)
+
+  it('refuses to judge a product with no recorded purchase price', () => {
+    const status = productStatus(
+      product({ id: 9, name: 'Z', cost: 0, price: 130_000, targetMarginPercent: 20, costUpdatedAt: NOW }),
+      40,
+      NOW,
+    )
+    expect(Number.isFinite(status.realMarginPercent)).toBe(true)
+    expect(status.realMarginPercent).toBe(0)
+    expect(status.health).toBe('losing')
+  })
+
+  it('never produces NaN when both the cost and the price are zero', () => {
+    const status = productStatus(
+      product({ id: 10, name: 'Y', cost: 0, price: 0, targetMarginPercent: 0, costUpdatedAt: NOW }),
+      40,
+      NOW,
+    )
+    expect(Number.isNaN(status.realMarginPercent)).toBe(false)
+    expect(status.health).toBe('losing')
   })
 })

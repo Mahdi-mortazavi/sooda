@@ -90,7 +90,9 @@ export interface ProductStatus {
 export function productStatus(p: Product, annualInflationPercent: number, now: number): ProductStatus {
   const costAgeMonths = monthsBetween(p.costUpdatedAt, now)
   const replacement = replacementCost(p.cost, monthlyRateFromPercent(annualInflationPercent), costAgeMonths)
-  const realMarginPercent = realProfitPercent(p.price, replacement)
+  // A row with no recorded purchase price cannot be judged; dividing by it would yield
+  // Infinity or NaN, and NaN silently reads as 'thin'. Flag it instead.
+  const realMarginPercent = replacement > 0 ? realProfitPercent(p.price, replacement) : 0
   return {
     replacement,
     realMarginPercent,
@@ -134,6 +136,9 @@ export function searchProducts(items: Product[], query: string): Product[] {
 
 export type BulkOp = { kind: 'costUp'; percent: number } | { kind: 'retarget' }
 
+/** Below −100% a price increase turns the cost negative, so the input is refused outright. */
+export const MIN_COST_CHANGE_PERCENT = -100
+
 export interface BulkPreviewRow {
   id: number
   name: string
@@ -144,19 +149,33 @@ export interface BulkPreviewRow {
 }
 
 /**
- * 'costUp': cost ×(1+percent/100), then price = newCost·(1+targetMargin/100), rounded up by `step`.
- * 'retarget': cost unchanged, price = cost·(1+targetMargin/100), rounded up by `step`.
- * Pure — returns what WOULD change, applies nothing. Rows whose price and cost both stay the same
- * are still returned, because only the caller knows whether to show or hide a no-op row.
+ * 'costUp': the purchase price really went up by `percent`, so the cost is re-stamped and the
+ * selling price is rebuilt on it.
+ * 'retarget': the recorded cost is left alone — it is what the user actually paid — and the price
+ * is rebuilt on today's *replacement* cost, because that is the cost the app's own margin is
+ * measured against. Pricing off a stale purchase price would hand back a row the products list
+ * immediately calls losing.
+ *
+ * Both round the new price up by `step`. Pure — returns what WOULD change, applies nothing. Rows
+ * whose price and cost both stay the same are still returned, because only the caller knows
+ * whether to show or hide a no-op row.
  */
-export function previewBulk(items: Product[], op: BulkOp, step: RoundingStep): BulkPreviewRow[] {
+export function previewBulk(
+  items: Product[],
+  op: BulkOp,
+  step: RoundingStep,
+  annualInflationPercent: number,
+  now: number,
+): BulkPreviewRow[] {
+  const percent = op.kind === 'costUp' ? Math.max(op.percent, MIN_COST_CHANGE_PERCENT) : 0
   return items.map((p) => {
-    const newCost = op.kind === 'costUp' ? round2(p.cost * (1 + op.percent / 100)) : p.cost
+    const newCost = op.kind === 'costUp' ? round2(p.cost * (1 + percent / 100)) : p.cost
+    const basis = op.kind === 'costUp' ? newCost : productStatus(p, annualInflationPercent, now).replacement
     return {
       id: p.id,
       name: p.name,
       oldPrice: p.price,
-      newPrice: roundUpTo(newCost * (1 + p.targetMarginPercent / 100), step),
+      newPrice: roundUpTo(basis * (1 + p.targetMarginPercent / 100), step),
       oldCost: p.cost,
       newCost,
     }

@@ -47,7 +47,7 @@ const browser = await chromium.launch({
 const IOS_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1'
 
-async function shot(file, { lang, theme, unit, ua, query = '', setup, wait = 600 }) {
+async function shot(file, { lang, theme, unit, ua, query = '', setup, wait = 600, whatsNew = false }) {
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -55,12 +55,16 @@ async function shot(file, { lang, theme, unit, ua, query = '', setup, wait = 600
   })
   if (lang) {
     await page.addInitScript(
-      ([l, t, u]) => {
+      ([l, t, u, showWhatsNew]) => {
         localStorage.setItem('sooda:lang', l)
         localStorage.setItem('sooda:theme', t)
         if (u) localStorage.setItem('sooda:unit', u)
+        // Pin the inflation rate so the lens and instalment figures are reproducible.
+        localStorage.setItem('sooda:inflation', '40')
+        // What's New would otherwise cover every other screen on first run.
+        if (!showWhatsNew) localStorage.setItem('sooda:last-version', '9.9.9')
       },
-      [lang, theme ?? 'light', unit ?? ''],
+      [lang, theme ?? 'light', unit ?? '', whatsNew],
     )
   }
   await page.goto(`http://localhost:${PORT}${BASE}${query}`, { waitUntil: 'networkidle' })
@@ -85,6 +89,40 @@ const pickSegment = (index) => async (page) => {
   // Switching segments runs two shared-layout springs at once (the indicator and the
   // sliding panel) plus the sub-control's height spring; 800ms caught them mid-flight
   // and made the discount shots differ run to run.
+  await page.waitForTimeout(1400)
+}
+
+/** The v1.3 calculators stack more controls, so the result sits below the fold. */
+const scrollToResult = async (page) => {
+  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }))
+  await page.waitForTimeout(700)
+}
+
+/** Fill the lens row: choose how long the money takes to come back. */
+const pickMonths = (label) => async (page) => {
+  await page.getByRole('radio', { name: label }).click()
+  await page.waitForTimeout(700)
+}
+
+/** Switch the profit segment to instalment pricing and price a plan. */
+const installmentPlan = (cash, term, calcRe, installmentsLabel) => async (page) => {
+  await page.getByRole('tab', { name: installmentsLabel }).click()
+  await page.waitForTimeout(1200)
+  await page.locator('main input[inputmode="decimal"]').nth(0).fill(cash)
+  await page.getByRole('radio', { name: term, exact: true }).click()
+  await page.waitForTimeout(500)
+  await page.getByRole('button', { name: calcRe }).first().click()
+  await page.waitForTimeout(1800)
+}
+
+/** Save the current result as a product, then open the products tab. */
+const saveProduct = (name, saveRe, productsRe) => async (page) => {
+  await page.getByRole('button', { name: saveRe }).click()
+  await page.waitForTimeout(1000)
+  await page.locator('[role="dialog"] input[type="text"]').fill(name)
+  await page.locator('[role="dialog"]').getByRole('button', { name: saveRe }).last().click()
+  await page.waitForTimeout(1400)
+  await page.getByRole('tab', { name: productsRe }).click()
   await page.waitForTimeout(1400)
 }
 
@@ -252,9 +290,6 @@ await shot('fa/install-ios', {
   },
 })
 
-await browser.close()
-server.close()
-
 /* ---------------- hero composites ---------------- */
 async function hero(outName, leftPath, rightPath) {
   const left = await sharp(join(OUT, leftPath)).resize(500).toBuffer()
@@ -273,3 +308,101 @@ await hero('hero.png', 'en/profit-light.png', 'en/profit-dark.png')
 await hero('hero-fa.png', 'fa/profit-light.png', 'fa/profit-dark.png')
 
 console.log('done')
+
+/* ---------------- v1.3 surfaces, both directions ---------------- */
+const SAVE_EN = /Save to my products/
+const SAVE_FA = /ذخیره در کالاهای من/
+
+await shot('en/lens-light', {
+  lang: 'en',
+  theme: 'light',
+  unit: 'toman',
+  setup: async (p) => {
+    const inputs = p.locator('main input[inputmode="decimal"]')
+    await inputs.nth(0).fill('100000')
+    await inputs.nth(1).fill('20')
+    await pickMonths('3 mo')(p)
+    await p.getByRole('button', { name: CALC_EN }).first().click()
+    await p.waitForTimeout(1800)
+    await scrollToResult(p)
+  },
+})
+await shot('fa/lens-dark', {
+  lang: 'fa',
+  theme: 'dark',
+  unit: 'toman',
+  setup: async (p) => {
+    const inputs = p.locator('main input[inputmode="decimal"]')
+    await inputs.nth(0).fill('۲۵۰۰۰۰')
+    await inputs.nth(1).fill('۳۵')
+    await pickMonths('۳ ماه')(p)
+    await p.getByRole('button', { name: CALC_FA }).first().click()
+    await p.waitForTimeout(1800)
+    await scrollToResult(p)
+  },
+})
+
+await shot('en/installment-dark', {
+  lang: 'en',
+  theme: 'dark',
+  unit: 'toman',
+  setup: async (p) => {
+    await installmentPlan('10000000', '6', CALC_EN, /^Installments$/)(p)
+    await scrollToResult(p)
+  },
+})
+await shot('fa/installment-light', {
+  lang: 'fa',
+  theme: 'light',
+  unit: 'toman',
+  setup: async (p) => {
+    await installmentPlan('۱۰۰۰۰۰۰۰', '۶', CALC_FA, /^اقساطی$/)(p)
+    await scrollToResult(p)
+  },
+})
+
+await shot('en/schedule-light', {
+  lang: 'en',
+  theme: 'light',
+  unit: 'toman',
+  setup: async (p) => {
+    await installmentPlan('10000000', '6', CALC_EN, /^Installments$/)(p)
+    await p.getByRole('button', { name: /schedule/i }).first().click()
+    await p.waitForTimeout(1200)
+  },
+})
+await shot('fa/schedule-dark', {
+  lang: 'fa',
+  theme: 'dark',
+  unit: 'toman',
+  setup: async (p) => {
+    await installmentPlan('۱۰۰۰۰۰۰۰', '۶', CALC_FA, /^اقساطی$/)(p)
+    await p.getByRole('button', { name: /جدول اقساط/ }).first().click()
+    await p.waitForTimeout(1200)
+  },
+})
+
+await shot('en/products-light', {
+  lang: 'en',
+  theme: 'light',
+  unit: 'toman',
+  setup: async (p) => {
+    await fill('420000', '25', CALC_EN)(p)
+    await saveProduct('Rice, 10 kg', SAVE_EN, /My products/)(p)
+  },
+})
+await shot('fa/products-dark', {
+  lang: 'fa',
+  theme: 'dark',
+  unit: 'toman',
+  setup: async (p) => {
+    await fill('۴۲۰۰۰۰', '۲۵', CALC_FA)(p)
+    await saveProduct('برنج هاشمی ۱۰ کیلویی', SAVE_FA, /کالاهای من/)(p)
+  },
+})
+
+await shot('en/whatsnew-dark', { lang: 'en', theme: 'dark', whatsNew: true, wait: 1400 })
+await shot('fa/whatsnew-light', { lang: 'fa', theme: 'light', whatsNew: true, wait: 1400 })
+
+await browser.close()
+server.close()

@@ -119,13 +119,13 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
           <button
             type="button"
             onClick={onExport}
-            className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+            className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
           >
             <IconDownload size={18} />
             {t('actions.exportCsv')}
           </button>
           {confirmingClear ? (
-            <div className="flex flex-1 items-center justify-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => void onClearAll()}
@@ -145,7 +145,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
             <button
               type="button"
               onClick={() => setConfirmingClear(true)}
-              className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-loss-600 dark:text-loss-400"
+              className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-loss-600 dark:text-loss-400"
             >
               <IconTrash size={18} />
               {t('actions.clearAll')}

@@ -10,7 +10,8 @@
 
 ### Profit math, crystal clear. 💎
 
-**The liquid-glass calculator for sellers & smart shoppers** — know your profit, price and discount in one tap.
+**The liquid-glass calculator for sellers & smart shoppers** — know your profit, price and discount in one tap,
+and see whether that profit is *real* once inflation is paid for.
 Works 100% offline. Speaks English & فارسی. Tracks nothing.
 
 <br />
@@ -42,9 +43,16 @@ Ask Sooda any of these — get the answer instantly, beautifully:
 | 🛍 Original price + **discount %** | The **final price** & how much you save |
 | 🔄 Final price + **discount %** | The **original price** before the discount |
 | 🧺 Several deals at once | **Basket totals** — total cost, revenue, profit & overall margin |
+| ⏳ **When the money comes back** | Your **real profit** — what's left after you rebuy the same goods |
+| 💳 Cash price + **number of instalments** | The **monthly instalment**, the total, and the markup it really needs |
+| 📅 An instalment deal you already offer | Whether it **beats selling for cash**, in percent and in money |
+| 📦 The things you sell | **My products** — which ones are quietly losing money as costs rise |
 
 ## ✨ Why you'll love it
 
+- **📈 Real profit, not just nominal** — "cost + 20%" can still leave you unable to restock. Tell Sooda when the money comes back and it shows the price that actually covers buying the same goods again.
+- **💳 Instalments the way the market talks** — the monthly payment, the total, and the equivalent *flat monthly rate* — plus a plain answer to "is the deal I already offer profitable?" and a customer-facing payment schedule with Jalali dates.
+- **📦 My products** — save what you sell; Sooda ages each purchase price against inflation and flags what has quietly turned unprofitable. Reprice in bulk with a preview and a 10-second undo.
 - **📴 Truly offline** — after the first visit it works in airplane mode, forever. No loading spinners, no "check your connection".
 - **🔒 Radically private** — no server, no account, no tracking, no analytics. Your numbers never leave your device.
 - **⚡ Instant** — first paint in ~0.8 s on throttled 4G; Lighthouse **100 / 100 / 100 / 100**.
@@ -53,6 +61,9 @@ Ask Sooda any of these — get the answer instantly, beautifully:
 - **🔢 Live 3-digit grouping** — numbers group as you type: `1250000` becomes `1,250,000`.
 - **🔗 Shareable results** — send any calculation as a link; it opens pre-computed, even offline.
 - **🧺 Basket mode** — add several calculations and see totals with the overall margin.
+- **🔢 Price rounding** — round selling prices up to the nearest 1,000 / 5,000 / 10,000 / 50,000, so you never lose margin to a rounded number.
+- **💾 Backup & restore** — one JSON file with your products, history, basket and settings; merge or replace on the way back in.
+- **🔄 Always current** — the app re-checks for a new version hourly and when you come back to it, restores what you were typing across the reload, and shows you what changed once.
 - **💎 Liquid-glass design** — real backdrop blur, refraction shine, ambient color, spring physics. Feels like a native iOS app, not a website.
 - **📲 One-tap install** — native install prompt on Android/desktop, illustrated Add-to-Home-Screen guide on iPhone, home-screen shortcuts to each calculator.
 - **♿ Accessible** — screen-reader announcements, full keyboard support, `prefers-reduced-motion` respected.
@@ -73,6 +84,16 @@ Ask Sooda any of these — get the answer instantly, beautifully:
 | :---: | :---: | :---: |
 | <img src="docs/screenshots/welcome.png" width="240" alt="Bilingual language picker on first launch" /> | <img src="docs/screenshots/en/install-ios.png" width="240" alt="Step-by-step Add to Home Screen guide" /> | <img src="docs/screenshots/en/settings-dark.png" width="240" alt="Settings with language, theme and currency" /> |
 
+**New in v1.3**
+
+| Real profit | Instalment pricing | Payment schedule |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/en/lens-light.png" width="240" alt="Nominal profit versus real profit after restocking" /> | <img src="docs/screenshots/en/installment-dark.png" width="240" alt="Monthly instalment, total and required markup" /> | <img src="docs/screenshots/en/schedule-light.png" width="240" alt="Instalment schedule with due dates" /> |
+
+| My products | Persian — real profit | Persian — my products |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/en/products-light.png" width="240" alt="Saved products with health chips" /> | <img src="docs/screenshots/fa/lens-dark.png" width="240" alt="Real profit in Persian, right to left" /> | <img src="docs/screenshots/fa/products-dark.png" width="240" alt="My products in Persian, right to left" /> |
+
 </div>
 
 ## 📲 Install it like an app
@@ -82,7 +103,7 @@ Ask Sooda any of these — get the answer instantly, beautifully:
 3. **Android (Chrome):** tap the **Install** banner Sooda shows you, or menu ⋮ → *Add to Home screen*
 4. **Desktop (Chrome / Edge):** click the install icon in the address bar
 
-After installing, long-press the icon for **shortcuts** straight into Profit %, Sell price or Discount. ✈️ Then try airplane mode — everything still works.
+After installing, long-press the icon for **shortcuts** straight into Profit %, Sell price, Discount or My products. ✈️ Then try airplane mode — everything still works.
 
 ## 🛠 Under the hood
 
@@ -91,11 +112,12 @@ After installing, long-press the icon for **shortcuts** straight into Profit %, 
 | Build | [Vite](https://vitejs.dev) + TypeScript (strict) |
 | UI | React 18 · [Tailwind CSS v4](https://tailwindcss.com) · [motion](https://motion.dev) spring physics |
 | PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app) — Workbox full precache, auto-update, shortcuts |
-| Storage | [Dexie](https://dexie.org) (IndexedDB) — history & basket |
+| Storage | [Dexie](https://dexie.org) (IndexedDB) — history, basket & products |
 | i18n | i18next + react-i18next, RTL-first |
 | Fonts | Self-hosted [Inter](https://rsms.me/inter/) & [Vazirmatn](https://rastikerdar.github.io/vazirmatn/) variable fonts — zero CDN |
-| Speed | Static pre-paint shell, inlined critical CSS, code-split sheets, deferred SW |
-| Tests | Vitest — 71 unit tests over the calculation engine, digits, units, share links & basket totals |
+| Modes | A mode registry: each calculator is a pure `compute` + `present` pair with its own field specs |
+| Speed | Static pre-paint shell, inlined critical CSS, one translation chunk per language, code-split sheets, deferred SW |
+| Tests | Vitest — 271 unit tests, plus `npm run smoke` driving the real flows in a browser |
 | CI/CD | GitHub Actions → GitHub Pages |
 
 ## 🧑‍💻 Local development
@@ -109,7 +131,15 @@ npm test           # run unit tests
 npm run verify     # typecheck + test + production build
 ```
 
-Extras: `npm run assets` (regenerate icons), `npm run screenshots` (Playwright gallery into `docs/screenshots/`).
+Extras:
+
+| Command | What it does |
+| --- | --- |
+| `npm run assets` | Regenerate icons and home-screen shortcut tiles |
+| `npm run screenshots` | Playwright gallery into `docs/screenshots/` |
+| `npm run smoke` | Drive the built app through the real flows in a browser |
+| `npm run budget` | Fail if the first-paint payload grew past its ceiling |
+| `npm run i18n:check` | Fail if the English and Persian bundles drift apart |
 
 ## 🗺 Roadmap
 
@@ -117,8 +147,14 @@ Extras: `npm run assets` (regenerate icons), `npm run screenshots` (Playwright g
 - [x] Bilingual EN/FA with full RTL · Persian digits · live 3-digit grouping
 - [x] Offline-first PWA · install flow · home-screen shortcuts
 - [x] History + CSV · currency presets · shareable links · basket totals
+- [x] Real-profit lens — nominal vs. real once restocking is paid for
+- [x] Instalment pricing, reverse check & customer-facing payment schedule
+- [x] My products with health, bulk reprice and undo
+- [x] Configurable rounding (round selling price up to 1,000s)
+- [x] Backup & restore · periodic update checks · What's New
 - [ ] Named basket items & basket export
-- [ ] Configurable rounding (e.g. round selling price to 1,000s)
+- [ ] Per-product price history and a margin trend over time
+- [ ] Supplier notes and reorder reminders
 
 ## 👋 Meet the maker
 

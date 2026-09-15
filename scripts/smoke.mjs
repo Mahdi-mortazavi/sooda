@@ -160,7 +160,7 @@ await flow('instalments', async () => {
   await page.keyboard.press('Escape')
   await page.waitForTimeout(600)
 
-  await page.getByRole('tab', { name: /Is my current deal profitable/ }).click()
+  await page.getByRole('tab', { name: /Is my deal profitable/ }).click()
   await page.waitForTimeout(800)
   await fields(page).nth(0).fill('10000000')
   await page.getByRole('radio', { name: '6', exact: true }).click()
@@ -179,6 +179,12 @@ await flow('legacy and v2 links', async () => {
   const body = await resultText(legacy)
   check('v1.2.0 share link still computes', digits(body).includes('1550'))
   await legacy.close()
+
+  // A Toman figure read as Rial is a tenfold error, so the link's unit must win.
+  const foreign = await open({ query: '?m=discount&a=250000&b=30&u=toman', storage: { 'sooda:unit': 'rial' } })
+  const foreignBody = await resultText(foreign)
+  check("a shared link's currency beats the recipient's own", /Toman/.test(foreignBody) && !/Rial/.test(foreignBody), foreignBody.split('\n')[1] ?? '')
+  await foreign.close()
 
   const shortcut = await open({ query: '?m=sell' })
   const selected = await shortcut.locator('[role="tab"][aria-selected="true"]').first().innerText()

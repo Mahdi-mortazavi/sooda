@@ -6,7 +6,7 @@ import { applyBackup, backupFilename, buildBackup, validateBackup, type BackupFi
 import { formatDate } from '../lib/dates'
 import { clearHistory } from '../lib/db'
 import { vibrate } from '../lib/haptics'
-import { hasInflationOverride, INFLATION_DEFAULT } from '../lib/inflation'
+import { INFLATION_DEFAULT, hasInflationOverride, inflationSourceLabel } from '../lib/inflation'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
 import { ROUNDING_STEPS, type RoundingStep } from '../lib/rounding'
 import { GITHUB_URL, TELEGRAM_URL } from '../lib/links'
@@ -256,7 +256,7 @@ export function SettingsSheet({
               rel="noreferrer"
               className="font-semibold text-[var(--accent-text)]"
             >
-              {t('settings.inflationSource', { source: INFLATION_DEFAULT.source, date: sourceDate })}
+              {t('settings.inflationSource', { source: inflationSourceLabel(lang), date: sourceDate })}
             </a>
           </p>
           {hasInflationOverride() && (
@@ -304,7 +304,7 @@ export function SettingsSheet({
             <button
               type="button"
               onClick={() => void exportBackup()}
-              className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+              className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
             >
               <IconDownload size={18} />
               {t('settings.backupExport')}
@@ -315,7 +315,7 @@ export function SettingsSheet({
                 vibrate()
                 fileInputRef.current?.click()
               }}
-              className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+              className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
             >
               <IconUpload size={18} />
               {t('settings.backupImport')}

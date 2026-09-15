@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-09-15
+
+### Added
+
+- **Real-profit lens (سود واقعی):** a "when does the money come back?" row on the profit and sell calculators. Pick a delay and Sooda shows nominal profit beside **real** profit — what is left once you have bought the same goods again — with a healthy/thin/losing chip, one plain sentence naming the restock cost, and, in profit mode, the price that actually covers it. **"Now" is the default, so nothing changes until you ask for it.** The restock cost comes from the annual inflation rate in Settings, or from your own figure when you already know today's purchase price.
+- **Instalment pricing (فروش اقساطی):** a Cash | Instalments sub-control inside the profit segment. Forward — «چقدر اضافه بگیرم؟» — gives the monthly instalment, the total, the required markup and the equivalent **flat monthly rate** the market actually quotes. Reverse — «شرایط فعلی‌ام سودده است؟» — takes the flat rate you already charge and says whether the deal beats a cash sale, in percent and in money. Both produce a **payment schedule** with Jalali due dates that copies and shares as customer-facing text carrying no margin or profit.
+- **My products (کالاهای من):** a second tab, on a floating glass tab bar. Save any result as a product; Sooda ages its purchase price against inflation and flags what has quietly turned unprofitable. Search, sort by risk, edit in a detail sheet, take a new purchase price and get a price that preserves your target margin, or **reprice in bulk** with a preview and a 10-second undo. CSV export included.
+- **Price rounding:** round selling prices **up** to the nearest 1,000 / 5,000 / 10,000 / 50,000 so margin is never lost to a rounded number; the exact figure stays visible underneath.
+- **Backup & restore:** export products, history, basket and settings as one versioned JSON file, and bring it back with a merge-or-replace choice and schema validation.
+- **Periodic update checks:** the app now re-checks for a new version hourly and when you return to it (throttled, skipped while offline), so a long-open installed app can no longer sit on a stale build. What you were typing is saved and restored across the reload.
+- **What's New:** a one-time sheet after an upgrade, in your language. It does not appear on a first install.
+- A fourth home-screen shortcut straight into My products.
+
+### Changed
+
+- **Modes are now a registry.** Each calculator is a pure `compute` + `present` pair with its own field specs, replacing the hard-wired "two inputs → two results" chain. Calculators can have any number of fields, and the instalment maths loads only when it is first used.
+- **Share links v2** — `?m=<mode>&v=<key:value,…>&u=<unit>` — carry the lens and instalment parameters. Links in the old `?m=&a=&b=` format still open and compute exactly as before.
+- **Translations are split** into a core bundle loaded on first paint and a bundle that rides along with the first sheet you open, and only the language you actually use is downloaded.
+- The theme toggle moved into Settings, so the header keeps three buttons alongside the new tab bar.
+- Storage: Dexie `version(3)` adds a `products` table; existing history and basket rows are untouched and keep working.
+- **First-paint payload: 123,320 B gzip against v1.2.0's 123,061 B** — three features for +259 bytes, achieved by deferring the result card, the products tab, every sheet, onboarding, the install banner and the instalment maths into chunks the service worker precaches anyway.
+- Tests: **271** unit tests (up from 71), plus `npm run smoke` driving the real flows in a browser, `npm run budget` guarding the first-paint payload and `npm run i18n:check` guarding English/Persian parity. Both now run on every pull request.
+
+[1.3.0]: https://github.com/Mahdi-mortazavi/sooda/releases/tag/v1.3.0
+
 ## [1.2.0] - 2026-07-14
 
 ### Added

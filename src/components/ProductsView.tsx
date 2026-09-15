@@ -223,7 +223,7 @@ export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps
                     setBulkMounted(true)
                     setBulkOpen(true)
                   }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--accent-fill-strong)] px-4 py-3 text-[15px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
+                  className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--accent-fill-strong)] px-4 py-3 text-[15px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
                 >
                   <IconTrendUp size={18} />
                   <span className="min-w-0 truncate">{t('products.bulkOpen')}</span>
@@ -234,7 +234,7 @@ export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps
                 <button
                   type="button"
                   onClick={onExport}
-                  className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+                  className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
                 >
                   <IconDownload size={18} />
                   <span className="min-w-0 truncate">{t('products.exportCsv')}</span>
@@ -245,7 +245,7 @@ export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps
                     vibrate()
                     setSelecting(true)
                   }}
-                  className="glass glass-ring flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
+                  className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
                 >
                   <IconTrendUp size={18} />
                   <span className="min-w-0 truncate">{t('products.bulkOpen')}</span>

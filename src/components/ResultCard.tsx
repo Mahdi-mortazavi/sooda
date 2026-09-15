@@ -51,8 +51,8 @@ interface ResultCardProps {
 
 const STATUS_STYLES: Record<ProfitStatus, { text: string; fill: string }> = {
   healthy: { text: 'text-[var(--accent-text)]', fill: 'bg-accent-500/14' },
-  thin: { text: 'text-amber-600 dark:text-amber-400', fill: 'bg-amber-500/16' },
-  losing: { text: 'text-loss-600 dark:text-loss-400', fill: 'bg-loss-500/14' },
+  thin: { text: 'text-warn-700 dark:text-warn-400', fill: 'bg-warn-500/18' },
+  losing: { text: 'text-loss-700 dark:text-loss-400', fill: 'bg-loss-500/14' },
 }
 
 /** Colour alone never carries the verdict — the label and the glyph both say it too. */
@@ -166,24 +166,13 @@ export function ResultCard({
         {result.lens?.notice ? ` ${result.lens.notice}` : ''}
       </div>
 
+      {/* Label and actions share a row; the value gets its own, so a long amount with a
+          currency word can never slide underneath the buttons. */}
       <div className="relative flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{result.primaryLabel}</p>
-            {result.status && result.statusLabel ? (
-              <StatusChip status={result.status} label={result.statusLabel} />
-            ) : null}
-          </div>
-          <p
-            className={`mt-0.5 text-[38px] font-bold leading-tight tracking-tight tabular-nums ${
-              result.isLoss ? lossClass : 'text-[var(--accent-text)]'
-            }`}
-          >
-            <CountUp value={result.primaryValue} format={fmtPrimary} />
-            {result.primaryUnit ? <span className="ms-1 text-[25px] font-semibold">{result.primaryUnit}</span> : null}
-          </p>
-          {result.exactPrimary ? (
-            <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)] tabular-nums">{result.exactPrimary}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{result.primaryLabel}</p>
+          {result.status && result.statusLabel ? (
+            <StatusChip status={result.status} label={result.statusLabel} />
           ) : null}
         </div>
         <div className="mt-1 flex shrink-0 gap-2">
@@ -220,10 +209,26 @@ export function ResultCard({
         </div>
       </div>
 
+      <p
+        className={`relative mt-1 text-[38px] font-bold leading-tight tracking-tight tabular-nums ${
+          result.isLoss ? lossClass : 'text-[var(--accent-text)]'
+        }`}
+      >
+        <CountUp value={result.primaryValue} format={fmtPrimary} />
+        {result.primaryUnit ? <span className="ms-1 text-[25px] font-semibold">{result.primaryUnit}</span> : null}
+      </p>
+      {result.exactPrimary ? (
+        <p className="relative mt-0.5 text-[12.5px] tabular-nums text-[var(--text-tertiary)]">{result.exactPrimary}</p>
+      ) : null}
+
       <div className="relative mt-4 border-t border-[var(--separator)] pt-3.5">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-[15px] font-medium text-[var(--text-secondary)]">{result.secondaryLabel}</p>
-          <p className={`text-[21px] font-bold tabular-nums ${result.isLoss ? lossClass : 'text-[var(--text-primary)]'}`}>
+          <p
+            className={`text-[21px] font-bold tabular-nums ${
+              result.isLoss && !result.secondaryNeutral ? lossClass : 'text-[var(--text-primary)]'
+            }`}
+          >
             <CountUp value={result.secondaryValue} format={fmtSecondary} />
             {result.secondaryUnit ? <span className="ms-0.5 text-[15px] font-semibold">{result.secondaryUnit}</span> : null}
           </p>

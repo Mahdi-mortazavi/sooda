@@ -6,19 +6,29 @@ import { MAX_VALUE, round2 } from './calc'
 export interface InflationSource {
   annualPercent: number
   source: string
+  /** Persian rendering of the same source, so the provenance line is not English inside an RTL UI. */
+  sourceFa?: string
   sourceUrl: string
   updatedAt: string
   confidence?: 'primary' | 'secondary'
 }
 
 /* JSON imports widen `confidence` to plain string, so the union is re-narrowed by hand rather than cast away. */
-const bundled: { annualPercent: number; source: string; sourceUrl: string; updatedAt: string; confidence: string } =
+const bundled: {
+  annualPercent: number
+  source: string
+  sourceFa?: string
+  sourceUrl: string
+  updatedAt: string
+  confidence: string
+} =
   inflationData
 
 /** The CPI figure shipped with the build — never fetched, because the precache skips .json. */
 export const INFLATION_DEFAULT: InflationSource = {
   annualPercent: bundled.annualPercent,
   source: bundled.source,
+  sourceFa: bundled.sourceFa,
   sourceUrl: bundled.sourceUrl,
   updatedAt: bundled.updatedAt,
   confidence: bundled.confidence === 'primary' ? 'primary' : 'secondary',
@@ -45,6 +55,11 @@ function readOverride(): number | null {
 }
 
 /** The user's override if they set one, otherwise the bundled default. */
+/** The source name in the reader's language, falling back to the canonical one. */
+export function inflationSourceLabel(lang: 'en' | 'fa'): string {
+  return (lang === 'fa' ? INFLATION_DEFAULT.sourceFa : undefined) ?? INFLATION_DEFAULT.source
+}
+
 export function readAnnualInflationPercent(): number {
   return readOverride() ?? INFLATION_DEFAULT.annualPercent
 }

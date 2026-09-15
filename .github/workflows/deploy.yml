@@ -11,9 +11,12 @@ on:
 permissions:
   contents: write
 
+# Deploys serialise on one group so two pushes never race the gh-pages branch.
+# Pull-request checks get their own group per branch, so they neither queue behind a
+# deploy nor block one, and a new push supersedes the run it replaces.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-deploy:

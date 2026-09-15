@@ -97,6 +97,8 @@ export interface ResultDisplay {
   secondaryValue: number
   secondaryUnit?: string
   isLoss: boolean
+  /** Set when the secondary value is a plain figure rather than part of the loss. */
+  secondaryNeutral?: boolean
   notice?: string
   copyText: string
   /** Extra rows shown under the separator, e.g. required markup. */

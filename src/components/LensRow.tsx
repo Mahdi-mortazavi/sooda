@@ -98,11 +98,15 @@ export function LensRow({
               <button
                 type="button"
                 onClick={onOpenInflationSetting}
-                className="mt-3 w-full rounded-2xl bg-accent-500/12 px-3.5 py-2 text-[13.5px] font-semibold text-[var(--accent-text)] transition-colors hover:bg-accent-500/20"
+                className="mt-3 flex w-full items-center justify-center gap-1 rounded-2xl bg-accent-500/12 px-3.5 py-2 text-[13.5px] font-semibold text-[var(--accent-text)] transition-colors hover:bg-accent-500/20"
               >
                 {t('lens.inflationChip', {
                   percent: `${formatNumber(annualInflationPercent, lang)}${t('fields.percentUnit')}`,
                 })}
+                {/* Baked into the string it pointed the wrong way in Persian. */}
+                <span aria-hidden className="rtl:rotate-180">
+                  ›
+                </span>
               </button>
             )}
           </motion.div>

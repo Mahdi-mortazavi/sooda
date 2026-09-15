@@ -46,7 +46,9 @@ export function SegmentedControl<T extends string>({
                 onChange(opt.value)
               }
             }}
-            className={`relative flex-1 rounded-xl font-semibold transition-colors duration-300 ${
+            /* min-w-0 lets the button shrink below its content; without it flex-1 refuses
+               to go under the intrinsic label width and the control spills off a 360px screen. */
+            className={`relative min-w-0 flex-1 rounded-xl font-semibold transition-colors duration-300 ${
               size === 'md' ? 'px-2 py-2 text-[15px]' : 'px-2 py-1.5 text-[13px]'
             } ${selected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
           >
@@ -58,7 +60,11 @@ export function SegmentedControl<T extends string>({
                 transition={{ type: 'spring', stiffness: 500, damping: 38 }}
               />
             )}
-            <span className="relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap">{opt.label}</span>
+            {/* A plain string label may be long (the instalment questions are whole sentences),
+                so it ellipsises rather than spilling past the control on a narrow phone. */}
+            <span className="relative z-10 flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap">
+              {typeof opt.label === 'string' ? <span className="min-w-0 truncate">{opt.label}</span> : opt.label}
+            </span>
           </button>
         )
       })}

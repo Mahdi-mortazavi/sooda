@@ -56,6 +56,8 @@ export const sellMode: ModeSpec<SellResult> = {
       secondaryLabel: ctx.t('lens.replacementCost'),
       secondaryValue: r.figures.replacement,
       isLoss: losing,
+      // The restock cost is what the goods will cost, not the size of the loss.
+      secondaryNeutral: true,
       lens: lensBlock(r.figures, r.profitPercent, ctx),
       copyText:
         `${ctx.t('lens.realProfit')}: ${ctx.fmtNumber(r.figures.realPercent)}${pct}` +

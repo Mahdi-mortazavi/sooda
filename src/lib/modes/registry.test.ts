@@ -85,8 +85,8 @@ describe('field keys are a published contract', () => {
       sell: ['cost', 'price', 'months', 'src', 'replacement'],
       discount: ['price', 'off'],
       rdiscount: ['final', 'off'],
-      installment: ['cash', 'n', 'downMode', 'down'],
-      rinstallment: ['cash', 'n', 'downMode', 'down', 'flat'],
+      installment: ['cash', 'n', 'down', 'downMode'],
+      rinstallment: ['cash', 'n', 'down', 'downMode', 'flat'],
     }
     for (const mode of MODES) expect(fieldKeysOf(mode)).toEqual(keys[mode])
   })

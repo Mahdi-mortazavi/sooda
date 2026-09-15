@@ -3,6 +3,7 @@ import { addMonths } from './dates'
 import { monthlyRateFromPercent } from './inflation'
 import {
   INSTALLMENT_COUNTS,
+  MAX_INSTALLMENTS,
   annuityFactor,
   calcInstallmentForward,
   calcInstallmentReverse,
@@ -151,5 +152,17 @@ describe('buildSchedule', () => {
   })
   it('returns no rows for a zero-length plan', () => {
     expect(buildSchedule(1000, 0, startAt)).toEqual([])
+  })
+})
+
+describe('term ceiling', () => {
+  it('rejects a term beyond ten years, so a custom count cannot hang the schedule', () => {
+    expect(validateInstallment(1_000_000, 0, MAX_INSTALLMENTS)).toBeNull()
+    expect(validateInstallment(1_000_000, 0, MAX_INSTALLMENTS + 1)).toBe('installmentCountInvalid')
+    expect(validateInstallment(1_000_000, 0, 100_000_000)).toBe('installmentCountInvalid')
+  })
+
+  it('still accepts every term the chips offer', () => {
+    for (const n of INSTALLMENT_COUNTS) expect(validateInstallment(1_000_000, 0, n)).toBeNull()
   })
 })

@@ -8,6 +8,9 @@ import { ChipRow } from './ChipRow'
 import { NumberField } from './NumberField'
 import { SegmentedControl } from './SegmentedControl'
 
+/** Sentinel for the "type your own" chip; it is never a field value. */
+const CUSTOM_CHIP = '__custom__'
+
 interface ModeFieldsProps {
   mode: ModeId
   state: ModeState
@@ -75,29 +78,32 @@ function ModeField({
   }
 
   if (field.kind === 'chips') {
-    const options = (field.options ?? []).map((option, index) => ({
+    const presets = (field.options ?? []).map((option, index) => ({
       value: option,
-      // Numeric chips (instalment counts) show the number itself, localised.
+      // Numeric chips (instalment terms) show the number itself, localised.
       label: field.optionLabelKeys ? optionLabel(index, option) : formatChip(option, lang),
     }))
-    // A typed-in value that is not one of the presets still has to be visible somewhere.
-    const isCustom = value !== '' && !options.some((option) => option.value === value)
+    // Anything the user typed in is "custom"; so is an empty value, which is how the chip clears.
+    const custom = value === '' || !presets.some((option) => option.value === value)
+    const options = field.allowCustom
+      ? [...presets, { value: CUSTOM_CHIP, label: t('installment.countCustom') }]
+      : presets
     return (
       <div className="px-5 py-3.5">
         <p className="mb-2 text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{label}</p>
         <ChipRow
           options={options}
-          value={value}
-          onChange={(next) => onChange(field.key, next)}
+          value={field.allowCustom && custom ? CUSTOM_CHIP : value}
+          onChange={(next) => onChange(field.key, next === CUSTOM_CHIP ? '' : next)}
           layoutId={`${mode}-${field.key}`}
           ariaLabel={label}
         />
-        {field.allowCustom && (
+        {field.allowCustom && custom && (
           <div className="-mx-5 -mb-3.5 mt-1">
             <NumberField
               id={`${mode}-${field.key}-custom`}
               label={t('installment.countCustom')}
-              value={isCustom ? value : ''}
+              value={value}
               onChange={(next) => onChange(field.key, next)}
               placeholder={t('fields.amountPlaceholder')}
               lang={lang}
@@ -105,7 +111,7 @@ function ModeField({
             />
           </div>
         )}
-        {!field.allowCustom && error ? (
+        {!(field.allowCustom && custom) && error ? (
           <p role="alert" className="mt-1 text-[13px] font-medium text-loss-600 dark:text-loss-400">
             {t(`errors.${error}`)}
           </p>
