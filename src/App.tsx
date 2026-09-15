@@ -7,7 +7,9 @@ import { IconBasket, IconClock, IconGear } from './components/Icons'
 import type { ProductDraft } from './components/SaveProductSheet'
 import { TabBar } from './components/TabBar'
 import { useBasketCount } from './hooks/useBasketCount'
+import { useCheckIn } from './hooks/useCheckIn'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
+import { useRates } from './hooks/useRates'
 import { useTheme } from './hooks/useTheme'
 import { LANG_STORAGE_KEY, setLanguage } from './i18n'
 import { vibrate } from './lib/haptics'
@@ -37,6 +39,8 @@ const WelcomeLanguage = lazy(() =>
   import('./components/WelcomeLanguage').then((m) => ({ default: m.WelcomeLanguage })),
 )
 const InstallPrompt = lazy(() => import('./components/InstallPrompt').then((m) => ({ default: m.InstallPrompt })))
+// The check-in and store-setup sheets, and the writes behind them, load only once one is opened.
+const ShopSheets = lazy(() => import('./components/ShopSheets').then((m) => ({ default: m.ShopSheets })))
 
 function hasStoredLanguage(): boolean {
   try {
@@ -67,6 +71,16 @@ export default function App() {
    * survives the reload a new service worker triggers. Restoring it from the draft as well
    * would let a saved 'products' tab swallow an incoming ?m=…&a=…&b=… calculation. */
   const [tab, setTabState] = useState<AppTab>(() => parseTabQuery(window.location.search) ?? 'calculator')
+
+  // The rates file and everything derived from it. Both hooks no-op until onboarding is done.
+  const rates = useRates(!needsLang)
+  const checkIn = useCheckIn(rates.rates, !needsLang)
+
+  const [checkInOpen, setCheckInOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  /* Products the check-in found had gone UP, handed to the products tab so its bulk sheet
+   * opens preselected. Cleared as soon as that tab has taken them. */
+  const [repriceIds, setRepriceIds] = useState<number[] | null>(null)
 
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -129,6 +143,14 @@ export default function App() {
     setSaveDraft(draft)
     setSaveOpen(true)
   }, [])
+
+  /* Setup is never asked at launch — it is asked the first time the answer would actually
+   * change a number on screen, which is the first visit to the products tab with something
+   * saved in it. A shop with no products yet has nothing the answer could improve. */
+  useEffect(() => {
+    if (tab !== 'products' || checkIn.hasProfile !== false || checkIn.productCount === 0) return
+    setProfileOpen(true)
+  }, [tab, checkIn.hasProfile, checkIn.productCount])
 
   const chooseLanguage = (l: AppLanguage) => {
     void setLanguage(l)
@@ -201,7 +223,18 @@ export default function App() {
         />
       ) : (
         <Suspense fallback={null}>
-          <ProductsView lang={lang} unit={unit} onGoToCalculator={() => setTab('calculator')} />
+          <ProductsView
+            lang={lang}
+            unit={unit}
+            onGoToCalculator={() => setTab('calculator')}
+            rates={rates.rates}
+            profile={checkIn.profile}
+            checkInCount={checkIn.items.length}
+            onStartCheckIn={() => setCheckInOpen(true)}
+            repriceIds={repriceIds}
+            onRepriceConsumed={() => setRepriceIds(null)}
+            onProductsChanged={checkIn.reload}
+          />
         </Suspense>
       )}
 
@@ -252,6 +285,12 @@ export default function App() {
             onRoundingChange={setRoundingStep}
             annualInflationPercent={annualInflationPercent}
             onInflationChange={onInflationChange}
+            onOpenStoreProfile={() => {
+              setSettingsOpen(false)
+              setProfileOpen(true)
+            }}
+            onAutoUpdateChange={rates.refresh}
+            ratesUpdatedAt={rates.rates?.updatedAt ?? null}
           />
         )}
         {saveOpen && (
@@ -268,6 +307,26 @@ export default function App() {
         )}
         {whatsNewOpen && !needsLang && (
           <WhatsNewSheet open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} version={__APP_VERSION__} />
+        )}
+
+        {(checkInOpen || profileOpen) && (
+          <ShopSheets
+            checkInOpen={checkInOpen}
+            onCloseCheckIn={() => setCheckInOpen(false)}
+            profileOpen={profileOpen}
+            onCloseProfile={() => setProfileOpen(false)}
+            items={checkIn.items}
+            now={checkIn.now}
+            profile={checkIn.profile}
+            lang={lang}
+            unit={unit}
+            onChanged={checkIn.reload}
+            onReprice={(ids) => {
+              setCheckInOpen(false)
+              setRepriceIds(ids)
+              setTab('products')
+            }}
+          />
         )}
 
         {toastMounted && (

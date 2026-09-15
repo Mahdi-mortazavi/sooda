@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
-import { db, type Product } from '../lib/db'
+import { db, type Product, type StoreProfile } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { readAnnualInflationPercent } from '../lib/inflation'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
@@ -16,6 +16,7 @@ import {
   type ProductStatus,
 } from '../lib/products'
 import { downloadCsv } from '../lib/csv'
+import type { RatesFile } from '../lib/rates/schema'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { BulkRepriceSheet } from './BulkRepriceSheet'
 import { IconBox, IconCheck, IconDownload, IconSearch, IconTrendUp } from './Icons'
@@ -28,6 +29,17 @@ interface ProductsViewProps {
   unit: Unit
   /** Jumps back to the calculator tab — used by the empty state's CTA. */
   onGoToCalculator: () => void
+  /** null while the rates file is still loading; every estimate falls back to a bare prior. */
+  rates: RatesFile | null
+  profile: StoreProfile | null
+  /** How many products the check-in would ask about — 0 hides the card entirely. */
+  checkInCount: number
+  onStartCheckIn: () => void
+  /** Products a finished check-in found had gone up, to open bulk reprice preselected. */
+  repriceIds: number[] | null
+  onRepriceConsumed: () => void
+  /** Lets the app recompute staleness and the badge after a write on this tab. */
+  onProductsChanged: () => void
 }
 
 interface ToastState {
@@ -36,7 +48,18 @@ interface ToastState {
 }
 
 /** The "My products" tab: searchable, sortable price list with health chips, CSV export and bulk reprice. */
-export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps) {
+export function ProductsView({
+  lang,
+  unit,
+  onGoToCalculator,
+  rates,
+  profile,
+  checkInCount,
+  onStartCheckIn,
+  repriceIds,
+  onRepriceConsumed,
+  onProductsChanged,
+}: ProductsViewProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
 
@@ -64,6 +87,20 @@ export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps
   }, [all])
 
   const visible = useMemo(() => sortProducts(searchProducts(all, query), sort, statuses), [all, query, sort, statuses])
+
+  /* A finished check-in hands over the products whose cost went up. Selecting them and
+   * opening the bulk sheet is the whole point of the hand-off, so it happens without a tap;
+   * the sheet still shows a preview and nothing is written until the user confirms. */
+  useEffect(() => {
+    if (repriceIds === null) return
+    if (repriceIds.length > 0) {
+      setSelecting(true)
+      setSelectedIds(repriceIds)
+      setBulkMounted(true)
+      setBulkOpen(true)
+    }
+    onRepriceConsumed()
+  }, [repriceIds, onRepriceConsumed])
 
   const showToast = useCallback((message: string, action?: { label: string; onAction: () => void }) => {
     setToast({ message, action })
@@ -113,6 +150,29 @@ export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps
           </span>
         ) : null}
       </div>
+
+      {hasItems && checkInCount > 0 ? (
+        <motion.button
+          type="button"
+          layout={reducedMotion ? false : undefined}
+          whileTap={reducedMotion ? undefined : { scale: 0.99 }}
+          onClick={() => {
+            vibrate()
+            onStartCheckIn()
+          }}
+          className="glass glass-ring mb-3 flex w-full items-center gap-3 rounded-[22px] px-4 py-3.5 text-start"
+        >
+          <span aria-hidden className="shrink-0 text-[var(--accent-text)]">
+            <IconTrendUp size={18} />
+          </span>
+          <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
+            {t('checkin.cardTitle', { replace: { n: formatNumber(checkInCount, lang, 0) } })}
+          </span>
+          <span className="shrink-0 rounded-full bg-accent-500/16 px-3 py-1.5 text-[13px] font-bold text-[var(--accent-text)]">
+            {t('checkin.cardCta')}
+          </span>
+        </motion.button>
+      ) : null}
 
       {!hasItems ? (
         <div className="glass glass-ring flex flex-col items-center rounded-3xl px-6 py-10 text-center">
@@ -263,6 +323,9 @@ export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps
         lang={lang}
         unit={unit}
         onToast={showToast}
+        rates={rates}
+        profile={profile}
+        onProductsChanged={onProductsChanged}
       />
 
       {(bulkOpen || bulkMounted) && (
@@ -273,6 +336,7 @@ export function ProductsView({ lang, unit, onGoToCalculator }: ProductsViewProps
           lang={lang}
           unit={unit}
           onToast={showToast}
+          onApplied={onProductsChanged}
         />
       )}
 

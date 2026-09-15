@@ -24,10 +24,12 @@ interface BulkRepriceSheetProps {
   lang: AppLanguage
   unit: Unit
   onToast: (message: string, action?: { label: string; onAction: () => void }) => void
+  /** Fired after a commit AND after an undo — both change what the estimates and badge should say. */
+  onApplied?: () => void
 }
 
 /** Previews a cost-up or retarget reprice across many products, then commits it with a 10-second undo. */
-export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast }: BulkRepriceSheetProps) {
+export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast, onApplied }: BulkRepriceSheetProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const [kind, setKind] = useState<BulkKind>('costUp')
@@ -63,9 +65,13 @@ export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast 
       )
       await bulkApply(changes)
       vibrate()
+      onApplied?.()
       onToast(t('products.bulkApplied'), {
         label: t('products.bulkUndo'),
-        onAction: () => void restoreProducts(snapshot),
+        onAction: () => {
+          // Undo puts the old costs back, so the stale list has to be recomputed again.
+          void restoreProducts(snapshot).then(() => onApplied?.())
+        },
       })
       onClose()
     } finally {
