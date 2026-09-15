@@ -4,6 +4,7 @@ import coreEn from '../../i18n/en.json'
 import coreFa from '../../i18n/fa.json'
 import sheetsEn from '../../i18n/sheets/en.json'
 import sheetsFa from '../../i18n/sheets/fa.json'
+import { LESSON_EXPECTED, LESSON_INPUTS } from './expected.generated'
 import { LESSONS } from './index'
 import { MISSION } from './mission'
 import { TUTORIAL_RATE_NOTE_KEY } from './rate'
@@ -83,6 +84,22 @@ describe('lesson strings resolve', () => {
       expect(broken).toEqual([])
     })
   }
+
+  /**
+   * The last member of the family. `learn.rateNote` was a key nothing resolved; the three choice
+   * prompts were keys nothing resolved; this would be a key that resolves to a lie. The
+   * celebration screen is the first thing a new user ever completes and it states the payoff in
+   * words — «۲۰٪ روی کاغذ، بعد از سه ماه کمتر از ۱۰٪» — rather than interpolating the figure,
+   * because an unpassed `{{real}}` on that screen would be far worse than a rounded number. The
+   * cost of writing it in words is that the engine can drift out from under the sentence, so the
+   * sentence gets a test.
+   */
+  it('keeps learn.celebrateBody true: the mission really does fall from 20% to under 10%', () => {
+    expect(LESSON_EXPECTED.mission.realPercent).toBeLessThan(10)
+    // Still a profit, not a loss — «کمتر از ۱۰٪» would be a strange way to say "you lost money".
+    expect(LESSON_EXPECTED.mission.realPercent).toBeGreaterThan(0)
+    expect(Number(LESSON_INPUTS.mission.margin)).toBe(20)
+  })
 
   it('gives a choice challenge a prompt and its options distinct, resolvable paths', () => {
     const t = i18next.getFixedT('fa')

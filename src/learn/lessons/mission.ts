@@ -34,6 +34,7 @@ export const MISSION: Mission = {
    * the only typing left in the whole mission is two digits. */
   estimateSeconds: 30,
   showsRate: true,
+  rateNoteFromStep: 'months',
   steps: [
     {
       /* The suggestion chip is the step. A first-run user who has never seen a number field

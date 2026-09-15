@@ -103,6 +103,16 @@ export interface Mission {
   suggestion: { field: string; value: string; labelKey: string }
   estimateSeconds: number
   showsRate: boolean
+  /**
+   * The step from which the pinned-rate note appears, rather than from step 1.
+   *
+   * A lesson can afford to state its assumption up front. The mission cannot: it is thirty
+   * seconds long and it is the first thing anyone reads, and «در این تمرین فرض می‌کنیم قیمت‌ها
+   * ماهی ۳٪ گران می‌شوند.» on screen from step 1 spends a new user's attention on a caveat about
+   * something three steps away. The note still has to appear — it is the honesty of every figure
+   * that follows — so it appears when the lens engages and the learner has a reason to want it.
+   */
+  rateNoteFromStep?: string
   steps: LessonStepSpec[]
   /** Always empty. Present so the host can hand a mission to the same runner as a lesson. */
   challenges: Challenge[]

@@ -441,7 +441,7 @@
     "missionCta": "Try it on a real calculation",
     "badgeFirstStep": "First step",
     "celebrateTitle": "You have seen real profit",
-    "celebrateBody": "20% on paper, and what is actually left once you have bought the same goods again. That difference is what Sooda is for.",
+    "celebrateBody": "20% on paper, under 10% after three months. That is exactly what Sooda is for.",
     "celebrateCenter": "More lessons",
     "celebrateStart": "Try it with my own numbers",
     "tips": {
@@ -498,6 +498,15 @@
     },
     "checkAnswer": "Check my answer",
     "tryAgain": "Not yet — have another go.",
-    "doneNotice": "Lesson finished. Answer its question to pass the challenge too."
+    "doneNotice": "Lesson finished. Answer its question to pass the challenge too.",
+    "mission": {
+      "story": "Reza bought a shawl for 100,000 toman and wants to make 20% profit.",
+      "suggestCost": "Enter 100,000",
+      "cost": "What he paid goes here. Tap the suggestion and it fills itself.",
+      "margin": "Good! Now the profit he wants: 20 percent.",
+      "calculate": "Tap “Calculate”. That is his selling price.",
+      "months": "Now the real question: what if his money comes back in three months? Tap “3 months”.",
+      "again": "Calculate again, and see how much of that 20% is really left."
+    }
   }
 }
