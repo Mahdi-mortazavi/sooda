@@ -19,14 +19,16 @@ export interface BlendInput {
 }
 
 export interface BlendResult {
-  g: number
-  monthlyPercent: number
+  /** null when not one signal was available. "No estimate" is an answer; 0%/month is a claim. */
+  g: number | null
+  monthlyPercent: number | null
   lambda: number
-  clamped: boolean
+  /** Which end of the safety band the headline hit, if either. */
+  clamped: 'high' | 'low' | null
   manual: boolean
   gPersonal: number | null
-  gPrior: number
-  gDomestic: number
+  gPrior: number | null
+  gDomestic: number | null
   /** Which signals actually contributed — this drives the "why is it this number?" copy. */
   used: { personal: boolean; category: boolean; fx: boolean }
 }
@@ -53,14 +55,35 @@ function lambdaOf(personal: PersonalFit | null): number {
   return Math.min(1, Math.max(0, lambda))
 }
 
-/** The three signals, weighted by how much of this product's price is really set abroad. */
-/** Hold a monthly log rate inside the safety band, reporting whether it had to move. */
-function clampMonthly(g: number): { g: number; clamped: boolean } {
+/** Hold a monthly log rate inside the safety band, reporting which end it hit. */
+function clampMonthly(g: number): { g: number; clamped: 'high' | 'low' | null } {
   const safe = Number.isFinite(g) ? g : 0
   const rate = Math.expm1(safe)
-  if (rate > MONTHLY_MAX) return { g: Math.log1p(MONTHLY_MAX), clamped: true }
-  if (rate < MONTHLY_MIN) return { g: Math.log1p(MONTHLY_MIN), clamped: true }
-  return { g: safe, clamped: false }
+  if (rate > MONTHLY_MAX) return { g: Math.log1p(MONTHLY_MAX), clamped: 'high' }
+  if (rate < MONTHLY_MIN) return { g: Math.log1p(MONTHLY_MIN), clamped: 'low' }
+  return { g: safe, clamped: null }
+}
+
+/**
+ * Combine whichever of two legs exist, renormalising by the weight actually used.
+ *
+ * The distinction matters more than it looks. Treating a missing leg as 0 in log space is
+ * not an abstention, it is the claim "this signal says prices are flat" — so an imported
+ * product with no dollar data used to be told its price was not moving at all, and a clean
+ * personal trend was dragged toward zero by a rates file that simply had not arrived yet.
+ */
+function combine(a: number | null, aWeight: number, b: number | null, bWeight: number): number | null {
+  let sum = 0
+  let weight = 0
+  if (a !== null && aWeight > 0) {
+    sum += aWeight * a
+    weight += aWeight
+  }
+  if (b !== null && bWeight > 0) {
+    sum += bWeight * b
+    weight += bWeight
+  }
+  return weight > 0 ? sum / weight : null
 }
 
 export function blend(input: BlendInput): BlendResult {
@@ -70,20 +93,16 @@ export function blend(input: BlendInput): BlendResult {
   const gTrend =
     input.fxTrendMonthlyLog !== null && Number.isFinite(input.fxTrendMonthlyLog) ? input.fxTrendMonthlyLog : null
 
-  // Half the dollar's own drift, half the general index. Either half alone still says something,
-  // so a missing one leaves the other speaking for the whole FX leg rather than zeroing it.
-  let gFx: number | null = null
-  if (gTrend !== null && gOverall !== null) gFx = 0.5 * gTrend + 0.5 * gOverall
-  else if (gTrend !== null) gFx = gTrend
-  else if (gOverall !== null) gFx = gOverall
+  // Half the dollar's own drift, half the general index. Either half alone still says
+  // something, so a missing one leaves the other speaking for the whole FX leg.
+  const gFx = combine(gTrend, 0.5, gOverall, 0.5)
 
   const gPersonalRaw = input.personal?.g
   const gPersonal = gPersonalRaw !== undefined && Number.isFinite(gPersonalRaw) ? gPersonalRaw : null
   const lambda = gPersonal === null ? 0 : lambdaOf(input.personal)
 
-  // A missing signal contributes 0 rather than removing the term: the app has to render a number either way.
-  const gPrior = (1 - s) * (gCat ?? 0) + s * (gFx ?? 0)
-  const gDomestic = lambda * (gPersonal ?? 0) + (1 - lambda) * (gCat ?? 0)
+  const gPrior = combine(gCat, 1 - s, gFx, s)
+  const gDomesticRaw = combine(gPersonal, lambda, gCat, 1 - lambda)
 
   const manualLog = toLog(input.manualMonthlyPercent)
   if (manualLog !== null) {
@@ -91,39 +110,57 @@ export function blend(input: BlendInput): BlendResult {
       g: manualLog,
       monthlyPercent: Math.expm1(manualLog) * 100,
       lambda,
-      clamped: false,
+      clamped: null,
       manual: true,
       gPersonal,
       gPrior,
-      gDomestic,
+      /* The override has to win on the restock path too. replacementNow spends gDomestic,
+       * so returning the auto-computed one here would quote a cost the card just said it
+       * was not using — and unclamped, at that. */
+      gDomestic: manualLog,
       // The shopkeeper overrode every signal, so none of them explains the number on screen.
       used: { personal: false, category: false, fx: false },
     }
   }
 
-  const blended = lambda * (gPersonal ?? 0) + (1 - lambda) * gPrior
+  const blended = combine(gPersonal, lambda, gPrior, 1 - lambda)
+  if (blended === null) {
+    // Nothing to go on at all. The card says so rather than printing a confident zero.
+    return {
+      g: null,
+      monthlyPercent: null,
+      lambda,
+      clamped: null,
+      manual: false,
+      gPersonal,
+      gPrior,
+      gDomestic: gDomesticRaw,
+      used: { personal: false, category: false, fx: false },
+    }
+  }
+
   const headline = clampMonthly(blended)
   /* The domestic leg is bounded by the same band. It is not cosmetic: replacementNow's FX
-   * path grows a cost by gDomestic, so leaving it unclamped lets an imported product's restock
-   * figure outrun the very rate the card just told the user it was using. */
-  const domestic = clampMonthly(gDomestic)
-  const g = headline.g
-  const clamped = headline.clamped || domestic.clamped
+   * path grows a cost by gDomestic, so leaving it unclamped lets an imported product's
+   * restock figure outrun the very rate the card just told the user it was using. */
+  const domestic = gDomesticRaw === null ? null : clampMonthly(gDomesticRaw).g
 
   return {
-    g,
-    monthlyPercent: Math.expm1(g) * 100,
+    g: headline.g,
+    monthlyPercent: Math.expm1(headline.g) * 100,
     lambda,
-    clamped,
+    // Only the headline's own clamp, because the headline is what the warning sits next to.
+    clamped: headline.clamped,
     manual: false,
     gPersonal,
     gPrior,
-    gDomestic: domestic.g,
+    gDomestic: domestic,
     used: {
       personal: gPersonal !== null && lambda > 0,
-      // At s = 1 the category term is multiplied by zero, so it did not contribute even when present.
-      category: gCat !== null && s < 1,
-      fx: gFx !== null && s > 0,
+      // At s = 1 the category term carries no weight, and at lambda = 1 nor does the prior.
+      category: gCat !== null && s < 1 && lambda < 1,
+      // gOverall standing in for a missing trend is not the dollar moving; do not claim it is.
+      fx: gTrend !== null && s > 0,
     },
   }
 }

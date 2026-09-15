@@ -5,7 +5,7 @@
 
 import Dexie from 'dexie'
 import { db, type Observation, type ObservationSource, type Product, type StoreProfile } from './db'
-import { MS_PER_MONTH } from './rates'
+import { MS_PER_MONTH, usableObservations } from './rates'
 
 /* ── observations ───────────────────────────────────────────────────────── */
 
@@ -122,7 +122,7 @@ export interface StaleCandidate {
 export function staleProducts(
   products: Product[],
   byProduct: Map<number, Observation[]>,
-  rate: (productId: number) => { monthlyPercent: number } | null,
+  rate: (productId: number) => { monthlyPercent: number | null } | null,
   now: number,
 ): StaleCandidate[] {
   const out: StaleCandidate[] = []
@@ -130,8 +130,12 @@ export function staleProducts(
     /* Excluded rows are sale prices the user disowned, so they are not evidence that the true cost
      * was checked. A product with no usable reading falls back to its own stamped cost, which is
      * exactly what the v3 → v4 backfill would have written for it. */
-    const usable = (byProduct.get(p.id) ?? []).filter((o) => o.excluded !== true)
+    /* The same predicate the estimator uses. Filtering only on `excluded` let a zero or
+     * negative cost — reachable through an imported backup — become the basis of a
+     * displayed prediction, and a non-finite timestamp produced a NaN card. */
+    const usable = usableObservations(byProduct.get(p.id) ?? [])
     const last = usable.length > 0 ? usable[usable.length - 1]! : { cost: p.cost, observedAt: p.costUpdatedAt }
+    if (!Number.isFinite(last.cost) || last.cost <= 0 || !Number.isFinite(last.observedAt)) continue
     const ageMs = Math.max(0, now - last.observedAt)
     const ageDays = ageMs / MS_PER_DAY
     const monthlyPercent = rate(p.id)?.monthlyPercent ?? null
@@ -144,7 +148,10 @@ export function staleProducts(
     out.push({ productId: p.id, predictedCost, ageDays, changePercent })
   }
   out.sort((a, b) => {
-    const d = Math.abs(b.changePercent) - Math.abs(a.changePercent)
+    // A NaN comparator result reads as "equal" and leaves the whole list unsorted, so any
+    // non-finite change sinks to the bottom instead of scrambling the order around it.
+    const size = (c: StaleCandidate) => (Number.isFinite(c.changePercent) ? Math.abs(c.changePercent) : -1)
+    const d = size(b) - size(a)
     return d !== 0 ? d : b.ageDays - a.ageDays
   })
   return out

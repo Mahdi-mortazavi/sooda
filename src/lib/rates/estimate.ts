@@ -52,7 +52,11 @@ interface LogLine {
  * origin cannot swamp the sums. Returns null when the points carry no usable trend.
  */
 function fitLogLine(observations: readonly RateObservation[], now: number): LogLine | null {
-  const points = usableObservations(observations)
+  /* A reading dated after `now` is a skewed clock or a mistyped year, not foresight. Giving it
+   * full weight is not enough on its own: left in the set it also stretches the span, and the
+   * span drives λ, so one bad row could multiply the trust placed in this fit several times
+   * over. Dropping it here keeps n, the span and the sums all describing the same points. */
+  const points = usableObservations(observations).filter((p) => p.observedAt <= now)
   const n = points.length
   const first = points[0]
   const last = points[n - 1]
@@ -65,7 +69,6 @@ function fitLogLine(observations: readonly RateObservation[], now: number): LogL
   let swt = 0
   let swy = 0
   for (const p of points) {
-    // A reading dated after `now` is clock skew, not foresight, so it gets full weight rather than extra.
     const age = Math.max(0, (now - p.observedAt) / MS_PER_MONTH)
     const w = Math.exp(-age / WEIGHT_HALFLIFE_MONTHS)
     if (!Number.isFinite(w) || w <= 0) continue

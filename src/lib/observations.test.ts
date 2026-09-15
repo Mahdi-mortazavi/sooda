@@ -166,3 +166,40 @@ describe('staleProducts', () => {
     expect(STALE_AGE_DAYS).toBe(45)
   })
 })
+
+describe('staleProducts — readings the estimator would not trust', () => {
+  const product = (over: Partial<Product> = {}): Product => ({
+    id: 1, name: 'x', cost: 500, targetMarginPercent: 20, price: 600,
+    costUpdatedAt: 0, createdAt: 0, updatedAt: 0, ...over,
+  })
+  const obs = (over: Partial<Observation>): Observation =>
+    ({ id: 1, productId: 1, cost: 100, observedAt: 0, source: 'save', ...over }) as Observation
+
+  it('ignores a zero recorded cost instead of predicting from it', () => {
+    const now = Date.now()
+    const p = product({ costUpdatedAt: now - 60 * 86_400_000 })
+    const byProduct = new Map([[1, [obs({ cost: 0, observedAt: now - 60 * 86_400_000 })]]])
+    const out = staleProducts([p], byProduct, () => ({ monthlyPercent: 10 }), now)
+    // Falls back to the product's own stamped cost, never to a prediction built on zero.
+    expect(out[0]?.predictedCost).toBeGreaterThan(0)
+  })
+
+  it('skips a product whose last reading has a non-finite timestamp', () => {
+    const now = Date.now()
+    expect(staleProducts([product({ costUpdatedAt: Number.NaN })], new Map(), () => ({ monthlyPercent: 10 }), now)).toEqual([])
+  })
+
+  it('keeps the worst-first order even when one candidate cannot be predicted', () => {
+    const now = Date.now()
+    const old = now - 120 * 86_400_000
+    const products = [
+      product({ id: 1, cost: 100, costUpdatedAt: old }),
+      product({ id: 2, cost: Number.NaN, costUpdatedAt: old }),
+      product({ id: 3, cost: 100, costUpdatedAt: old }),
+    ]
+    const rate = (id: number) => ({ monthlyPercent: id === 1 ? 2 : 30 })
+    const out = staleProducts(products, new Map(), rate, now)
+    // Product 2 is dropped outright; 3 (30%/mo) must still outrank 1 (2%/mo).
+    expect(out.map((c) => c.productId)).toEqual([3, 1])
+  })
+})

@@ -59,7 +59,8 @@ describe('productRate', () => {
     expect(rate.ageMonths).toBeCloseTo(1, 12)
     expect(rate.replacementNow).not.toBeNull()
     if (rate.replacementNow === null) return
-    expect(rate.replacementNow).toBeCloseTo(115_000 * Math.exp(rate.g), 6)
+    expect(rate.g).not.toBeNull()
+    expect(rate.replacementNow).toBeCloseTo(115_000 * Math.exp(rate.g ?? 0), 6)
   })
 
   it('takes the FX path when the last reading stored a rate and the product is imported', () => {
@@ -82,11 +83,12 @@ describe('productRate', () => {
     }
   })
 
-  it('is finite with no rates file at all', () => {
+  it('rests on the personal fit alone with no rates file at all', () => {
+    // Regression: the absent prior used to be blended in as a zero and pull the answer down.
     const rate = productRate(request({ rates: null }))
-    expect(Number.isFinite(rate.g)).toBe(true)
-    expect(Number.isFinite(rate.monthlyPercent)).toBe(true)
-    expect(rate.gPrior).toBe(0)
+    expect(rate.gPrior).toBeNull()
+    expect(rate.g).not.toBeNull()
+    expect(rate.g).toBeCloseTo(rate.gPersonal ?? Number.NaN, 12)
     expect(rate.used.category).toBe(false)
     expect(rate.used.fx).toBe(false)
     expect(rate.confidence).toBe('low')
@@ -99,8 +101,8 @@ describe('productRate', () => {
       fx: { ...ratesFile().fx, series: [] },
     })
     const rate = productRate(request({ rates: bare }))
-    expect(rate.gPrior).toBe(0)
-    expect(Number.isFinite(rate.g)).toBe(true)
+    expect(rate.gPrior).toBeNull()
+    expect(rate.g).toBeCloseTo(rate.gPersonal ?? Number.NaN, 12)
     expect(rate.used).toEqual({ personal: true, category: false, fx: false })
   })
 
@@ -128,7 +130,7 @@ describe('productRate', () => {
     const rate = productRate(
       request({ observations: [at(6, 10_000), at(4, 60_000), at(2, 300_000), at(0, 2_000_000)] }),
     )
-    expect(rate.clamped).toBe(true)
+    expect(rate.clamped).toBe('high')
     expect(rate.monthlyPercent).toBeCloseTo(25, 10)
   })
 
@@ -139,7 +141,7 @@ describe('productRate', () => {
         rates: ratesFile({ cpi: { ...ratesFile().cpi, overallMonthlyPercent: -6, categories: { food: -6 } } }),
       }),
     )
-    expect(rate.clamped).toBe(true)
+    expect(rate.clamped).toBe('low')
     expect(rate.monthlyPercent).toBeCloseTo(-5, 10)
   })
 
@@ -147,7 +149,10 @@ describe('productRate', () => {
     const rate = productRate(request({ manualMonthlyPercent: 6 }))
     expect(rate.manual).toBe(true)
     expect(rate.monthlyPercent).toBeCloseTo(6, 10)
-    expect(rate.clamped).toBe(false)
+    expect(rate.clamped).toBeNull()
+    /* Regression: the manual path used to return the auto-computed gDomestic, unclamped —
+     * so an override of 6%/month could quote a restock cost built from 54%/month. */
+    expect(rate.gDomestic).toBeCloseTo(Math.log1p(0.06), 12)
     expect(rate.lambda).toBeCloseTo(0.5, 12)
     expect(rate.gPersonal).not.toBeNull()
   })
@@ -193,7 +198,8 @@ describe('forecastCost', () => {
     const rate = productRate(request())
     expect(rate.replacementNow).not.toBeNull()
     if (rate.replacementNow === null) return
-    expect(forecastCost(rate, 3)).toBeCloseTo(rate.replacementNow * Math.exp(rate.g * 3), 6)
+    expect(rate.g).not.toBeNull()
+    expect(forecastCost(rate, 3)).toBeCloseTo(rate.replacementNow * Math.exp((rate.g ?? 0) * 3), 6)
   })
 
   it('is the replacement cost itself at zero months', () => {

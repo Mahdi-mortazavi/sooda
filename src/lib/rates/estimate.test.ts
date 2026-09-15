@@ -175,3 +175,22 @@ describe('checkOutlier', () => {
     expect(checkOutlier(history, { cost: 200_000, observedAt: Number.NaN }).outlier).toBe(false)
   })
 })
+
+describe('estimatePersonal — a reading dated in the future', () => {
+  it('does not let a skewed clock stretch the span and inflate lambda', () => {
+    const now = Date.UTC(2026, 8, 15)
+    const day = 86_400_000
+    const sane = [
+      { cost: 100, observedAt: now - 20 * day },
+      { cost: 110, observedAt: now - 5 * day },
+    ]
+    const withFuture = [...sane, { cost: 5000, observedAt: now + 400 * day }]
+    const a = estimatePersonal(sane, now)
+    const b = estimatePersonal(withFuture, now)
+    expect(a).not.toBeNull()
+    // The future row is dropped entirely, so the fit is the one the sane rows alone give.
+    expect(b?.n).toBe(a?.n)
+    expect(b?.spanMonths).toBeCloseTo(a?.spanMonths ?? Number.NaN, 12)
+    expect(b?.g).toBeCloseTo(a?.g ?? Number.NaN, 12)
+  })
+})

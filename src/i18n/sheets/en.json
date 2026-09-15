@@ -131,11 +131,8 @@
     "ratesAuto": "Update rates automatically",
     "ratesAutoHint": "Downloads a small public rates file from Sooda’s own site. Nothing from your device is sent.",
     "ratesUpdated": "Updated: {{date}}",
-    "ratesSource": "Source: {{source}}",
     "ratesOffline": "Using the copy that came with the app — updates are off or not reachable.",
-    "ratesMissing": "No national figures yet, so Sooda is using the rate you gave.",
-    "storeRateAsk": "On average, about how many percent do your purchase prices go up each month?",
-    "storeRateHint": "A rough number is fine — you can change it any time."
+    "ratesMissing": "No national figures yet, so Sooda is going on the prices you record."
   },
   "profile": {
     "title": "What do you sell?",
@@ -166,8 +163,48 @@
     "doneCta": "See the new prices",
     "empty": "Nothing to check right now — everything is up to date."
   },
-  "fxLine": {
-    "moved": "The dollar has moved {{percent}} since you last updated your imported prices.",
-    "action": "Check these products"
+  "rate": {
+    "headline": "Price rise for this product: about {{percent}} a month",
+    "auto": "Auto",
+    "manual": "Manual",
+    "sourceSelf": "This product",
+    "sourceFx": "Dollar",
+    "sourceBoth": "{{a}} + {{b}}",
+    "why": "Why this number?",
+    "whyPersonal": "{{percent}} of it comes from the {{count}} prices you recorded yourself",
+    "whyCategory": "{{percent}} of it comes from how fast {{category}} is rising nationally",
+    "whyFx": "The dollar is up {{percent}} since your last purchase",
+    "whyNone": "Nothing to go on yet — it starts with the first purchase price you record.",
+    "improve": "Every purchase price you record makes this number more accurate.",
+    "editManual": "Edit manually",
+    "backToAuto": "Back to auto",
+    "manualTitle": "Set the monthly rate yourself",
+    "confidenceLow": "Estimate quality: low",
+    "confidenceMedium": "Estimate quality: medium",
+    "confidenceHigh": "Estimate quality: high",
+    "updated": "Last updated: {{date}}",
+    "stale": "The national figures haven’t been updated in a while.",
+    "sparkline": "Chart of recorded purchase prices",
+    "noHistory": "No purchase prices recorded yet.",
+    "headlineDown": "Price fall for this product: about {{percent}} a month",
+    "headlineFlat": "This product’s purchase price is holding steady.",
+    "whyFxDown": "The dollar is down {{percent}} since your last purchase",
+    "clampedHigh": "Sooda keeps its estimates inside a cautious range, and this one has reached the top of it — the real rise may be larger.",
+    "clampedLow": "Sooda keeps its estimates inside a cautious range, and this one has reached the bottom of it — the real fall may be larger.",
+    "cardLabel": "Price-rise estimate"
+  },
+  "picker": {
+    "label": "Which product?",
+    "title": "Choose a product",
+    "search": "Search products…",
+    "none": "Don’t link it",
+    "unset": "Not set",
+    "noMatch": "No product matches that."
+  },
+  "recordCost": {
+    "confirm": "Record this as the new purchase price for {{name}}?",
+    "yes": "Record",
+    "dismiss": "No",
+    "done": "Price recorded!"
   }
 }

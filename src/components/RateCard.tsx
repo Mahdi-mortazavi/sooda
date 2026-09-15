@@ -53,12 +53,26 @@ export function RateCard({
   const [custom, setCustom] = useState('')
 
   const pct = t('fields.percentUnit')
-  const percent = `${formatNumber(rate.monthlyPercent, lang)}${pct}`
   const categoryLabel = t(categoryLabelKey(category))
+
+  /* The number can be negative, and a falling price is not a "price rise". Below a tenth of a
+   * percent the sign is noise, so the card says "holding steady" instead of picking one. */
+  const FLAT = 0.1
+  const monthly = rate.monthlyPercent
+  const percent = monthly === null ? '' : `${formatNumber(Math.abs(monthly), lang)}${pct}`
+  const headline =
+    monthly === null
+      ? t('rate.whyNone')
+      : Math.abs(monthly) < FLAT
+        ? t('rate.headlineFlat')
+        : t(monthly > 0 ? 'rate.headline' : 'rate.headlineDown', { percent })
 
   // Each signal's share of the blend — the same arithmetic the estimate itself used.
   const personalShare = rate.lambda * 100
   const categoryShare = (1 - rate.lambda) * (1 - importDependency) * 100
+  /* A share that rounds to "0%" is not worth a bullet: it reads as a claim that the signal
+   * said zero, when it really means the signal barely counted. */
+  const MIN_SHARE = 0.5
 
   const sourceTag = rate.manual
     ? t('rate.manual')
@@ -75,10 +89,10 @@ export function RateCard({
   }
 
   return (
-    <section className="glass glass-ring rounded-3xl p-4" aria-label={t('rate.why')}>
+    <section className="glass glass-ring rounded-3xl p-4" aria-label={t('rate.cardLabel')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[14.5px] font-semibold leading-snug">{t('rate.headline', { percent })}</p>
+    <p className="text-[14.5px] font-semibold leading-snug">{headline}</p>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-[var(--text-secondary)]">
             <ConfidenceDots
               value={rate.confidence}
@@ -97,10 +111,11 @@ export function RateCard({
         )}
       </div>
 
-      {rate.clamped && (
+      {rate.clamped !== null && (
         <p className="mt-2.5 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
           <IconAlert size={15} className="mt-px shrink-0" />
-          {t('rate.clamped')}
+          {/* Which end it hit changes what the sentence means, so the copy is not shared. */}
+          {t(rate.clamped === 'high' ? 'rate.clampedHigh' : 'rate.clampedLow')}
         </p>
       )}
 
@@ -146,15 +161,15 @@ export function RateCard({
         {whyOpen && (
           <Reveal key="why" reducedMotion={!!reducedMotion}>
             <ul className="mt-3 flex flex-col gap-1.5 border-t border-[var(--separator)] pt-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-              {rate.used.personal && (
+              {rate.used.personal && personalShare >= MIN_SHARE && (
                 <li>
                   {t('rate.whyPersonal', {
                     percent: `${formatNumber(personalShare, lang, 0)}${pct}`,
-                    n: formatNumber(history.length, lang, 0),
+                    count: history.length,
                   })}
                 </li>
               )}
-              {rate.used.category && (
+              {rate.used.category && categoryShare >= MIN_SHARE && (
                 <li>
                   {t('rate.whyCategory', {
                     percent: `${formatNumber(categoryShare, lang, 0)}${pct}`,
@@ -163,7 +178,12 @@ export function RateCard({
                 </li>
               )}
               {rate.used.fx && fxChangePercent !== null && fxChangePercent !== undefined && (
-                <li>{t('rate.whyFx', { percent: `${formatNumber(fxChangePercent, lang)}${pct}` })}</li>
+                <li>
+                  {/* The dollar falls as well as rises; "up -2%" would be a plain falsehood. */}
+                  {t(fxChangePercent < 0 ? 'rate.whyFxDown' : 'rate.whyFx', {
+                    percent: `${formatNumber(Math.abs(fxChangePercent), lang)}${pct}`,
+                  })}
+                </li>
               )}
               {!rate.used.personal && !rate.used.category && !rate.used.fx && <li>{t('rate.whyNone')}</li>}
               {history.length === 0 && <li>{t('rate.noHistory')}</li>}

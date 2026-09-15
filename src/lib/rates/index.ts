@@ -64,16 +64,21 @@ export function productRate(input: ProductRateInput): ProductRate {
   return {
     ...result,
     confidence,
-    replacementNow: replacementNow({
-      lastCost: last.cost,
-      lastObservedAt: last.observedAt,
-      now,
-      lastFx: last.fxAtDate,
-      fxNow,
-      importDependency: input.importDependency,
-      gDomestic: result.gDomestic,
-      gProduct: result.g,
-    }),
+    /* With no rate at all there is nothing to grow the last cost by, so the honest restock
+     * figure is "unknown" rather than "exactly what you last paid". */
+    replacementNow:
+      result.g === null && result.gDomestic === null
+        ? null
+        : replacementNow({
+            lastCost: last.cost,
+            lastObservedAt: last.observedAt,
+            now,
+            lastFx: last.fxAtDate,
+            fxNow,
+            importDependency: input.importDependency,
+            gDomestic: result.gDomestic ?? 0,
+            gProduct: result.g ?? 0,
+          }),
     ageMonths: Math.max(0, (now - last.observedAt) / MS_PER_MONTH),
     lastObservedAt: last.observedAt,
   }
@@ -81,6 +86,6 @@ export function productRate(input: ProductRateInput): ProductRate {
 
 /** The same goods `months` out, or null when there was nothing to grow forward. */
 export function forecastCost(rate: ProductRate, months: number): number | null {
-  if (rate.replacementNow === null) return null
+  if (rate.replacementNow === null || rate.g === null) return null
   return forecast(rate.replacementNow, rate.g, months)
 }

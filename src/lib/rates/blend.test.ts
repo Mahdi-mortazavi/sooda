@@ -24,7 +24,7 @@ describe('blend — briefed vectors', () => {
     const result = blend(input({ personal: VECTOR_FIT, categoryMonthlyPercent: 3, importDependency: 0 }))
     expect(result.lambda).toBeCloseTo(0.5, 12)
     expect(result.monthlyPercent).toBeCloseTo(3.881, 3)
-    expect(result.clamped).toBe(false)
+    expect(result.clamped).toBeNull()
     expect(result.manual).toBe(false)
     expect(result.used).toEqual({ personal: true, category: true, fx: false })
   })
@@ -49,7 +49,8 @@ describe('blend — briefed vectors', () => {
       gProduct: 0,
     })
     const g = blend(input({ personal: VECTOR_FIT, categoryMonthlyPercent: 3, importDependency: 0 })).g
-    expectRelative(forecast(rNow, g, 3), 1_264_831.3)
+    expect(g).not.toBeNull()
+    expectRelative(forecast(rNow, g ?? 0, 3), 1_264_831.3)
   })
 
   it('only reproduces vector 6 from an unrounded g — the rounded 3.881% lands ten thousand rial away', () => {
@@ -111,13 +112,38 @@ describe('blend — the prior', () => {
     expect(blend(input({ ...shared, importDependency: 1 })).gPrior).toBeCloseTo(gFx, 12)
   })
 
-  it('falls back to a prior of 0 when every figure is null, and still returns a finite number', () => {
+  it('reports no rate at all when every figure is null, rather than claiming prices are flat', () => {
+    /* Regression: a missing signal used to be substituted with 0 in log space, which is the
+     * claim "prices are not moving" rather than an abstention. With the rates file empty —
+     * which is how v1.4 ships — that turned every product into a confident 0%/month. */
     const result = blend(input())
-    expect(result.gPrior).toBe(0)
-    expect(result.g).toBe(0)
-    expect(result.monthlyPercent).toBe(0)
+    expect(result.gPrior).toBeNull()
+    expect(result.g).toBeNull()
+    expect(result.monthlyPercent).toBeNull()
     expect(result.used).toEqual({ personal: false, category: false, fx: false })
-    expect(Number.isFinite(result.g)).toBe(true)
+  })
+
+  it('lets the overall index carry a fully-imported product when the dollar series is empty', () => {
+    // The FX leg has its own fallback, so s=1 is still answerable without a single FX point.
+    const result = blend(input({ categoryMonthlyPercent: 5, overallMonthlyPercent: 2, importDependency: 1 }))
+    expect(result.monthlyPercent).toBeCloseTo(2, 9)
+  })
+
+  it('reports no rate for a fully-imported product when nothing dollar-side is known', () => {
+    /* Deliberately NOT a fall back to the category figure. At s=1 the shopkeeper has said this
+     * product's price is set abroad; answering with the domestic food index would be the same
+     * kind of substitution this whole change removes, just with a more plausible number. */
+    const result = blend(input({ categoryMonthlyPercent: 5, importDependency: 1 }))
+    expect(result.monthlyPercent).toBeNull()
+    expect(result.used.category).toBe(false)
+  })
+
+  it('does not drag a clean personal trend toward zero when the rates file is empty', () => {
+    // Regression: the (1-λ) term used to multiply a phantom zero prior into the answer.
+    const g = Math.log1p(0.05)
+    const result = blend(input({ personal: { g, n: 12, spanMonths: 10.84 } }))
+    expect(result.monthlyPercent).toBeCloseTo(5, 9)
+    expect(result.g).toBeCloseTo(g, 12)
   })
 
   it('does not credit a signal that its weight multiplies away', () => {
@@ -127,7 +153,7 @@ describe('blend — the prior', () => {
 
   it('rejects a category figure at or below −100%, which has no logarithm', () => {
     const result = blend(input({ categoryMonthlyPercent: -100 }))
-    expect(result.gPrior).toBe(0)
+    expect(result.gPrior).toBeNull()
     expect(result.used.category).toBe(false)
   })
 })
@@ -149,20 +175,20 @@ describe('blend — gDomestic', () => {
 describe('blend — clamping', () => {
   it('caps a runaway fit at +25%/month and says so', () => {
     const result = blend(input({ personal: { g: Math.log(3), n: 50, spanMonths: 24 }, categoryMonthlyPercent: 3 }))
-    expect(result.clamped).toBe(true)
+    expect(result.clamped).toBe('high')
     expect(result.monthlyPercent).toBeCloseTo(MONTHLY_MAX * 100, 10)
     expect(result.g).toBeCloseTo(Math.log1p(MONTHLY_MAX), 12)
   })
 
   it('floors a collapse at −5%/month and says so', () => {
     const result = blend(input({ personal: { g: Math.log(0.5), n: 50, spanMonths: 24 }, categoryMonthlyPercent: -4 }))
-    expect(result.clamped).toBe(true)
+    expect(result.clamped).toBe('low')
     expect(result.monthlyPercent).toBeCloseTo(MONTHLY_MIN * 100, 10)
     expect(result.g).toBeCloseTo(Math.log1p(MONTHLY_MIN), 12)
   })
 
   it('leaves an ordinary rate alone', () => {
-    expect(blend(input({ personal: VECTOR_FIT, categoryMonthlyPercent: 3 })).clamped).toBe(false)
+    expect(blend(input({ personal: VECTOR_FIT, categoryMonthlyPercent: 3 })).clamped).toBeNull()
   })
 
   it('reports gPersonal unclamped, so the UI can explain what was capped', () => {
@@ -181,13 +207,13 @@ describe('blend — manual override', () => {
     expect(result.monthlyPercent).toBeCloseTo(7, 10)
     expect(result.g).toBeCloseTo(Math.log1p(0.07), 12)
     expect(result.lambda).toBeCloseTo(0.5, 12)
-    expect(result.clamped).toBe(false)
+    expect(result.clamped).toBeNull()
     expect(result.gPersonal).toBe(VECTOR_FIT.g)
   })
 
   it('is not clamped, even well past the +25% ceiling', () => {
     const result = blend(input({ manualMonthlyPercent: 90 }))
-    expect(result.clamped).toBe(false)
+    expect(result.clamped).toBeNull()
     expect(result.monthlyPercent).toBeCloseTo(90, 10)
   })
 

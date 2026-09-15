@@ -73,7 +73,7 @@
     "clearDataHint": "Removes your calculation history from this device.",
     "about": "About",
     "version": "Version",
-    "privacy": "Everything stays on your device. Sooda only downloads a public rates file from its own site — nothing from your device is ever sent.",
+    "privacy": "Everything stays on your device — no tracking, no analytics. Sooda only downloads a public rates file from its own site; nothing from your device is ever sent.",
     "sourceCode": "Source code on GitHub",
     "unit": "Currency unit"
   },
@@ -176,47 +176,6 @@
     "auto": "Car parts",
     "stationery": "Stationery & books",
     "other": "Other"
-  },
-  "rate": {
-    "headline": "Price rise for this product: about {{percent}} a month",
-    "storeHeadline": "Auto · {{category}} ~{{percent}}/mo",
-    "auto": "Auto",
-    "manual": "Manual",
-    "sourceSelf": "This product",
-    "sourceFx": "Dollar",
-    "sourceBoth": "{{a}} + {{b}}",
-    "why": "Why this number?",
-    "whyPersonal": "{{percent}} from the {{n}} prices you recorded yourself",
-    "whyCategory": "{{percent}} from price rises for {{category}} across the country",
-    "whyFx": "The dollar is up {{percent}} since your last purchase",
-    "whyNone": "Nothing to go on yet — it starts with the first purchase price you record.",
-    "improve": "Every purchase price you record makes this number more accurate.",
-    "editManual": "Edit manually",
-    "backToAuto": "Back to auto",
-    "manualTitle": "Set the monthly rate yourself",
-    "confidenceLow": "Estimate quality: low",
-    "confidenceMedium": "Estimate quality: medium",
-    "confidenceHigh": "Estimate quality: high",
-    "confidenceLabel": "Estimate quality",
-    "updated": "Updated: {{date}}",
-    "stale": "The national figures haven’t been updated in a while.",
-    "clamped": "Sooda keeps its estimate inside a safe range, so this one stops here — the real change may be a little larger.",
-    "sparkline": "Chart of recorded purchase prices",
-    "noHistory": "No purchase prices recorded yet."
-  },
-  "picker": {
-    "label": "Which product?",
-    "title": "Choose a product",
-    "search": "Search products…",
-    "none": "No product",
-    "new": "New product",
-    "recent": "Recently used"
-  },
-  "recordCost": {
-    "confirm": "Record this as the new purchase price for {{name}}?",
-    "yes": "Record",
-    "dismiss": "No",
-    "done": "Price recorded!"
   },
   "outlier": {
     "title": "Double-check this price?",
