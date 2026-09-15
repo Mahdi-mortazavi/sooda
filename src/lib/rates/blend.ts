@@ -54,6 +54,15 @@ function lambdaOf(personal: PersonalFit | null): number {
 }
 
 /** The three signals, weighted by how much of this product's price is really set abroad. */
+/** Hold a monthly log rate inside the safety band, reporting whether it had to move. */
+function clampMonthly(g: number): { g: number; clamped: boolean } {
+  const safe = Number.isFinite(g) ? g : 0
+  const rate = Math.expm1(safe)
+  if (rate > MONTHLY_MAX) return { g: Math.log1p(MONTHLY_MAX), clamped: true }
+  if (rate < MONTHLY_MIN) return { g: Math.log1p(MONTHLY_MIN), clamped: true }
+  return { g: safe, clamped: false }
+}
+
 export function blend(input: BlendInput): BlendResult {
   const s = input.importDependency
   const gCat = toLog(input.categoryMonthlyPercent)
@@ -93,17 +102,13 @@ export function blend(input: BlendInput): BlendResult {
   }
 
   const blended = lambda * (gPersonal ?? 0) + (1 - lambda) * gPrior
-  const safe = Number.isFinite(blended) ? blended : 0
-  const rate = Math.expm1(safe)
-  let g = safe
-  let clamped = false
-  if (rate > MONTHLY_MAX) {
-    g = Math.log1p(MONTHLY_MAX)
-    clamped = true
-  } else if (rate < MONTHLY_MIN) {
-    g = Math.log1p(MONTHLY_MIN)
-    clamped = true
-  }
+  const headline = clampMonthly(blended)
+  /* The domestic leg is bounded by the same band. It is not cosmetic: replacementNow's FX
+   * path grows a cost by gDomestic, so leaving it unclamped lets an imported product's restock
+   * figure outrun the very rate the card just told the user it was using. */
+  const domestic = clampMonthly(gDomestic)
+  const g = headline.g
+  const clamped = headline.clamped || domestic.clamped
 
   return {
     g,
@@ -113,7 +118,7 @@ export function blend(input: BlendInput): BlendResult {
     manual: false,
     gPersonal,
     gPrior,
-    gDomestic,
+    gDomestic: domestic.g,
     used: {
       personal: gPersonal !== null && lambda > 0,
       // At s = 1 the category term is multiplied by zero, so it did not contribute even when present.
@@ -137,7 +142,9 @@ export function replacementNow(args: {
   gDomestic: number
   gProduct: number
 }): number {
-  const ageMonths = (args.now - args.lastObservedAt) / MS_PER_MONTH
+  // A reading dated in the future (a skewed device clock, or a backup from one) would otherwise
+  // run the growth backwards and quote a restock cost below what the shopkeeper actually paid.
+  const ageMonths = Math.max(0, (args.now - args.lastObservedAt) / MS_PER_MONTH)
   const s = args.importDependency
   const { lastFx, fxNow } = args
   // Never divide by a rate that might be missing just to discover the ratio was going to be 1 anyway.

@@ -74,7 +74,7 @@ export function productRate(input: ProductRateInput): ProductRate {
       gDomestic: result.gDomestic,
       gProduct: result.g,
     }),
-    ageMonths: (now - last.observedAt) / MS_PER_MONTH,
+    ageMonths: Math.max(0, (now - last.observedAt) / MS_PER_MONTH),
     lastObservedAt: last.observedAt,
   }
 }

@@ -127,6 +127,47 @@
     "backupReplaceHint": "Erases what is on this device first.",
     "backupDone": "Restored",
     "backupInvalid": "That file isn’t a Sooda backup.",
-    "upToDate": "Up to date"
+    "upToDate": "Up to date",
+    "ratesAuto": "Update rates automatically",
+    "ratesAutoHint": "Downloads a small public rates file from Sooda’s own site. Nothing from your device is sent.",
+    "ratesUpdated": "Updated: {{date}}",
+    "ratesSource": "Source: {{source}}",
+    "ratesOffline": "Using the copy that came with the app — updates are off or not reachable.",
+    "ratesMissing": "No national figures yet, so Sooda is using the rate you gave.",
+    "storeRateAsk": "On average, about how many percent do your purchase prices go up each month?",
+    "storeRateHint": "A rough number is fine — you can change it any time."
+  },
+  "profile": {
+    "title": "What do you sell?",
+    "hint": "Pick as many as you like — the first one is your main one.",
+    "importTitle": "Are your goods imported?",
+    "domestic": "Made in Iran",
+    "mixed": "Partly imported",
+    "imported": "Imported / dollar-priced",
+    "skip": "Skip",
+    "save": "Save",
+    "settings": "Store profile",
+    "settingsHint": "What you sell and how much you rely on the dollar — it sharpens every estimate."
+  },
+  "checkin": {
+    "cardTitle": "{{n}} products have probably changed price — take a minute to check.",
+    "cardCta": "Check now",
+    "title": "Price check",
+    "lastCost": "Last price: {{amount}} · {{date}}",
+    "predicted": "Probably around {{amount}} now",
+    "field": "New purchase price",
+    "record": "Record",
+    "unchanged": "No change",
+    "later": "Later",
+    "progress": "{{n}} of {{total}}",
+    "doneTitle": "All done",
+    "doneBody": "{{n}} products had gone up — suggested selling prices are ready",
+    "doneNone": "Nothing had changed — your prices are still in good shape.",
+    "doneCta": "See the new prices",
+    "empty": "Nothing to check right now — everything is up to date."
+  },
+  "fxLine": {
+    "moved": "The dollar has moved {{percent}} since you last updated your imported prices.",
+    "action": "Check these products"
   }
 }
