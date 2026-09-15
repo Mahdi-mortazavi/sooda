@@ -8,6 +8,11 @@ import { chromium } from 'playwright-core'
 
 const PORT = 4181
 const BASE = '/sooda/'
+
+/* The app's own version, not a literal. Seeding a hard-coded "already seen" version means
+ * that the next release makes What's New open over every flow and every click times out —
+ * which is exactly what the v1.4.0 bump did. */
+const APP_VERSION = JSON.parse(await readFile('package.json', 'utf8')).version
 const MIME = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -64,7 +69,7 @@ async function open({ lang = 'en', query = '', storage = {}, fresh = false } = {
       'sooda:lang': lang,
       'sooda:theme': 'light',
       'sooda:inflation': '40',
-      'sooda:last-version': '1.3.0',
+      'sooda:last-version': APP_VERSION,
       ...storage,
     }
     await page.addInitScript((entries) => {
