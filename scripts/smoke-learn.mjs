@@ -476,7 +476,7 @@ async function leaveLesson(page) {
 export async function runLearnFlows(ctx) {
   const { check, flow } = ctx
   const words = await loadStrings()
-  const { lessons } = await loadLessonFacts()
+  const { lessons, expected } = await loadLessonFacts()
 
   /* ── 1. one lesson, finished with nothing but «نشانم بده» ───────────────────────────── */
 
@@ -587,6 +587,21 @@ export async function runLearnFlows(ctx) {
     // The story card, then Mission 1 itself on the real calculator.
     await surface.getByRole('button', { name: words_.missionStart }).first().click()
 
+    /* The result card is watched from here rather than read at the end, because the payoff does
+     * not survive the mission: leaving practice tears the card down (and the celebration covers
+     * it in any case), so a reading taken afterwards finds an empty calculator. What the gate
+     * asks — that the shopkeeper is actually shown 9.82% — is a question about what was on
+     * screen while the mission was running. */
+    await page.evaluate((label) => {
+      window.__payoff = []
+      window.__payoffTimer = setInterval(() => {
+        const card = document.querySelector(`section[aria-label="${label}"]`)
+        const text = card === null ? null : card.innerText
+        const last = window.__payoff[window.__payoff.length - 1]
+        if (last === undefined || last.text !== text) window.__payoff.push({ at: Date.now(), text })
+      }, 100)
+    }, words_.resultTitle)
+
     const played = await playByDemo(page, { words: words_ })
     check(
       'onboarding: «نشانم بده» finishes Mission 1',
@@ -594,20 +609,44 @@ export async function runLearnFlows(ctx) {
       played.stalled === null ? `${played.steps.length} steps` : `stalled on "${played.stalled}"`,
     )
 
-    /* The payoff, read off the card while it is still the mission's: 20% asked for, 9.82%
-     * actually earned once the shawl has to be replaced three months later. Captured as the
-     * last step passes, because leaving practice puts the user's own rate back and the card
-     * recomputes against it. */
-    const card = page.locator(`section[aria-label="${words_.resultTitle}"]`)
-    const payoff = (await card.count()) > 0 ? await card.innerText() : ''
-    const digits = payoff.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-    check('onboarding: the result card shows the real margin at 9.82%', /9\.82/.test(digits), firstLines(payoff))
-    check(`onboarding: the result card calls it «${words_.statusThin}»`, payoff.includes(words_.statusThin))
-
     const badge = page.getByText(words_.badgeFirstStep, { exact: false })
     await badge.first().waitFor({ state: 'visible', timeout: 10000 })
     const seconds = (Date.now() - started) / 1000
     check('onboarding: it ends on the «اولین قدم» badge', (await badge.count()) > 0)
+
+
+    /* The payoff: 20% asked for, and — once the shawl has to be replaced three months later —
+     * 9.82% actually earned, called «کم‌سود». The figure is the engine's own, out of
+     * `expected.generated.ts`, not a number typed into a test. */
+    const realPercent = expected.mission?.realPercent
+    /* Read after the badge, not before it: the card paints the lens on the same event that ends
+     * the mission, so a reading taken the moment the tooltip vanishes is a frame too early. */
+    await page.waitForTimeout(1500)
+    const frames = await page.evaluate(() => {
+      clearInterval(window.__payoffTimer)
+      return window.__payoff ?? []
+    })
+    const withLens = frames.filter(
+      (frame) =>
+        frame.text !== null &&
+        frame.text.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).includes(String(realPercent)),
+    )
+    check(
+      `onboarding: the result card shows the real margin at ${realPercent}%`,
+      withLens.length > 0,
+      withLens.length > 0 ? '' : `last card seen: ${firstLines(frames.filter((f) => f.text).pop()?.text ?? '')}`,
+    )
+    check(
+      `onboarding: that card calls it «${words_.statusThin}»`,
+      withLens.some((frame) => frame.text.includes(words_.statusThin)),
+    )
+    /* How long the payoff was actually readable. Not a gate — a number the report needs, because
+     * a screen that is right for a quarter of a second has not shown anybody anything. */
+    if (withLens.length > 0) {
+      const last = frames.filter((frame) => frame.at >= withLens[0].at).find((frame) => frame.text === null)
+      const visibleFor = ((last?.at ?? Date.now()) - withLens[0].at) / 1000
+      console.log(`  the 9.82% card was on screen for ${visibleFor.toFixed(1)}s before the mission tore it down`)
+    }
 
     durations.push({
       name: 'onboarding (fa)',
