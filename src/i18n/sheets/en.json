@@ -93,9 +93,6 @@
   "whatsNew": {
     "title": "What’s new in Sooda {{version}}",
     "gotIt": "Got it",
-    "b1": "See whether your profit still buys the same goods back.",
-    "b2": "Price an installment deal without quietly losing money.",
-    "b3": "Save your products and reprice them all at once.",
     "b4": "Interactive lessons: instead of reading, you do it yourself on a practice shop.",
     "b5": "Eight short lessons, each with a challenge — and the Sooda master badge for passing them all.",
     "b6": "Stuck anywhere? The “?” beside it explains.",
@@ -432,10 +429,8 @@
     "goalsBody": "Pick as many as you like — it only changes the order of the lessons.",
     "goals": {
       "pricing": "Pricing what I sell",
-      "inflation": "Price rises and real profit",
       "installments": "Selling on installments",
       "products": "Managing my product prices",
-      "explore": "Just looking around",
       "discounts": "Buying and discounts"
     },
     "missionCta": "Try it on a real calculation",
@@ -452,8 +447,6 @@
     },
     "tipCta": "Show me",
     "sixtySecond": "Take the 60-second lesson",
-    "help": "Help",
-    "helpMark": "?",
     "settingsHint": "Short lessons on a practice shop — your own products and history stay untouched.",
     "tipsToggle": "Little tips",
     "tipsToggleHint": "A single short hint the first time you use something new.",
@@ -496,8 +489,6 @@
         "a": "Take a backup file from Settings and restore it on the new phone. Because the data lives on the phone, without a backup it goes when the browser is cleared."
       }
     },
-    "checkAnswer": "Check my answer",
-    "tryAgain": "Not yet — have another go.",
     "doneNotice": "Lesson finished. Answer its question to pass the challenge too.",
     "mission": {
       "story": "Reza bought a shawl for 100,000 toman and wants to make 20% profit.",
@@ -507,6 +498,8 @@
       "calculate": "Tap “Calculate”. That is his selling price.",
       "months": "Now the real question: what if his money comes back in three months? Tap “3 months”.",
       "again": "Calculate again, and see how much of that 20% is really left."
-    }
+    },
+    "missionTitle": "Your first real profit",
+    "missionStart": "Let’s work it out together"
   }
 }

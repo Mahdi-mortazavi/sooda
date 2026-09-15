@@ -184,5 +184,9 @@
     "fix": "Fix the number",
     "temporary": "Temporary / sale",
     "excluded": "Saved. It won’t change the estimate."
+  },
+  "learn": {
+    "help": "Help with this",
+    "helpMark": "?"
   }
 }
