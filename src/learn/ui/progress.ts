@@ -18,6 +18,7 @@ import { LEARN_STORAGE_KEY } from './entry'
 import {
   GOAL_IDS,
   LESSON_IDS,
+  LESSON_STATUSES,
   isGoalId,
   type GoalId,
   type LearnProgress,
@@ -26,7 +27,7 @@ import {
   type LessonStatus,
 } from './types'
 
-const STATUSES: readonly LessonStatus[] = ['new', 'progress', 'done', 'passed']
+const STATUSES: readonly LessonStatus[] = LESSON_STATUSES
 
 export function defaultProgress(): LearnProgress {
   const lessons = {} as Record<LessonId, LessonProgress>

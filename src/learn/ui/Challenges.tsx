@@ -35,8 +35,8 @@ interface ChallengesProps {
   challenges: Challenge[]
   /** The lesson's own one-line summary — «این را یاد گرفتید» is shown against it. */
   summaryKey: string
-  /** Spotlights the step a challenge points at, for the second miss. Absent when it has no target. */
-  onShowMe?: ((target: string) => void) | undefined
+  /** Spotlights what a challenge points at, for the second miss. Absent when it has no target. */
+  onShowMe?: ((at: { target: string; hintKey: string }) => void) | undefined
   /** Every question answered — the lesson is `passed`. */
   onPassed: () => void
   /** Closed early. The lesson stays `done`: they did it, they just did not answer. */
@@ -85,6 +85,16 @@ export function Challenges({
     vibrate()
     setMisses((n) => n + 1)
   }
+
+  /*
+   * The lesson's own hint for this challenge.
+   *
+   * `learn.challenge.hintMore` is a label — "another hint" — and on its own it is not a hint at
+   * all, which is what a second miss was getting. `lessons` is adding a per-challenge `hintKey`;
+   * it is read structurally so this compiles either side of that landing and starts saying
+   * something real the moment it does. Once `hintKey` is on `ChallengeBase`, drop the cast.
+   */
+  const hintKey = (challenge as { hintKey?: string }).hintKey ?? 'learn.challenge.hintMore'
 
   const counter = t('learn.stepOf', {
     defaultValue: '{{current}} / {{total}}',
@@ -211,7 +221,7 @@ export function Challenges({
                   {t('learn.challenge.hint')}
                 </p>
                 <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
-                  {t('learn.challenge.hintMore')}
+                  {t(hintKey)}
                 </p>
                 {onShowMe !== undefined && challenge.target !== undefined ? (
                   <>
@@ -225,7 +235,7 @@ export function Challenges({
                         /* Points at where the answer is. It never types anything: practice is over
                          * by now, and a demo that drove the real calculator would be writing to the
                          * shopkeeper's own app in the middle of a question. */
-                        onShowMe(challenge.target as string)
+                        onShowMe({ target: challenge.target as string, hintKey })
                       }}
                       className="mt-2 rounded-full bg-accent-500/16 px-3.5 py-1.5 text-[13px] font-bold text-[var(--accent-text)]"
                     >

@@ -107,7 +107,7 @@ export function HelpButton({ lesson, className = '' }: { lesson: string; classNa
   const learn = useLearn()
   const { t } = useTranslation()
   if (learn === null) return null
-  const label = t('learn.help', { defaultValue: 'What is this?' })
+  const label = t('learn.help')
   return (
     <button
       type="button"
@@ -116,7 +116,7 @@ export function HelpButton({ lesson, className = '' }: { lesson: string; classNa
       title={label}
       className={`glass glass-ring flex h-[22px] w-[22px] items-center justify-center rounded-full text-[12px] font-bold text-[var(--accent-text)] ${className}`}
     >
-      <span aria-hidden>{t('learn.helpMark', { defaultValue: '?' })}</span>
+      <span aria-hidden>{t('learn.helpMark')}</span>
     </button>
   )
 }

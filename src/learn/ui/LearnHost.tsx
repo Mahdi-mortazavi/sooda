@@ -96,7 +96,13 @@ export interface LearnHostProps {
   onPractice: (value: RepositoryValue | null) => void
   /** Puts the app where a step needs it before the step runs. */
   navigate: (to: TourDestination) => Promise<void>
-  /** A just-in-time tip App has decided to offer, or null. */
+  /**
+   * A just-in-time tip App has decided to offer, or null.
+   *
+   * App cannot judge whether it is a good moment: it knows a practice session is open, but not
+   * that a challenge is being asked with the session already torn down. This component does, and
+   * drops the offer below rather than showing it or saving it for later.
+   */
   tip: string | null
   onTipDismiss: () => void
   onClose: () => void
@@ -123,7 +129,7 @@ export function LearnHost({
   const [quiz, setQuiz] = useState<ActiveRun | null>(null)
   /* «کمی گیر کرده‌اید؟» — the target a challenge is pointing the learner back at. The question
    * stays underneath and comes back the moment they dismiss it. */
-  const [pointingAt, setPointingAt] = useState<string | null>(null)
+  const [pointingAt, setPointingAt] = useState<{ target: string; hintKey: string } | null>(null)
   /* Opened by what was asked for, then owned here: a tip arriving later must not open the centre,
    * and closing the centre must not depend on App clearing the request first. */
   const [centerOpen, setCenterOpen] = useState(request !== null && request.kind !== 'onboarding')
@@ -361,6 +367,24 @@ export function LearnHost({
     [noteStep],
   )
 
+  /**
+   * A tip offered while a lesson is running is thrown away, not queued.
+   *
+   * Every one of the four tips fires somewhere on the tutorial path — `lens` on Mission 1's
+   * «۳ ماه» tap, fifteen seconds into a first run. Shown then it would render at `z-30` beneath
+   * the coach's `z-[60]` dim, `inert`, unreadable and untappable — and `TipBar` marks a tip seen
+   * on mount, so the one chance to explain the lens would be spent before the shopkeeper had
+   * seen a single word of it, and never offered again on their own shop.
+   *
+   * Queueing it to the end of the lesson is the same mistake more politely: a just-in-time tip
+   * is worth something at the moment the feature is first used and nothing at all afterwards.
+   * The lesson has just taught that feature properly, so there is nothing left to say.
+   */
+  useEffect(() => {
+    if (tip === null) return
+    if (active !== null || quiz !== null) onTipDismiss()
+  }, [tip, active, quiz, onTipDismiss])
+
   /* ---- the coach's context ---- */
 
   const session = active?.session ?? null
@@ -498,7 +522,7 @@ export function LearnHost({
       {quiz !== null ? (
         <Challenges
           lang={lang}
-          title={quiz.id === null ? t('learn.missionTitle', { defaultValue: 'Mission 1' }) : t(`learn.lessons.${quiz.id}.title`)}
+          title={quiz.id === null ? t('learn.missionTitle') : t(`learn.lessons.${quiz.id}.title`)}
           open={pointingAt === null}
           challenges={quiz.quiz}
           summaryKey={quiz.summaryKey}
@@ -520,10 +544,10 @@ export function LearnHost({
             * asked, so a demo that drove these controls would be typing into the shopkeeper's own
             * calculator in the middle of a question. It points; it does not act. */}
           <Spotlight
-            target={pointingAt}
-            stepId={`challenge-${pointingAt}`}
-            text={t('learn.challenge.hintMore')}
-            announcement={t('learn.challenge.hintMore')}
+            target={pointingAt.target}
+            stepId={`challenge-${pointingAt.target}`}
+            text={t(pointingAt.hintKey)}
+            announcement={t(pointingAt.hintKey)}
             counter={t('learn.challenge.hint')}
             skipLabel={t('actions.close')}
             onSkip={() => setPointingAt(null)}
@@ -532,7 +556,10 @@ export function LearnHost({
       ) : null}
 
       <AnimatePresence>
-        {tip !== null ? (
+        {/* Belt and braces with the effect above: the drop is a state update a render behind,
+          * and one frame of a tip under the dim is one frame too many — `TipBar` marks it seen
+          * the moment it mounts. */}
+        {tip !== null && active === null && quiz === null ? (
           <TipBar
             key={tip}
             id={tip}

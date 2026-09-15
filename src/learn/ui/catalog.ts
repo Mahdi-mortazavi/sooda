@@ -30,9 +30,13 @@ export const LESSONS: readonly LessonMeta[] = [
 /**
  * What each answer to "what did you come here for?" is worth learning first.
  *
- * A goal names the lessons that answer it, best first. The recommended path is those lists read
- * in the order the user picked their goals, de-duplicated — so someone who said "pricing" and
- * then "inflation" is shown pricing's answer first and never the same lesson twice.
+ * A goal names the lessons that answer it, best first. The recommended path reads those lists in
+ * turn and de-duplicates, so no lesson appears twice.
+ *
+ * The goals themselves are read in the order they are declared here, not the order they were
+ * tapped: `setGoals` re-sorts through `GOAL_IDS` on the way in, so the path a shopkeeper gets is
+ * the same whichever order they picked their chips — which is the property worth having, since
+ * tap order carries no meaning they intended.
  */
 const GOAL_PATHS: Record<GoalId, readonly LessonId[]> = {
   pricing: ['profit', 'realProfit', 'everyday'],
@@ -64,6 +68,23 @@ export function recommendedPath(goals: readonly GoalId[]): LessonId[] {
   }
   return out
 }
+
+/**
+ * The rest of the centre's content, as ids.
+ *
+ * They live beside the lesson list for one reason: a test walks these and asserts that every key
+ * built from them resolves in both bundles. Enumerated a second time in the test, that guard
+ * would pass while the screen showed a raw key — which is exactly what a mutation check caught.
+ */
+
+/** The brief's eight questions, in reading order: concept, numbers, privacy, practicalities. */
+export const FAQ_IDS = ['realProfit', 'rate', 'inflation', 'data', 'stop', 'offline', 'phone', 'source'] as const
+
+/** The three first-run cards. The ids are copy's; the drawings follow the sentence, not the id. */
+export const INTRO_CARD_IDS = ['price', 'rise', 'practice'] as const
+
+/** Every complex feature that earns a single one-line hint the first time it is used. */
+export const TIP_IDS = ['lens', 'installments', 'bulk', 'rate'] as const
 
 /** The i18n keys a lesson's card is drawn from; `copy` owns the strings behind them. */
 export function lessonTitleKey(id: LessonId): string {

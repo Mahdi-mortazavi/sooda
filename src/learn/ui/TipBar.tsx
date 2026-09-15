@@ -16,11 +16,12 @@ import { useTranslation } from 'react-i18next'
 import '../../i18n/sheets'
 import { IconClose } from '../../components/Icons'
 import { vibrate } from '../../lib/haptics'
+import { TIP_IDS } from './catalog'
 import { markTipSeen } from './progress'
 import { isLessonId, type LessonId } from './types'
 
-/** Which lesson a tip offers. A tip with no lesson behind it is just a sentence, and allowed. */
-const TIP_LESSON: Record<string, LessonId> = {
+/** Which lesson each tip offers. Keyed on `TIP_IDS`, so a new tip cannot be added without one. */
+const TIP_LESSON: Record<(typeof TIP_IDS)[number], LessonId> = {
   lens: 'realProfit',
   installments: 'installments',
   bulk: 'products',
@@ -41,7 +42,7 @@ export function TipBar({ id, onDismiss, onOpenLesson }: TipBarProps) {
     markTipSeen(id)
   }, [id])
 
-  const lesson = TIP_LESSON[id]
+  const lesson = (TIP_LESSON as Record<string, LessonId | undefined>)[id]
   const text = t(`learn.tips.${id}`, { defaultValue: '' })
   // A tip whose string has not landed yet is no tip at all — better nothing than a raw key.
   if (text === '') return null

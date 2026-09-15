@@ -27,7 +27,7 @@ import { formatNumber, type AppLanguage } from '../../lib/numbers'
 import { BadgeMedal } from './Illustrations'
 import { ProgressRing } from './ProgressRing'
 import { LearnSurface } from './Surface'
-import { LESSONS, lessonBodyKey, lessonTitleKey, recommendedPath } from './catalog'
+import { FAQ_IDS, LESSONS, lessonBodyKey, lessonTitleKey, recommendedPath } from './catalog'
 import { isFinished, mastery } from './progress'
 import type { LearnProgress, LessonId, LessonStatus } from './types'
 
@@ -55,12 +55,6 @@ const STATUS_FALLBACK: Record<LessonStatus, string> = {
   done: 'Completed',
   passed: 'Passed',
 }
-
-/*
- * The brief's eight, in the order someone reads them: the concept first, then where the numbers
- * come from, then privacy, then the practicalities. `copy` owns every question and answer.
- */
-const FAQ_IDS = ['realProfit', 'rate', 'inflation', 'data', 'stop', 'offline', 'phone', 'source'] as const
 
 interface LearnCenterProps {
   open: boolean

@@ -18,6 +18,7 @@ import { vibrate } from '../../lib/haptics'
 import { formatNumber, type AppLanguage } from '../../lib/numbers'
 import { BadgeMedal, IllustrationEverything, IllustrationPrivate, IllustrationPrice } from './Illustrations'
 import { LearnSurface } from './Surface'
+import { INTRO_CARD_IDS } from './catalog'
 import { GOAL_IDS, type GoalId } from './types'
 
 /**
@@ -28,15 +29,17 @@ import { GOAL_IDS, type GoalId } from './types'
 export type OnboardingStage = 'intro' | 'goals' | 'story' | 'celebrate'
 
 /*
- * The ids are copy's, and the sentences behind them are frozen by the brief; the drawings follow
- * the sentence, not the id. `rise` is «همه‌چیز یک‌جا» and `practice` is «روی گوشی خودتان» —
+ * The ids are copy's and are shared with the test that checks their strings resolve; the drawings
+ * follow the sentence, not the id. `rise` is «همه‌چیز یک‌جا» and `practice` is «روی گوشی خودتان» —
  * renaming either would break three keys for no reader's benefit.
  */
-const CARDS: { id: string; art: ReactNode }[] = [
-  { id: 'price', art: <IllustrationPrice /> },
-  { id: 'rise', art: <IllustrationEverything /> },
-  { id: 'practice', art: <IllustrationPrivate /> },
-]
+const ART: Record<(typeof INTRO_CARD_IDS)[number], ReactNode> = {
+  price: <IllustrationPrice />,
+  rise: <IllustrationEverything />,
+  practice: <IllustrationPrivate />,
+}
+
+const CARDS = INTRO_CARD_IDS.map((id) => ({ id, art: ART[id] }))
 
 /** A swipe shorter than this is a scroll that wandered, not a decision. */
 const SWIPE_DISTANCE = 56
@@ -82,7 +85,7 @@ export function Onboarding({
       : stage === 'goals'
         ? t('learn.goalsTitle', { defaultValue: 'What brings you here?' })
         : stage === 'story'
-          ? t('learn.missionTitle', { defaultValue: 'Mission 1' })
+          ? t('learn.missionTitle')
           : t('learn.introTitle', { defaultValue: 'Welcome to Sooda' })
 
   const go = (next: number) => {
@@ -251,7 +254,7 @@ export function Onboarding({
             whileTap={reducedMotion ? undefined : { scale: 0.97 }}
             className="mt-auto w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
           >
-            {t('learn.missionStart', { defaultValue: 'Start' })}
+            {t('learn.missionStart')}
           </motion.button>
         </div>
       ) : null}
@@ -278,27 +281,30 @@ export function Onboarding({
             })}
           </p>
 
+          {/* Their own shop is the primary action, and the tutorial is the quiet one underneath.
+            * The mission has just made its point on «آقا رضا»'s numbers; what a first-run user
+            * should want next is to try it on theirs, not to be handed more tutorial. */}
           <div className="mt-auto flex w-full flex-col gap-2.5 pt-8">
             <motion.button
               type="button"
               onClick={() => {
                 vibrate()
-                onOpenCenter()
+                onFinish()
               }}
               whileTap={reducedMotion ? undefined : { scale: 0.97 }}
               className="w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
             >
-              {t('learn.celebrateCenter', { defaultValue: 'See all the lessons' })}
+              {t('learn.celebrateStart', { defaultValue: 'Start using Sooda' })}
             </motion.button>
             <button
               type="button"
               onClick={() => {
                 vibrate()
-                onFinish()
+                onOpenCenter()
               }}
               className="glass glass-ring w-full rounded-full py-3.5 text-[15px] font-semibold text-[var(--text-secondary)]"
             >
-              {t('learn.celebrateStart', { defaultValue: 'Start using Sooda' })}
+              {t('learn.celebrateCenter', { defaultValue: 'See all the lessons' })}
             </button>
           </div>
         </div>

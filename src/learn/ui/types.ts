@@ -37,7 +37,9 @@ export function isGoalId(value: string): value is GoalId {
  * finished for the ring, but only `passed` counts towards «استاد سودا» — the badge has to mean
  * something more than having scrolled to the end.
  */
-export type LessonStatus = 'new' | 'progress' | 'done' | 'passed'
+export const LESSON_STATUSES = ['new', 'progress', 'done', 'passed'] as const
+
+export type LessonStatus = (typeof LESSON_STATUSES)[number]
 
 export interface LessonProgress {
   status: LessonStatus
