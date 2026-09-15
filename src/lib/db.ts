@@ -89,13 +89,20 @@ export interface StoreProfile {
   manualMonthlyPercent?: number
 }
 
-export const db = new Dexie('sooda') as Dexie & {
+/**
+ * The shape of Sooda's database, named so that code can be handed *a* database rather than
+ * reaching for *the* database. That distinction is what lets practice mode run the real
+ * product and observation logic against a throwaway store instead of the shopkeeper's own.
+ */
+export type SoodaDb = Dexie & {
   history: EntityTable<HistoryEntry, 'id'>
   basket: EntityTable<BasketItem, 'id'>
   products: EntityTable<Product, 'id'>
   observations: EntityTable<Observation, 'id'>
   storeProfile: EntityTable<StoreProfile, 'id'>
 }
+
+export const db = new Dexie('sooda') as SoodaDb
 
 db.version(1).stores({
   history: '++id, mode, createdAt',
