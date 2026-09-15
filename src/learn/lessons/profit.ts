@@ -91,7 +91,7 @@ export const profitLesson: Lesson = {
     {
       kind: 'number',
       id: 'price',
-      promptKey: 'learn.profit.challenge.price',
+      promptKey: 'learn.profit.challenge.price.prompt',
       hintKey: 'learn.profit.challenge.price.hint',
       answer: ANSWER.sellingPrice,
       /* One rounding step of slack: the card rounds the suggested price up, and a shopkeeper who

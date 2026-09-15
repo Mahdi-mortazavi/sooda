@@ -39,9 +39,6 @@ import type { Challenge } from '../lessons/types'
 import type { LearnRequest } from './entry'
 
 const Coach = lazy(() => import('../coach/Coach').then((m) => ({ default: m.Coach })))
-/* Only reached by the second miss on a challenge that names a target, so it is not worth putting
- * in the chunk the centre loads. */
-const Spotlight = lazy(() => import('../coach/Spotlight').then((m) => ({ default: m.Spotlight })))
 
 /** Practice must never ask the browser for persistent storage: the prompt would land mid-lesson. */
 const NO_PERSIST = async (): Promise<boolean> => false
@@ -127,9 +124,6 @@ export function LearnHost({
   const [notice, setNotice] = useState<string | null>(null)
   /* The lesson whose questions are being asked. Practice has already been torn down by then. */
   const [quiz, setQuiz] = useState<ActiveRun | null>(null)
-  /* «کمی گیر کرده‌اید؟» — the target a challenge is pointing the learner back at. The question
-   * stays underneath and comes back the moment they dismiss it. */
-  const [pointingAt, setPointingAt] = useState<{ target: string; hintKey: string } | null>(null)
   /* Opened by what was asked for, then owned here: a tip arriving later must not open the centre,
    * and closing the centre must not depend on App clearing the request first. */
   const [centerOpen, setCenterOpen] = useState(request !== null && request.kind !== 'onboarding')
@@ -523,10 +517,9 @@ export function LearnHost({
         <Challenges
           lang={lang}
           title={quiz.id === null ? t('learn.missionTitle') : t(`learn.lessons.${quiz.id}.title`)}
-          open={pointingAt === null}
+          open
           challenges={quiz.quiz}
           summaryKey={quiz.summaryKey}
-          onShowMe={setPointingAt}
           onPassed={() => {
             setQuiz(null)
             settle(quiz, true)
@@ -536,23 +529,6 @@ export function LearnHost({
             settle(quiz, false)
           }}
         />
-      ) : null}
-
-      {pointingAt !== null ? (
-        <Suspense fallback={null}>
-          {/* A ring and a sentence, and nothing else. Practice is over by the time a challenge is
-            * asked, so a demo that drove these controls would be typing into the shopkeeper's own
-            * calculator in the middle of a question. It points; it does not act. */}
-          <Spotlight
-            target={pointingAt.target}
-            stepId={`challenge-${pointingAt.target}`}
-            text={t(pointingAt.hintKey)}
-            announcement={t(pointingAt.hintKey)}
-            counter={t('learn.challenge.hint')}
-            skipLabel={t('actions.close')}
-            onSkip={() => setPointingAt(null)}
-          />
-        </Suspense>
       ) : null}
 
       <AnimatePresence>

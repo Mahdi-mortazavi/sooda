@@ -81,7 +81,7 @@ export const discountLesson: Lesson = {
        * premise here — 360,000 on the sign, 20% already off — is one they have to reverse. */
       kind: 'number',
       id: 'original',
-      promptKey: 'learn.discount.challenge.original',
+      promptKey: 'learn.discount.challenge.original.prompt',
       hintKey: 'learn.discount.challenge.original.hint',
       answer: ANSWER.challenge.originalPrice,
       tolerance: TUTORIAL_ROUNDING_STEP,

@@ -218,6 +218,13 @@ export function Challenges({
               </p>
             ) : null}
             {misses >= 2 ? (
+              /*
+               * Words only, and deliberately: there is nothing on screen left to point at.
+               * `finishLesson` tears the practice shop down before the question is asked, so by
+               * now the app is back on the shopkeeper's own data — a ring around `result-card`
+               * would be circling their real result, or nothing at all. `Challenge.target` is for
+               * the `task` challenges, which the coach runs as steps while practice is still up.
+               */
               <div className="glass glass-ring rounded-2xl px-4 py-3">
                 <p className="text-[12.5px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                   {t('learn.challenge.hint')}

@@ -106,7 +106,7 @@ export const installmentsLesson: Lesson = {
        * four times the slack. */
       kind: 'number',
       id: 'monthly',
-      promptKey: 'learn.installments.challenge.monthly',
+      promptKey: 'learn.installments.challenge.monthly.prompt',
       hintKey: 'learn.installments.challenge.monthly.hint',
       answer: ANSWER.monthly,
       tolerance: MONTHLY_TOLERANCE,

@@ -126,7 +126,7 @@ export const smartRatesLesson: Lesson = {
     {
       kind: 'task',
       id: 'record',
-      promptKey: 'learn.smartRates.challenge.record',
+      promptKey: 'learn.smartRates.challenge.record.prompt',
       hintKey: 'learn.smartRates.challenge.record.hint',
       target: 'checkin-panel',
       before: (ctx) => ctx.navigate({ tab: 'products', sheet: 'check-in' }),

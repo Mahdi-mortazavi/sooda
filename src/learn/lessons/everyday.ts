@@ -115,7 +115,7 @@ export const everydayLesson: Lesson = {
     {
       kind: 'number',
       id: 'combined',
-      promptKey: 'learn.everyday.challenge.combined',
+      promptKey: 'learn.everyday.challenge.combined.prompt',
       hintKey: 'learn.everyday.challenge.combined.hint',
       answer: ANSWER.combinedProfit,
       /* Two rounding steps, because there are two roundings in the answer. The figure asked for

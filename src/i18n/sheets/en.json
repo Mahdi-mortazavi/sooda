@@ -298,7 +298,10 @@
       "undercut": "The same 150,000 purchase, but this time a selling price of 140,000.",
       "loss": "Calculate again. The card turns red — at this price you lose money.",
       "challenge": {
-        "price": "A purchase price of 150,000 and 25 percent profit. What is the selling price?"
+        "price": {
+          "prompt": "A purchase price of 150,000 and 25 percent profit. What is the selling price?",
+          "hint": "That 25% rides on top of what he paid; it is not taken off a selling price."
+        }
       }
     },
     "discount": {
@@ -308,7 +311,10 @@
       "fillBack": "A final price of 350,000 and the same 30 percent off.",
       "calculateBack": "Calculate, and see what price it was discounted from.",
       "challenge": {
-        "original": "A sign says 360,000, after 20% off. What was the price before the discount?"
+        "original": {
+          "prompt": "A sign says 360,000, after 20% off. What was the price before the discount?",
+          "hint": "360,000 is what was left after the discount — so it is 80% of the number you are looking for."
+        }
       }
     },
     "realProfit": {
@@ -322,7 +328,9 @@
         "verdict": {
           "prompt": "The same oil at the same selling price — but this time it sells within one month. Which is true?",
           "stillProfit": "It still makes a profit",
-          "actuallyLoss": "It is actually a loss"
+          "actuallyLoss": "It is actually a loss",
+          "takeaway": "The same oil at the same price — only the time until the money comes back changed: a loss over three months, “Thin” over one. And “Thin” is not “Healthy”.",
+          "hint": "The only thing that changed is how long the money is away. Over one month there is less price rise to catch up with."
         }
       }
     },
@@ -336,11 +344,15 @@
       "judge": "Calculate — Sooda says whether these terms beat a cash sale or fall short of it.",
       "schedule": "Open the payment schedule. This is what you send the customer.",
       "challenge": {
-        "monthly": "A cash price of 12,000,000 over six months, nothing down. What is the monthly payment?",
+        "monthly": {
+          "prompt": "A cash price of 12,000,000 over six months, nothing down. What is the monthly payment?",
+          "hint": "The card showed the “Required markup”. The cash price plus that, split six ways."
+        },
         "verdict": {
           "prompt": "A flat 2% a month on this deal — how does it compare with a cash sale?",
           "better": "Better than a cash sale",
-          "worse": "Worse than a cash sale"
+          "worse": "Worse than a cash sale",
+          "hint": "What it is measured against is cash in hand today, not the price on the sign."
         }
       }
     },
@@ -352,7 +364,10 @@
       "health": "This row is red: its selling price has fallen behind what a restock costs. Open it.",
       "newCost": "Has your supplier quoted a new price? Record it: 2,700,000",
       "challenge": {
-        "bulk": "Your supplier has put everything up 10%. Apply it in one go with “Reprice as a group”."
+        "bulk": {
+          "prompt": "Your supplier has put everything up 10%. Apply it in one go with “Reprice as a group”.",
+          "hint": "“Preview” shows what will change before anything is saved, and “Undo” is there afterwards."
+        }
       }
     },
     "smartRates": {
@@ -362,7 +377,10 @@
       "auto": "And whenever you want, go back to automatic.",
       "checkin": "Every so often Sooda asks whether prices have moved. Open it.",
       "challenge": {
-        "record": "Answer for two products in “Price check”: where the price has gone up, enter today’s price; where it has not, tap “No change”. That is a complete answer too."
+        "record": {
+          "prompt": "Answer for two products in “Price check”: where the price has gone up, enter today’s price; where it has not, tap “No change”. That is a complete answer too.",
+          "hint": "It needs two products — and “No change” is a complete answer for one of them."
+        }
       }
     },
     "everyday": {
@@ -376,7 +394,10 @@
       "totals": "Open the basket — the bottom adds up the profit on both.",
       "csv": "And your history: “Export CSV” pulls everything out for yourself.",
       "challenge": {
-        "combined": "Rice at 12% profit and oil at 8% profit. What do the two earn together?"
+        "combined": {
+          "prompt": "Rice at 12% profit and oil at 8% profit. What do the two earn together?",
+          "hint": "The basket had already added the profit on both lines together, at the bottom."
+        }
       }
     },
     "safety": {
@@ -384,12 +405,16 @@
       "install": "Install Sooda on your home screen — after that it opens with no internet at all.",
       "updates": "This switch only fetches the public rates file. Turn it off if you would rather not.",
       "challenge": {
-        "backup": "Take a backup file. That one file holds your whole shop.",
+        "backup": {
+          "prompt": "Take a backup file. That one file holds your whole shop.",
+          "hint": "The same part of Settings you just opened, under “Backup”."
+        },
         "where": {
           "prompt": "Where is your data stored?",
           "phone": "On this phone",
           "servers": "On Sooda’s servers",
-          "account": "In your user account"
+          "account": "In your user account",
+          "hint": "Sooda has no account, and it works with the internet switched off. Ask what those two things rule out."
         }
       }
     },

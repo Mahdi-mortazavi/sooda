@@ -48,7 +48,7 @@ export const safetyLesson: Lesson = {
     {
       kind: 'task',
       id: 'backup',
-      promptKey: 'learn.safety.challenge.backup',
+      promptKey: 'learn.safety.challenge.backup.prompt',
       hintKey: 'learn.safety.challenge.backup.hint',
       target: 'settings-backup',
       before: (ctx) => ctx.navigate({ sheet: 'settings' }),

@@ -183,15 +183,15 @@ describe('the eight lessons are well formed', () => {
       expect(lesson.summaryKey).toBe(`learn.lessons.${lesson.id}.body`)
       for (const step of lesson.steps) expect(step.textKey).toBe(`learn.${lesson.id}.${step.id}`)
       for (const challenge of lesson.challenges) {
-        /* A choice challenge's prompt sits one level deeper, at `….<id>.prompt`. It has to: the
-         * options live under `….<id>.<optionId>`, and a nested JSON bundle cannot have the same
-         * path be both a string and an object — i18next resolves `t('…<id>')` to the object
-         * warning and the options to their own keys, so one of the two always breaks. This test
-         * only ever compared key strings, which is why it passed while three prompts were dead. */
-        const promptKey = challenge.kind === 'choice'
-          ? `learn.${lesson.id}.challenge.${challenge.id}.prompt`
-          : `learn.${lesson.id}.challenge.${challenge.id}`
-        expect(challenge.promptKey).toBe(promptKey)
+        /* Every prompt sits at `….<id>.prompt`, with no exceptions — `….<id>` is an object for
+         * every challenge now, holding the hint and, for a choice, the options. A nested JSON
+         * bundle cannot make one path both a string and an object: i18next answers the parent
+         * with the object warning and the children resolve to their own keys, so one of the two
+         * always breaks. This bit three prompts when the options arrived, then the other seven
+         * when the hints did, because the rule was written as a special case for `choice`
+         * rather than as the rule. It is the rule. */
+        expect(challenge.promptKey).toBe(`learn.${lesson.id}.challenge.${challenge.id}.prompt`)
+        expect(challenge.hintKey).toBe(`learn.${lesson.id}.challenge.${challenge.id}.hint`)
         if (challenge.kind !== 'choice') continue
         for (const option of challenge.options) {
           expect(option.labelKey).toBe(`learn.${lesson.id}.challenge.${challenge.id}.${option.id}`)
