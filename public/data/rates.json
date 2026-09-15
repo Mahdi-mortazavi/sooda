@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "updatedAt": null,
+  "cpi": {
+    "source": { "name": "", "url": "" },
+    "asOf": null,
+    "overallMonthlyPercent": null,
+    "categories": {
+      "food": null,
+      "apparel": null,
+      "home": null,
+      "digital": null,
+      "beauty": null,
+      "health": null,
+      "auto": null,
+      "stationery": null
+    }
+  },
+  "fx": {
+    "source": { "name": "", "url": "" },
+    "pair": "USD/IRT",
+    "series": []
+  }
+}
