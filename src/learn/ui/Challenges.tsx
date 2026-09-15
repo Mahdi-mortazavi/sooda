@@ -123,6 +123,29 @@ export function Challenges({
    */
   const hintKey = challenge.hintKey ?? 'learn.challenge.hintMore'
 
+  /*
+   * What «نشانم بده» actually shows.
+   *
+   * Someone who has missed twice has one of two problems — a wrong mental model, or arithmetic —
+   * and the takeaway only addresses the first. Without the figure they cannot tell which one they
+   * had: «آن ۲۵٪ روی قیمت خرید سوار می‌شود» and still no idea it was ۱۸۸٬۰۰۰.
+   *
+   * Formatted the way the question asked for it: a bare number where the field had no unit, and
+   * a percent where it did, so what they read back matches what they were typing.
+   */
+  const revealed: { text: string; numeric: boolean } | null =
+    challenge.kind === 'number'
+      ? {
+          text: `${formatNumber(challenge.answer, lang)}${challenge.unit === 'percent' ? t('fields.percentUnit') : ''}`,
+          numeric: true,
+        }
+      : challenge.kind === 'choice'
+        ? (() => {
+            const right = challenge.options.find((option) => option.correct)
+            return right === undefined ? null : { text: t(right.labelKey), numeric: false }
+          })()
+        : null
+
   const counter = t('learn.stepOf', {
     defaultValue: '{{current}} / {{total}}',
     replace: {
@@ -147,7 +170,7 @@ export function Challenges({
         {phase === 'answered'
           ? `${t('learn.challenge.correct')} ${t(takeawayKey)}`
           : phase === 'shown'
-            ? t(takeawayKey)
+            ? `${t('learn.challenge.theAnswer')} ${revealed?.text ?? ''}. ${t(takeawayKey)}`
             : `${counter}. ${prompt}`}
       </p>
 
@@ -175,7 +198,26 @@ export function Challenges({
               {t('learn.challenge.correct')}
             </p>
           ) : null}
-          <div className={`glass glass-ring rounded-2xl px-4 py-3.5 ${phase === 'answered' ? 'mt-3' : ''}`}>
+          {phase === 'shown' && revealed !== null ? (
+            <div className="glass glass-ring rounded-2xl px-4 py-3.5">
+              <p className="text-[12.5px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                {t('learn.challenge.theAnswer')}
+              </p>
+              {/* A figure reads left-to-right in Persian too, and `tabular-nums` keeps it from
+                * jittering against the question above it. A chosen option is ordinary prose. */}
+              <p
+                {...(revealed.numeric ? { dir: 'ltr' } : {})}
+                className={`mt-1 text-[20px] font-bold leading-snug ${
+                  revealed.numeric ? `tabular-nums ${lang === 'fa' ? 'text-end' : 'text-start'}` : ''
+                }`}
+              >
+                {revealed.text}
+              </p>
+            </div>
+          ) : null}
+          {/* There is always something above it — the «آفرین» line or the figure — except in the
+            * one case a challenge has no answer to show, and then it sits on its own. */}
+          <div className={`glass glass-ring rounded-2xl px-4 py-3.5 ${revealed === null && phase !== 'answered' ? '' : 'mt-3'}`}>
             <p className="text-[12.5px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
               {t('learn.challenge.takeawayLabel')}
             </p>
