@@ -147,3 +147,7 @@ dev-dist/
 
 # lighthouse reports
 *.report.html
+
+# Reviewer scratch probes — written to be deleted, never to be shipped.
+zz-scratch*
+__review_tmp*
