@@ -1,0 +1,1 @@
+const e=["food","apparel","home","digital","beauty","health","auto","stationery","other"];function o(t){return typeof t=="string"&&e.includes(t)}const n=[0,.5,1];function r(t){return t===0||t===.5||t===1}function a(t){return`categories.${t}`}export{e as C,n as I,r as a,a as c,o as i};
