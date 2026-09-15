@@ -59,7 +59,7 @@ export const safetyLesson: Lesson = {
     {
       kind: 'choice',
       id: 'where',
-      promptKey: 'learn.safety.challenge.where',
+      promptKey: 'learn.safety.challenge.where.prompt',
       /* Not an engine answer — a fact about the app. It is the one question in the whole set whose
        * correctness is a property of the product rather than of a calculation. */
       options: [

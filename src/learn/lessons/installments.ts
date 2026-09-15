@@ -105,7 +105,7 @@ export const installmentsLesson: Lesson = {
     {
       kind: 'choice',
       id: 'verdict',
-      promptKey: 'learn.installments.challenge.verdict',
+      promptKey: 'learn.installments.challenge.verdict.prompt',
       /* The bar is a cash sale — exactly what the reverse card itself judges against. */
       options: [
         {

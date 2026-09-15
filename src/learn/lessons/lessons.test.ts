@@ -164,7 +164,15 @@ describe('the eight lessons are well formed', () => {
       expect(lesson.summaryKey).toBe(`learn.lessons.${lesson.id}.body`)
       for (const step of lesson.steps) expect(step.textKey).toBe(`learn.${lesson.id}.${step.id}`)
       for (const challenge of lesson.challenges) {
-        expect(challenge.promptKey).toBe(`learn.${lesson.id}.challenge.${challenge.id}`)
+        /* A choice challenge's prompt sits one level deeper, at `….<id>.prompt`. It has to: the
+         * options live under `….<id>.<optionId>`, and a nested JSON bundle cannot have the same
+         * path be both a string and an object — i18next resolves `t('…<id>')` to the object
+         * warning and the options to their own keys, so one of the two always breaks. This test
+         * only ever compared key strings, which is why it passed while three prompts were dead. */
+        const promptKey = challenge.kind === 'choice'
+          ? `learn.${lesson.id}.challenge.${challenge.id}.prompt`
+          : `learn.${lesson.id}.challenge.${challenge.id}`
+        expect(challenge.promptKey).toBe(promptKey)
         if (challenge.kind !== 'choice') continue
         for (const option of challenge.options) {
           expect(option.labelKey).toBe(`learn.${lesson.id}.challenge.${challenge.id}.${option.id}`)

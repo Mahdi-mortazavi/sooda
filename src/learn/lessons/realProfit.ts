@@ -89,7 +89,7 @@ export const realProfitLesson: Lesson = {
     {
       kind: 'choice',
       id: 'verdict',
-      promptKey: 'learn.realProfit.challenge.verdict',
+      promptKey: 'learn.realProfit.challenge.verdict.prompt',
       /* Which option is right is the engine's answer, not the author's: `profitStatus` judged the
        * shelf price against three months of the pinned rate, and whatever it said stands. */
       options: [
