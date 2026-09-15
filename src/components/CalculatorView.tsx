@@ -28,6 +28,8 @@ import { LensRow } from './LensRow'
 import { ModeFields } from './ModeFields'
 import type { ProductDraft } from './SaveProductSheet'
 import { SegmentedControl } from './SegmentedControl'
+import { emitTour } from '../learn/coach/events'
+import { HelpButton, useLearn } from '../learn/ui/entry'
 
 const ScheduleSheet = lazy(() => import('./ScheduleSheet').then((m) => ({ default: m.ScheduleSheet })))
 // The result card only exists once the user has tapped Calculate, which is seconds
@@ -62,6 +64,15 @@ interface CalculatorViewProps {
   onProductsChanged: () => void
   /** Persisted with the calculator draft so a service-worker reload lands where the user was. */
   tab: DraftState['tab']
+  /**
+   * A lesson is running. The calculator is the surface being taught on, so it keeps working —
+   * but it must stop touching anything of the shopkeeper's: no draft is read or written, no
+   * history row is added, nothing reaches the real basket. The plan forbids all three.
+   */
+  practice?: boolean
+  /** A mode a lesson step asked for, applied once and then cleared through `onModeApplied`. */
+  requestedMode?: string | null
+  onModeApplied?: () => void
 }
 
 export function CalculatorView({
@@ -75,15 +86,19 @@ export function CalculatorView({
   rates,
   onProductsChanged,
   tab,
+  practice = false,
+  requestedMode = null,
+  onModeApplied,
 }: CalculatorViewProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
+  const learn = useLearn()
 
   // A shared calculation link pre-fills and auto-computes; mode-only links
   // (?m=profit) from PWA shortcuts just open the right calculator. A link always
   // beats a restored draft — the user clicked it on purpose.
   const shared = useMemo(() => parseModeShareQuery(window.location.search), [])
-  const restored = useMemo(() => (shared ? null : readDraft()), [shared])
+  const restored = useMemo(() => (shared || practice ? null : readDraft()), [shared, practice])
   const sharedRan = useRef(false)
 
   const [mode, setMode] = useState<ModeId>(() => shared?.mode ?? asModeId(restored?.mode) ?? 'profit')
@@ -136,13 +151,28 @@ export function CalculatorView({
   const draftWriter = useMemo(() => createDraftWriter(), [])
   useEffect(() => () => draftWriter.cancel(), [draftWriter])
   useEffect(() => {
+    if (practice) return
     draftWriter.save({ modes: states, mode, tab })
-  }, [states, mode, tab, draftWriter])
+  }, [states, mode, tab, draftWriter, practice])
+
+  /* A step that needs a particular mode gets it here rather than by asking the user to find it.
+   * Cleared straight away, so re-rendering for any other reason does not drag them back. */
+  useEffect(() => {
+    if (requestedMode === null) return
+    if (isModeId(requestedMode)) {
+      setPrevSegment(segmentIndexOf(mode))
+      setMode(requestedMode)
+    }
+    onModeApplied?.()
+    // `mode` is read, not depended on: re-running when the mode changes would fight the user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedMode, onModeApplied])
 
   const onSegmentChange = useCallback(
     (next: SegmentId) => {
       setPrevSegment(segmentIndexOf(mode))
       setMode(defaultModeOfSegment(next))
+      emitTour({ type: 'segment:change', segment: next })
       // Keep the viewport anchored — prevents the page-jump feel on mobile.
       if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
     },
@@ -168,8 +198,11 @@ export function CalculatorView({
     (kind: ProfitKind) => {
       if (kind === 'cash') {
         setMode('profit')
+        emitTour({ type: 'mode:change', mode: 'profit' })
         return
       }
+      // First time anyone prices an instalment deal, offer the one line that explains it.
+      learn?.tip('installments')
       const lastProfit = lastComputed.current.profit
       setStates((prev) => {
         if ((prev.installment['cash'] ?? '') !== '' || !lastProfit) return prev
@@ -181,8 +214,9 @@ export function CalculatorView({
         }
       })
       setMode('installment')
+      emitTour({ type: 'mode:change', mode: 'installment' })
     },
-    [],
+    [learn],
   )
 
   const translate = useCallback<Translate>((key, vars) => t(key, vars ?? {}), [t])
@@ -192,6 +226,7 @@ export function CalculatorView({
   const calculate = useCallback(
     async (saveToHistory = true) => {
       vibrate()
+      emitTour({ type: 'action', name: 'calculate' })
       const state = states[mode]
       // Instalment maths is a separate chunk; load it before validating so the
       // cross-field rules (down payment, whole instalment count) actually run.
@@ -222,20 +257,26 @@ export function CalculatorView({
 
       setResults((prev) => ({ ...prev, [mode]: display }))
       lastComputed.current[mode] = { ...snapshot, unit }
-      if (saveToHistory) {
+      emitTour({ type: 'result:shown', mode })
+      /* Practice writes no history. The demo shop is isolated, but `addHistoryEntry` is bound to
+       * the real database at import time, so the guard has to be here rather than in the sandbox. */
+      if (saveToHistory && !practice) {
         const { addHistoryEntry } = await import('../lib/db')
         await addHistoryEntry({ mode, inputs: snapshot.inputs, results: snapshot.results, unit, createdAt: now })
       }
     },
-    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, monthlyInflationPercent, roundingStep],
+    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, monthlyInflationPercent, roundingStep, practice],
   )
 
   const addToBasket = useCallback(async () => {
     const snap = lastComputed.current[mode]
     if (!snap) return
+    emitTour({ type: 'action', name: 'add-to-basket' })
+    // The real basket, and the badge that mirrors it, are off limits during a lesson.
+    if (practice) return
     const { addBasketItem } = await import('../lib/db')
     await addBasketItem({ mode, inputs: snap.inputs, results: snap.results, unit: snap.unit, createdAt: Date.now() })
-  }, [mode])
+  }, [mode, practice])
 
   // Auto-compute a shared link once (after the language is known), then clean the URL.
   useEffect(() => {
@@ -278,7 +319,13 @@ export function CalculatorView({
 
   const directionOptions = useMemo(
     () => [
-      { value: 'discount' as ModeId, label: (<><IconTag size={14} /> {t('discountDirection.forward')}</>) },
+      {
+        value: 'discount' as ModeId,
+        label: (<><IconTag size={14} /> {t('discountDirection.forward')}</>),
+        /* The top segmented control already owns `seg-discount`; two elements with one name
+           would leave the coach pointing at whichever the query found first. */
+        tour: null,
+      },
       { value: 'rdiscount' as ModeId, label: (<><IconTagReverse size={14} /> {t('discountDirection.reverse')}</>) },
     ],
     [t],
@@ -295,11 +342,14 @@ export function CalculatorView({
         value={SEGMENTS[segmentIndex] as SegmentId}
         onChange={onSegmentChange}
         options={modeOptions}
+        tourPrefix="seg-"
       />
 
       <AnimatePresence initial={false}>
         {isProfitSegment && (
           <SubControl key="profit-kind" reducedMotion={!!reducedMotion}>
+            <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
             <SegmentedControl<ProfitKind>
               layoutId="profit-kind"
               ariaLabel={t('modes.profit')}
@@ -307,7 +357,11 @@ export function CalculatorView({
               onChange={onProfitKindChange}
               options={profitKindOptions}
               size="sm"
+              tourPrefix="seg-"
             />
+            </div>
+            <HelpButton lesson="installments" />
+            </div>
           </SubControl>
         )}
         {isProfitSegment && isInstallment && (
@@ -316,9 +370,13 @@ export function CalculatorView({
               layoutId="installment-direction"
               ariaLabel={t('modes.installment')}
               value={mode}
-              onChange={setMode}
+              onChange={(next) => {
+                setMode(next)
+                emitTour({ type: 'mode:change', mode: next })
+              }}
               options={installmentDirectionOptions}
               size="sm"
+              tourPrefix="seg-"
             />
           </SubControl>
         )}
@@ -328,9 +386,13 @@ export function CalculatorView({
               layoutId="discount-direction"
               ariaLabel={t('modes.discount')}
               value={mode}
-              onChange={setMode}
+              onChange={(next) => {
+                setMode(next)
+                emitTour({ type: 'mode:change', mode: next })
+              }}
               options={directionOptions}
               size="sm"
+              tourPrefix="seg-"
             />
           </SubControl>
         )}
@@ -364,6 +426,7 @@ export function CalculatorView({
 
             <motion.button
               type="button"
+              data-tour="btn-calculate"
               onClick={() => void calculate()}
               whileTap={reducedMotion ? undefined : { scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}

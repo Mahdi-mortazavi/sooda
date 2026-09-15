@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { vibrate } from '../lib/haptics'
+import { emitTour } from '../learn/coach/events'
 
 export interface ChipOption {
   value: string
@@ -14,10 +15,17 @@ interface ChipRowProps {
   /** Unique per row so the sliding pill animates between this row's chips only. */
   layoutId: string
   ariaLabel: string
+  /** The row's `data-tour` name, e.g. `field-months`. */
+  tour?: string
+  /**
+   * The field id this row stands for. Names each chip `chip-<key>-<value>` for `data-tour`, and
+   * is the `group` of the `chip:select` event the row announces.
+   */
+  tourKey?: string
 }
 
 /** A scrollable row of glass pills with a sliding selection, for short fixed choices. */
-export function ChipRow({ options, value, onChange, layoutId, ariaLabel }: ChipRowProps) {
+export function ChipRow({ options, value, onChange, layoutId, ariaLabel, tour, tourKey }: ChipRowProps) {
   const scroller = useRef<HTMLDivElement>(null)
   const [overflowing, setOverflowing] = useState(false)
 
@@ -37,6 +45,7 @@ export function ChipRow({ options, value, onChange, layoutId, ariaLabel }: ChipR
   return (
     <div
       ref={scroller}
+      {...(tour === undefined ? {} : { 'data-tour': tour })}
       role="radiogroup"
       aria-label={ariaLabel}
       className={`-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
@@ -51,12 +60,14 @@ export function ChipRow({ options, value, onChange, layoutId, ariaLabel }: ChipR
           <button
             key={option.value}
             type="button"
+            {...(tourKey === undefined ? {} : { 'data-tour': `chip-${tourKey}-${option.value}` })}
             role="radio"
             aria-checked={selected}
             onClick={() => {
               if (selected) return
               vibrate()
               onChange(option.value)
+              if (tourKey !== undefined) emitTour({ type: 'chip:select', group: tourKey, value: option.value })
             }}
             className={`relative shrink-0 rounded-full px-3 py-1.5 text-[13.5px] font-semibold transition-colors duration-300 ${
               selected ? 'text-white dark:text-[hsl(168_90%_8%)]' : 'text-[var(--text-secondary)]'

@@ -192,6 +192,7 @@
   "tip": {
     "firstTime": "First time? A 60-second lesson.",
     "start": "Start",
-    "dismiss": "Dismiss this tip"
+    "dismiss": "Dismiss this tip",
+    "watch60": "Watch a 60-second lesson"
   }
 }

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { MS_PER_MONTH } from '../../lib/rates'
 import { productStatus } from '../../lib/products'
 import { usableObservations } from '../../lib/rates'
-import { buildSeed, SEED_PRODUCTS, SEED_PROFILE } from './seed'
+import { buildSeed, SEED_NAME_KEYS, SEED_PRODUCTS, SEED_PROFILE, SEED_TEXT_KEYS } from './seed'
 
 /** A fixed instant to date everything from: 1405-06-24, the day v1.5 was planned. */
 const NOW = Date.UTC(2026, 8, 15, 9, 0, 0)
@@ -28,7 +28,7 @@ describe('the demo shop', () => {
     const seed = buildSeed(NOW)
     seed.profile.categories.push('auto')
     expect(buildSeed(NOW).profile).toEqual(SEED_PROFILE)
-    expect(SEED_PROFILE.categories).toEqual(['food', 'home', 'beauty', 'stationery'])
+    expect(SEED_PROFILE.categories).toEqual(['food', 'digital', 'beauty', 'stationery'])
   })
 
   it('stocks five products with Persian names and toman prices', () => {
@@ -42,6 +42,46 @@ describe('the demo shop', () => {
       expect(product.price).toBeGreaterThan(0)
       expect(product.category).toBeTruthy()
     }
+  })
+
+  /* `category` is what the national price-rise figure is looked up by, so a miscategorised row
+   * makes the smartRates lesson explain a product with the wrong index — confidently. */
+  it('files every product under the division a shopkeeper would file it under', () => {
+    const { products } = buildSeed(NOW)
+    const byId = new Map(products.map((p) => [p.id, p.category]))
+    expect(byId.get(SEED_PRODUCTS.rice)).toBe('food')
+    expect(byId.get(SEED_PRODUCTS.oil)).toBe('food')
+    expect(byId.get(SEED_PRODUCTS.shampoo)).toBe('beauty')
+    expect(byId.get(SEED_PRODUCTS.notebook)).toBe('stationery')
+    // Batteries are communication/recreation equipment, not kitchenware.
+    expect(byId.get(SEED_PRODUCTS.battery)).toBe('digital')
+    // Every category the shop stocks is one the profile claims, or the estimate falls back.
+    for (const product of products) {
+      expect(SEED_PROFILE.categories).toContain(product.category)
+    }
+  })
+
+  /* The realProfit lesson teaches that a thin margin is where profit disappears first. It cannot
+   * teach it on a shop whose staples carry a stationer's markup. */
+  it('keeps staple margins thin and discretionary margins fat', () => {
+    const byId = new Map(buildSeed(NOW).products.map((p) => [p.id, p.targetMarginPercent]))
+    expect(byId.get(SEED_PRODUCTS.rice)).toBeLessThanOrEqual(15)
+    // Cooking oil is price-regulated: single digits is what a shopkeeper really gets.
+    expect(byId.get(SEED_PRODUCTS.oil)).toBeLessThan(10)
+    expect(byId.get(SEED_PRODUCTS.notebook)).toBeGreaterThanOrEqual(30)
+    expect(byId.get(SEED_PRODUCTS.shampoo)).toBeGreaterThanOrEqual(30)
+  })
+
+  it('prices the staples where a shopkeeper would recognise them', () => {
+    const byId = new Map(buildSeed(NOW).products.map((p) => [p.id, p]))
+    // Per kilo, from the 10 kg sack — the first figure a learner sees, and the one that costs
+    // trust if it is wrong.
+    const ricePerKilo = byId.get(SEED_PRODUCTS.rice)!.cost / 10
+    expect(ricePerKilo).toBeGreaterThan(180_000)
+    expect(ricePerKilo).toBeLessThan(280_000)
+    const oil = byId.get(SEED_PRODUCTS.oil)!
+    expect(oil.price).toBeGreaterThan(90_000)
+    expect(oil.price).toBeLessThan(140_000)
   })
 
   it('gives every product a history the estimator can actually learn from', () => {
@@ -73,6 +113,42 @@ describe('the demo shop', () => {
   it('numbers its observations from 1 with no gaps, so Dexie carries on from 6', () => {
     const { observations } = buildSeed(NOW)
     expect(observations.map((o) => o.id)).toEqual(observations.map((_, i) => i + 1))
+  })
+
+  it('translates every name and note through i18n, and defaults to the Persian', () => {
+    const shouty = buildSeed(NOW, (key) => key.toUpperCase())
+    expect(shouty.products.map((p) => p.name)).toEqual([
+      'LEARN.SANDBOX.PRODUCTS.RICE',
+      'LEARN.SANDBOX.PRODUCTS.OIL',
+      'LEARN.SANDBOX.PRODUCTS.SHAMPOO',
+      'LEARN.SANDBOX.PRODUCTS.NOTEBOOK',
+      'LEARN.SANDBOX.PRODUCTS.BATTERY',
+    ])
+    const noted = shouty.products.find((p) => p.note !== undefined)
+    expect(noted?.note).toBe('LEARN.SANDBOX.NOTES.STALEPRICE')
+    // A translator that has no string for a key gets the Persian back, never an empty row.
+    expect(buildSeed(NOW, (_key, fallback) => fallback).products).toEqual(buildSeed(NOW).products)
+  })
+
+  it('changes not one figure when the language does', () => {
+    const fa = buildSeed(NOW)
+    const en = buildSeed(NOW, (key) => key)
+    expect(en.observations).toEqual(fa.observations)
+    expect(en.products.map(({ name, note, ...figures }) => figures)).toEqual(
+      fa.products.map(({ name, note, ...figures }) => figures),
+    )
+  })
+
+  it('announces every key it uses, so `copy` has the whole list', () => {
+    const used = new Set<string>()
+    for (const product of buildSeed(NOW, (key) => key).products) {
+      used.add(product.name)
+      if (product.note !== undefined) used.add(product.note)
+    }
+    expect([...used].sort()).toEqual([...SEED_TEXT_KEYS].sort())
+    expect(Object.entries(SEED_NAME_KEYS).map(([id]) => Number(id)).sort()).toEqual(
+      Object.values(SEED_PRODUCTS).sort(),
+    )
   })
 
   it('leaves the rice losing money, which is the whole point of the first lesson', () => {

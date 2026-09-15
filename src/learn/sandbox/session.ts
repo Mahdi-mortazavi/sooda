@@ -13,7 +13,7 @@
 import type { ResultDisplay } from '../../lib/modes/types'
 import { createPracticeDb, destroyPracticeDb, type PracticeDb, type StorageBackend } from './db'
 import { createPracticeRepository, type PracticeRepository } from './repository'
-import { seedPractice } from './seed'
+import { seedPractice, type SeedTranslate } from './seed'
 import type { SandboxState } from './types'
 
 export interface PracticeOptions extends StorageBackend {
@@ -26,6 +26,17 @@ export interface PracticeOptions extends StorageBackend {
    * code rather than a copy of it. A row the learner has just written is a moment old either way.
    */
   now?: number
+  /**
+   * Resolves the demo shop's product names through i18n, so an English-locale learner is not
+   * reading five Persian rows inside English lesson text. The UI passes i18next's own `t`:
+   * `(key, fallback) => t(key, { defaultValue: fallback })`. Left out, the names are the Persian
+   * originals — which is what a test, or `scripts/lesson-examples.mjs`, wants.
+   *
+   * Names are resolved as the shop is seeded, so they are ordinary rows a learner can rename.
+   * A language switch mid-lesson therefore does not re-label them; `SEED_NAME_KEYS` is exported
+   * for a caller that would rather translate at render.
+   */
+  translate?: SeedTranslate
 }
 
 export interface PracticeSession {
@@ -118,7 +129,7 @@ async function openSession(options: PracticeOptions): Promise<EnterPracticeResul
     await destroyPracticeDb(null, backend)
     db = createPracticeDb(backend)
     await db.open()
-    await seedPractice(db, now)
+    await seedPractice(db, now, options.translate)
   } catch (error) {
     await destroyPracticeDb(db, backend)
     return { ok: false, reason: 'storage', error }

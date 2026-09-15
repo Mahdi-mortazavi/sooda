@@ -97,7 +97,8 @@
     "b2": "Price an installment deal without quietly losing money.",
     "b3": "Save your products and reprice them all at once.",
     "b4": "Interactive lessons: instead of reading, you do it yourself on a practice shop.",
-    "b5": "Stuck anywhere? The “?” beside it explains."
+    "b5": "Eight short lessons, each with a challenge — and the Sooda master badge for passing them all.",
+    "b6": "Stuck anywhere? The “?” beside it explains."
   },
   "installment": {
     "schedule": {
@@ -230,7 +231,7 @@
     "stepOf": "{{current}} / {{total}}",
     "skip": "Skip",
     "showMe": "Show me",
-    "stuck": "Whenever you’re ready, tap the highlighted part.",
+    "stuck": "A bit stuck? Tap the highlighted part.",
     "demoTap": "Tapping here",
     "demoType": "Typing {{value}}",
     "practiceNotice": "This is a practice shop — your own products and prices stay untouched.",
@@ -239,32 +240,32 @@
       "next": "Next",
       "back": "Back",
       "skip": "Not now",
-      "intro1Title": "Welcome to Sooda",
-      "intro1Body": "Clear prices and clear profit — no sign-up, no internet needed.",
-      "intro2Title": "Real profit, not paper profit",
-      "intro2Body": "You made 20% profit — but can that money buy the same goods again? That is the question Sooda answers.",
-      "intro3Title": "Everything stays on your phone",
-      "intro3Body": "No account, and nothing leaves your device.",
-      "goalTitle": "What would you most like help with?",
+      "intro1": "Think you made 20% profit? Sooda shows you the real profit.",
+      "intro2": "Installments, products and prices — all in one tap.",
+      "intro3": "Free, no sign-up, offline. Your numbers stay on your own phone.",
+      "goalTitle": "What do you mostly use Sooda for?",
       "goalHint": "Pick as many as you like — we will put those lessons first.",
-      "goalProfit": "Work out my profit",
-      "goalNoLoss": "Stop losing money",
-      "goalInstallments": "Sell on installments",
-      "goalPrices": "Keep my prices up to date",
+      "goalPricing": "Pricing what I sell",
+      "goalInstallments": "Selling on installments",
+      "goalProducts": "Managing my product prices",
+      "goalDiscounts": "Buying and discounts",
       "goalSave": "Continue",
-      "missionTitle": "Mission 1: Reza’s ten shawls",
-      "missionBody": "Reza paid 400,000 toman for each shawl and wants a 20% profit. Let’s work out his selling price together.",
+      "missionTitle": "Your first real profit",
+      "missionBody": "Reza bought a shawl for 100,000 toman and wants to make 20% profit.",
+      "missionDuration": "30 seconds",
       "missionCta": "Let’s go",
-      "missionDuration": "About a minute",
-      "stepMode": "First, choose “Profit %”.",
-      "stepCost": "Enter the purchase price: 400,000",
-      "stepProfit": "Now the profit you want: 20",
+      "stepCost": "Write the shawl’s purchase price here.",
+      "stepCostChip": "Enter 100,000",
+      "stepProfit": "Good! Now the profit he wants: 20.",
       "stepCalculate": "Tap “Calculate”.",
-      "stepResult": "The selling price is 480,000, and 80,000 of that is your profit.",
-      "doneTitle": "Done — your first calculation",
-      "doneBody": "That is all there is to it. The rest of the lessons are waiting in Learn Sooda whenever you want them.",
-      "doneCta": "See the lessons",
-      "doneSecondary": "I’ll look around myself"
+      "stepResult": "This is the price your customer sees.",
+      "stepMonths": "This shows when your money comes back. Tap “3 months”.",
+      "stepRealProfit": "Look: after 3 months, the real profit is less than that 20%.",
+      "doneBadge": "First step",
+      "doneTitle": "You have seen real profit",
+      "doneBody": "20% on paper, and what is actually left once you have bought the same goods again. That difference is what Sooda is for.",
+      "doneCtaOwn": "Try it with my own numbers",
+      "doneCtaMore": "More lessons"
     },
     "center": {
       "title": "Learn Sooda",
@@ -276,9 +277,9 @@
       "start": "Start",
       "resume": "Continue",
       "replay": "Again",
-      "durationShort": "Under a minute",
-      "duration_one": "About {{n}} minute",
-      "duration_other": "About {{n}} minutes"
+      "durationSec": "{{n}} seconds",
+      "duration_one": "{{n}} minute",
+      "duration_other": "{{n}} minutes"
     },
     "status": {
       "new": "New",
@@ -288,7 +289,7 @@
     },
     "mastery": {
       "heading": "Your Sooda mastery",
-      "progress": "{{n}} of {{total}} lessons done",
+      "progress": "{{n}} of {{total}} complete",
       "badge": "Sooda master",
       "badgeLocked": "Pass all eight challenges to earn the Sooda master badge.",
       "badgeEarned": "The Sooda master badge is yours — nicely done."
@@ -315,14 +316,14 @@
       "label": "Challenge",
       "answerLabel": "Your answer",
       "check": "Check my answer",
-      "correct": "That’s right — spot on.",
+      "correct": "Well done — that’s right.",
       "incorrect": "Not yet — let’s go back one step.",
       "hint": "Hint",
       "hintMore": "Another hint",
       "tryAgain": "Give it another go",
-      "showMeOffer": "Would you like me to show you, step by step?",
+      "showMeOffer": "A bit stuck? Let me show you, step by step.",
       "showMe": "Show me",
-      "takeawayLabel": "What you just learned",
+      "takeawayLabel": "Here is what you learned:",
       "next": "Next lesson",
       "finish": "Back to the lessons"
     },
@@ -341,6 +342,18 @@
       "freeA": "Yes, completely free and open source, under the MIT licence.",
       "practiceQ": "Do the lessons touch my real products?",
       "practiceA": "No. Every lesson runs on a separate practice shop that is deleted when you close it. Your products, history and settings stay exactly as they were."
+    },
+    "sandbox": {
+      "products": {
+        "rice": "Hashemi rice, premium, 10 kg",
+        "oil": "Sunflower oil, 1.8 L",
+        "shampoo": "Anti-dandruff shampoo, 400 ml",
+        "notebook": "Notebook, 100 sheets, hardcover",
+        "battery": "AA alkaline batteries, pack of 4"
+      },
+      "notes": {
+        "stalePrice": "Selling price still based on the previous purchase"
+      }
     }
   }
 }

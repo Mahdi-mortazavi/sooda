@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
-import { addProduct, requestPersistentStorage } from '../lib/products'
+import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { IconBookmarkPlus } from './Icons'
 import { Sheet } from './Sheet'
@@ -29,6 +30,9 @@ interface SaveProductSheetProps {
 export function SaveProductSheet({ open, onClose, draft, lang, onSaved }: SaveProductSheetProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
+  /* Never `lib/products`' bound exports: during a lesson this is the practice shop's repository,
+   * and `persist` is a no-op so the tutorial cannot trip the browser's storage prompt. */
+  const { repository, persist } = useRepository()
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -48,8 +52,8 @@ export function SaveProductSheet({ open, onClose, draft, lang, onSaved }: SavePr
     const trimmed = name.trim()
     try {
       // Best-effort: a browser that refuses persistence must not fail the save.
-      await requestPersistentStorage()
-      await addProduct({
+      await persist()
+      await repository.addProduct({
         name: trimmed,
         cost: draft.cost,
         targetMarginPercent: draft.targetMarginPercent,
@@ -58,6 +62,7 @@ export function SaveProductSheet({ open, onClose, draft, lang, onSaved }: SavePr
         costUpdatedAt: Date.now(),
       })
       vibrate()
+      emitTour({ type: 'action', name: 'save-product' })
       setName('')
       onSaved(trimmed)
       onClose()
@@ -70,6 +75,7 @@ export function SaveProductSheet({ open, onClose, draft, lang, onSaved }: SavePr
 
   return (
     <Sheet open={open} onClose={onClose} title={t('products.saveTitle')}>
+      <div data-tour="save-product-panel">
       <div className="glass glass-ring rounded-3xl px-5 py-3.5">
         <label htmlFor="save-product-name" className="block text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">
           {t('products.name')}
@@ -77,9 +83,13 @@ export function SaveProductSheet({ open, onClose, draft, lang, onSaved }: SavePr
         <input
           ref={inputRef}
           id="save-product-name"
+          data-tour="field-product-name"
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value)
+            emitTour({ type: 'field:change', field: 'product-name', value: e.target.value })
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
@@ -105,6 +115,7 @@ export function SaveProductSheet({ open, onClose, draft, lang, onSaved }: SavePr
 
       <motion.button
         type="button"
+        data-tour="btn-save-confirm"
         onClick={() => void onSave()}
         disabled={!canSave}
         whileTap={reducedMotion || !canSave ? undefined : { scale: 0.96 }}
@@ -113,6 +124,7 @@ export function SaveProductSheet({ open, onClose, draft, lang, onSaved }: SavePr
         <IconBookmarkPlus size={18} />
         {t('products.save')}
       </motion.button>
+      </div>
     </Sheet>
   )
 }

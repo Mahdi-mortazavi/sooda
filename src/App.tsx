@@ -21,6 +21,17 @@ import { readRoundingStep, storeRoundingStep, type RoundingStep } from './lib/ro
 import { parseModeShareQuery, parseTabQuery, type AppTab } from './lib/share'
 import { resolveLastSeenVersion, shouldShowWhatsNew, storeLastSeenVersion } from './lib/update'
 import { readStoredUnit, storeUnit, type Unit } from './lib/units'
+import { emitTour } from './learn/coach/events'
+import type { TourDestination } from './learn/coach/types'
+import {
+  LearnContext,
+  hasOnboarded,
+  parseLearnQuery,
+  tipAllowed,
+  type LearnApi,
+  type LearnRequest,
+} from './learn/ui/entry'
+import { RepositoryContext, type RepositoryValue } from './learn/ui/repositoryContext'
 
 declare const __APP_VERSION__: string
 
@@ -42,6 +53,9 @@ const WelcomeLanguage = lazy(() =>
 const InstallPrompt = lazy(() => import('./components/InstallPrompt').then((m) => ({ default: m.InstallPrompt })))
 // The check-in and store-setup sheets, and the writes behind them, load only once one is opened.
 const ShopSheets = lazy(() => import('./components/ShopSheets').then((m) => ({ default: m.ShopSheets })))
+/* The whole tutorial — the centre, onboarding, the coach, the sandbox, the progress store — is
+ * behind this one boundary. A shopkeeper who never opens a lesson never downloads a byte of it. */
+const LearnHost = lazy(() => import('./learn/ui/LearnHost').then((m) => ({ default: m.LearnHost })))
 
 function hasStoredLanguage(): boolean {
   try {
@@ -50,6 +64,20 @@ function hasStoredLanguage(): boolean {
   } catch {
     return true // storage unavailable — skip onboarding
   }
+}
+
+/**
+ * What the tutorial was asked for on this load, decided once.
+ *
+ * `?learn` wins, because the user tapped a link or a home-screen shortcut on purpose. Otherwise
+ * onboarding is offered only on a genuinely fresh install: `resolveLastSeenVersion()` is null only
+ * when no Sooda key of any kind was left behind, which is exactly how an upgrading user is told
+ * apart from a new one — they must never be shown a first-run flow for an app they already use.
+ */
+function initialLearnRequest(): LearnRequest | null {
+  const query = parseLearnQuery(window.location.search)
+  if (query !== null) return query === '' ? { kind: 'center' } : { kind: 'lesson', id: query }
+  return resolveLastSeenVersion() === null && !hasOnboarded() ? { kind: 'onboarding' } : null
 }
 
 export default function App() {
@@ -73,9 +101,34 @@ export default function App() {
    * would let a saved 'products' tab swallow an incoming ?m=…&a=…&b=… calculation. */
   const [tab, setTabState] = useState<AppTab>(() => parseTabQuery(window.location.search) ?? 'calculator')
 
+  /* ---- the tutorial ---- */
+
+  const [learnRequest, setLearnRequest] = useState<LearnRequest | null>(initialLearnRequest)
+  /* Non-null only while a lesson is running. Providing it swaps the repository every product and
+   * observation write goes through, so practice cannot reach the shopkeeper's own data. */
+  const [practice, setPractice] = useState<RepositoryValue | null>(null)
+  const [tip, setTip] = useState<string | null>(null)
+  /* A step may ask for a mode before it runs; the calculator owns `mode`, so the request is passed
+   * down and cleared once it has been applied. */
+  const [requestedMode, setRequestedMode] = useState<string | null>(null)
+
+  const learnApi = useMemo<LearnApi>(
+    () => ({
+      open: (lesson) => setLearnRequest(lesson === undefined ? { kind: 'center' } : { kind: 'lesson', id: lesson }),
+      tip: (id) => {
+        // Cheap enough to ask on every use: one localStorage read and a JSON parse, no chunk.
+        if (tipAllowed(id)) setTip(id)
+      },
+    }),
+    [],
+  )
+
+
   // The rates file and everything derived from it. Both hooks no-op until onboarding is done.
   const rates = useRates(!needsLang)
-  const checkIn = useCheckIn(rates.rates, !needsLang)
+  /* Frozen during practice: the check-in reads the real products and badges the app icon from
+   * them, and the plan forbids a lesson touching either. */
+  const checkIn = useCheckIn(rates.rates, !needsLang && practice === null)
 
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -130,6 +183,7 @@ export default function App() {
 
   const setTab = useCallback((next: AppTab) => {
     setTabState(next)
+    emitTour({ type: 'action', name: 'switch-tab' })
     // Keep the URL shareable and shortcut-addressable without adding history entries.
     const url = next === 'products' ? `${import.meta.env.BASE_URL}?tab=products` : import.meta.env.BASE_URL
     window.history.replaceState({}, '', url)
@@ -138,7 +192,36 @@ export default function App() {
   const openSettings = useCallback(() => {
     setSettingsMounted(true)
     setSettingsOpen(true)
+    emitTour({ type: 'sheet:open', sheet: 'settings' })
   }, [])
+
+  /**
+   * Puts the app where a lesson step needs it before that step runs — the coach's `navigate`.
+   *
+   * Only what App itself owns: the two tabs, the three header sheets, and the calculator's mode
+   * (which the calculator applies and then clears). A destination App cannot honour is ignored
+   * rather than guessed at; the step still shows, and the user can get there themselves.
+   */
+  const navigateForTour = useCallback(async (to: TourDestination): Promise<void> => {
+    if (to.tab !== undefined) setTab(to.tab)
+    if (to.mode !== undefined) setRequestedMode(to.mode)
+    if (to.sheet === 'settings') openSettings()
+    if (to.sheet === 'history') {
+      setHistoryMounted(true)
+      setHistoryOpen(true)
+    }
+    if (to.sheet === 'basket') {
+      setBasketMounted(true)
+      setBasketOpen(true)
+    }
+    if (to.sheet === 'check-in') setCheckInOpen(true)
+    if (to.sheet === 'store-profile') setProfileOpen(true)
+    /* One frame, so the sheet is mounted and the target measurable before the coach looks for it.
+     * The coach retries a missing target for a while anyway; this just avoids the first miss. */
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  }, [openSettings, setTab])
+
+  const closeLearn = useCallback(() => setLearnRequest(null), [])
 
   const onSaveProduct = useCallback((draft: ProductDraft) => {
     setSaveDraft(draft)
@@ -168,7 +251,9 @@ export default function App() {
         onClick: () => {
           setBasketMounted(true)
           setBasketOpen(true)
+          emitTour({ type: 'sheet:open', sheet: 'basket' })
         },
+        tour: 'btn-basket-open',
       },
       {
         key: 'history',
@@ -178,14 +263,28 @@ export default function App() {
         onClick: () => {
           setHistoryMounted(true)
           setHistoryOpen(true)
+          emitTour({ type: 'sheet:open', sheet: 'history' })
         },
+        tour: null,
       },
-      { key: 'settings', label: t('settings.open'), icon: <IconGear />, badge: 0, onClick: openSettings },
+      {
+        key: 'settings',
+        label: t('settings.open'),
+        icon: <IconGear />,
+        badge: 0,
+        onClick: openSettings,
+        tour: 'btn-settings',
+      },
     ],
     [t, basketCount, openSettings],
   )
 
   return (
+    /* The repository every product and observation write goes through. `practice` is non-null only
+     * while a lesson is running, and swapping it here is what keeps the demo shop off the
+     * shopkeeper's own data — see the plan's repository-injection rule. */
+    <RepositoryContext.Provider value={practice}>
+    <LearnContext.Provider value={learnApi}>
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 pb-28 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <AmbientBackground />
 
@@ -196,7 +295,7 @@ export default function App() {
         </div>
         <div className="mt-1 flex gap-1.5">
           {headerButtons.map((button) => (
-            <HeaderButton key={button.key} onClick={button.onClick} label={button.label}>
+            <HeaderButton key={button.key} onClick={button.onClick} label={button.label} tour={button.tour}>
               {button.icon}
               {button.badge > 0 && (
                 <span
@@ -213,9 +312,16 @@ export default function App() {
 
       {tab === 'calculator' ? (
         <CalculatorView
+          /* Remounted when practice starts or ends: a calculator carrying the shopkeeper's typed
+           * figures into a lesson — or the lesson's figures back out — would be the tutorial
+           * leaking in the one direction the sandbox cannot police. */
+          key={practice === null ? 'real' : 'practice'}
           lang={lang}
           unit={unit}
           ready={!needsLang}
+          practice={practice !== null}
+          requestedMode={requestedMode}
+          onModeApplied={() => setRequestedMode(null)}
           monthlyInflationPercent={monthlyInflationPercent}
           roundingStep={roundingStep}
           onOpenSettings={openSettings}
@@ -272,15 +378,32 @@ export default function App() {
       <Suspense fallback={null}>
         <FeatureBoundary label="a sheet">
         {(historyOpen || historyMounted) && (
-          <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} lang={lang} />
+          <HistorySheet
+            open={historyOpen}
+            onClose={() => {
+              setHistoryOpen(false)
+              emitTour({ type: 'sheet:close', sheet: 'history' })
+            }}
+            lang={lang}
+          />
         )}
         {(basketOpen || basketMounted) && (
-          <BasketSheet open={basketOpen} onClose={() => setBasketOpen(false)} lang={lang} />
+          <BasketSheet
+            open={basketOpen}
+            onClose={() => {
+              setBasketOpen(false)
+              emitTour({ type: 'sheet:close', sheet: 'basket' })
+            }}
+            lang={lang}
+          />
         )}
         {(settingsOpen || settingsMounted) && (
           <SettingsSheet
             open={settingsOpen}
-            onClose={() => setSettingsOpen(false)}
+            onClose={() => {
+              setSettingsOpen(false)
+              emitTour({ type: 'sheet:close', sheet: 'settings' })
+            }}
             lang={lang}
             onLanguageChange={(l) => void setLanguage(l)}
             themePreference={preference}
@@ -348,23 +471,48 @@ export default function App() {
         {needsLang && <WelcomeLanguage open={needsLang} onChoose={chooseLanguage} />}
         {installReady && <InstallPrompt state={install} ready={!needsLang} />}
       </Suspense>
+
+      {/* Held back until the language is known: the very first screen is the language choice, and
+        * onboarding written in the wrong one would be a worse welcome than none. */}
+      {!needsLang && (learnRequest !== null || tip !== null) ? (
+        <Suspense fallback={null}>
+          <FeatureBoundary label="the tutorial">
+            <LearnHost
+              request={learnRequest ?? { kind: 'center' }}
+              lang={lang}
+              rtl={lang === 'fa'}
+              onPractice={setPractice}
+              navigate={navigateForTour}
+              tip={tip}
+              onTipDismiss={() => setTip(null)}
+              onClose={closeLearn}
+            />
+          </FeatureBoundary>
+        </Suspense>
+      ) : null}
     </div>
+    </LearnContext.Provider>
+    </RepositoryContext.Provider>
   )
 }
 
 function HeaderButton({
   onClick,
   label,
+  tour,
   children,
 }: {
   onClick: () => void
   label: string
+  /** The `data-tour` name from `src/learn/lessons/targets.ts`, when a lesson points at it. */
+  tour?: string | null
   children: React.ReactNode
 }) {
   const reducedMotion = useReducedMotion()
   return (
     <motion.button
       type="button"
+      {...(tour ? { 'data-tour': tour } : {})}
       onClick={() => {
         vibrate()
         onClick()

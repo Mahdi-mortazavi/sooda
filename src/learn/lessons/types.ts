@@ -8,7 +8,7 @@
 
 import type { ProfitStatus } from '../../lib/inflation'
 import type { TourEvent } from '../coach/events'
-import type { LessonStep, SandboxState } from '../coach/types'
+import type { LessonStep, SandboxState, TourCtx } from '../coach/types'
 import type { TourTargetName } from './targets'
 
 export type LessonId =
@@ -75,6 +75,8 @@ export interface TaskChallenge extends ChallengeBase {
   target: TourTargetName
   done: (ev: TourEvent, state: SandboxState) => boolean
   demo: LessonDemo
+  /** Puts the shop where the task can be done — the same hook a step has, for the same reason. */
+  before?: (ctx: TourCtx) => void | Promise<void>
 }
 
 export type Challenge = NumberChallenge | ChoiceChallenge | TaskChallenge
@@ -117,8 +119,20 @@ export interface LessonExpected {
   everyday: { combinedProfit: number }
 }
 
-/** Figures a lesson *types in*, taken from the demo shop rather than invented. */
+/**
+ * Every value a lesson types in, as a string, in one place.
+ *
+ * A lesson file holds no figures at all: the ones that come out of the engine are derived, and
+ * the ones the story supplies (what «آقا رضا» paid, what the supplier now quotes) are declared
+ * once beside them, so a demo script and the `expect` that judges it can never drift apart.
+ */
 export interface LessonInputs {
-  realProfit: { cost: string; price: string }
+  profit: { cost: string; margin: string; sellPrice: string }
+  discount: { original: string; off: string; final: string }
+  realProfit: { cost: string; price: string; months: string; knownCost: string }
+  installments: { cash: string; count: string; flat: string }
+  /** `name` is the only non-number here: what «نشانم بده» types into the save sheet. */
+  products: { cost: string; margin: string; name: string; newCost: string; bulkPercent: string }
+  smartRates: { manualRate: string }
   everyday: { riceCost: string; riceMargin: string; oilCost: string; oilMargin: string }
 }

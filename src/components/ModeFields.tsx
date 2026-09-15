@@ -24,7 +24,7 @@ export function ModeFields({ mode, state, errors, lang, onChange }: ModeFieldsPr
   const fields = visibleFields(mode, state).filter((field) => field.group !== 'lens')
 
   return (
-    <div className="glass glass-ring rounded-3xl">
+    <div data-tour="calc-panel" className="glass glass-ring rounded-3xl">
       {fields.map((field, index) => (
         <Fragment key={field.key}>
           {index > 0 && <div aria-hidden className="mx-5 border-t border-[var(--separator)]" />}
@@ -71,6 +71,7 @@ function ModeField({
           value={value || (field.defaultValue ?? '')}
           onChange={(next) => onChange(field.key, next)}
           size="sm"
+          tourPrefix={`chip-${field.key}-`}
           options={(field.options ?? []).map((option, index) => ({ value: option, label: optionLabel(index, option) }))}
         />
       </div>
@@ -97,6 +98,8 @@ function ModeField({
           onChange={(next) => onChange(field.key, next === CUSTOM_CHIP ? '' : next)}
           layoutId={`${mode}-${field.key}`}
           ariaLabel={label}
+          tour={`field-${field.key}`}
+          tourKey={field.key}
         />
         {field.allowCustom && custom && (
           <div className="-mx-5 -mb-3.5 mt-1">
@@ -108,6 +111,9 @@ function ModeField({
               placeholder={t('fields.amountPlaceholder')}
               lang={lang}
               error={error ? t(`errors.${error}`) : null}
+              /* No `data-tour`: the chip row above already carries `field-<key>`, and a second
+                 element with the same name would make the coach point at whichever came first. */
+              tourField={field.key}
             />
           </div>
         )}
@@ -131,6 +137,8 @@ function ModeField({
       lang={lang}
       unit={isPercent ? t('fields.percentUnit') : undefined}
       error={error ? t(`errors.${error}`) : null}
+      tourField={field.key}
+      tour={`field-${field.key}`}
     />
   )
 }

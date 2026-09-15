@@ -5,6 +5,10 @@
  * Deterministic on purpose. Every timestamp is a fixed offset from the `now` handed in and every
  * cost is a literal, so a lesson's challenge answer is the same figure today and next Ordibehesht.
  * Change a number here and `scripts/lesson-examples.mjs` will disagree with the lesson files.
+ *
+ * Names are the exception, and deliberately so: they go through i18n, because an English-locale
+ * learner reading English lesson text must not be looking at five Persian rows. A name is not a
+ * figure — translating one cannot move an answer — so the seed stays reproducible either way.
  */
 
 import type { Observation, ObservationSource, Product, StoreProfile } from '../../lib/db'
@@ -22,6 +26,27 @@ export const SEED_PRODUCTS = {
   battery: 5,
 } as const
 
+/**
+ * How a name reaches the shop. The UI passes i18next's own `t`:
+ * `(key, fallback) => t(key, { defaultValue: fallback })`.
+ *
+ * The default returns the Persian fallback, so `buildSeed(now)` on its own — in a test, or in
+ * `scripts/lesson-examples.mjs` — is still a pure function of `now`.
+ */
+export type SeedTranslate = (key: string, fallback: string) => string
+
+const PERSIAN: SeedTranslate = (_key, fallback) => fallback
+
+/** Every key the demo shop needs, in one place, so `copy` can see the whole list at a glance. */
+export const SEED_TEXT_KEYS = [
+  'learn.sandbox.products.rice',
+  'learn.sandbox.products.oil',
+  'learn.sandbox.products.shampoo',
+  'learn.sandbox.products.notebook',
+  'learn.sandbox.products.battery',
+  'learn.sandbox.notes.stalePrice',
+] as const
+
 /** The step the demo shop prices on — 1,000 toman, the default a corner shop would pick. */
 const SEED_ROUNDING: RoundingStep = 1000
 
@@ -36,6 +61,8 @@ interface SeedReading {
 
 interface SeedSpec {
   id: number
+  /** The i18n key the name is looked up under; `name` is the Persian text and the fallback. */
+  nameKey: string
   name: string
   category: CategoryId
   targetMarginPercent: number
@@ -44,6 +71,7 @@ interface SeedSpec {
    * the lesson about profit not surviving a restock needs something that is actually losing money.
    */
   pricedOn: 'first' | 'last'
+  noteKey?: string
   note?: string
   readings: SeedReading[]
 }
@@ -53,31 +81,40 @@ interface SeedSpec {
 const SEED: SeedSpec[] = [
   {
     id: SEED_PRODUCTS.rice,
-    name: 'برنج هاشمی درجه یک (کیسه ۱۰ کیلویی)',
+    nameKey: 'learn.sandbox.products.rice',
+    name: 'برنج هاشمی درجه یک ۱۰ کیلویی',
     category: 'food',
-    targetMarginPercent: 18,
+    /* Staples run thin — 8–15%, not the 18% an earlier draft had. The margin is not decoration:
+     * the realProfit lesson teaches that a thin margin is where profit disappears first, and it
+     * has to teach it on a product whose margin is genuinely thin. */
+    targetMarginPercent: 12,
     pricedOn: 'first',
-    note: 'قیمت فروش از خرید قبلی مانده',
+    noteKey: 'learn.sandbox.notes.stalePrice',
+    note: 'قیمت فروش روی خرید قبلی مانده',
     readings: [
-      { monthsAgo: 5, cost: 2_850_000, source: 'save' },
-      { monthsAgo: 3, cost: 3_050_000, source: 'update' },
-      { monthsAgo: 1, cost: 3_300_000, source: 'update' },
+      { monthsAgo: 5, cost: 2_150_000, source: 'save' },
+      { monthsAgo: 3, cost: 2_300_000, source: 'update' },
+      { monthsAgo: 1, cost: 2_480_000, source: 'update' },
     ],
   },
   {
     id: SEED_PRODUCTS.oil,
-    name: 'روغن آفتابگردان ۱.۸ لیتری',
+    nameKey: 'learn.sandbox.products.oil',
+    // «روغن» alone reads as روغن جامد, or as motor oil.
+    name: 'روغن مایع آفتابگردان ۱.۸ لیتری',
     category: 'food',
-    targetMarginPercent: 15,
+    // Price-regulated: the margin a shopkeeper actually gets on it is single digits.
+    targetMarginPercent: 8,
     pricedOn: 'last',
     readings: [
-      { monthsAgo: 4, cost: 148_000, source: 'save' },
-      { monthsAgo: 2, cost: 156_000, source: 'update' },
-      { monthsAgo: 1, cost: 165_000, source: 'checkin' },
+      { monthsAgo: 4, cost: 98_000, source: 'save' },
+      { monthsAgo: 2, cost: 108_000, source: 'update' },
+      { monthsAgo: 1, cost: 118_000, source: 'checkin' },
     ],
   },
   {
     id: SEED_PRODUCTS.shampoo,
+    nameKey: 'learn.sandbox.products.shampoo',
     name: 'شامپو ضدشوره ۴۰۰ میلی‌لیتری',
     category: 'beauty',
     targetMarginPercent: 35,
@@ -91,20 +128,25 @@ const SEED: SeedSpec[] = [
   },
   {
     id: SEED_PRODUCTS.notebook,
+    nameKey: 'learn.sandbox.products.notebook',
     name: 'دفتر ۱۰۰ برگ جلد سخت',
     category: 'stationery',
     targetMarginPercent: 40,
     pricedOn: 'last',
     readings: [
-      { monthsAgo: 6, cost: 95_000, source: 'save' },
-      { monthsAgo: 4, cost: 104_000, source: 'update' },
-      { monthsAgo: 2, cost: 112_000, source: 'update' },
+      { monthsAgo: 6, cost: 62_000, source: 'save' },
+      { monthsAgo: 4, cost: 70_000, source: 'update' },
+      { monthsAgo: 2, cost: 78_000, source: 'update' },
     ],
   },
   {
     id: SEED_PRODUCTS.battery,
-    name: 'باتری قلمی آلکالاین (بسته ۴ عددی)',
-    category: 'home',
+    nameKey: 'learn.sandbox.products.battery',
+    name: 'باتری قلمی آلکالاین ۴ عددی',
+    /* 'digital' — the CPI division for communication and recreation equipment — not 'home'.
+     * `category` is what the national price-rise figure is looked up by, so filing batteries
+     * under kitchenware would have the smartRates lesson explain them with the wrong index. */
+    category: 'digital',
     targetMarginPercent: 25,
     pricedOn: 'last',
     readings: [
@@ -117,9 +159,14 @@ const SEED: SeedSpec[] = [
 /** The demo shopkeeper's setup. Food first, because that is what most of the shelf is. */
 export const SEED_PROFILE: StoreProfile = {
   id: 'me',
-  categories: ['food', 'home', 'beauty', 'stationery'],
+  categories: ['food', 'digital', 'beauty', 'stationery'],
   importDependency: 0.5,
 }
+
+/** Product id → the i18n key its name lives under, for a caller that re-labels at render time. */
+export const SEED_NAME_KEYS: Record<number, string> = Object.fromEntries(
+  SEED.map((spec) => [spec.id, spec.nameKey]),
+)
 
 export interface SeedData {
   products: Product[]
@@ -136,7 +183,7 @@ function at(now: number, monthsAgo: number): number {
  * Pure: the whole demo shop as rows, dated against `now`. No database, no clock of its own —
  * which is what makes a lesson's expected answer computable in a script and testable here.
  */
-export function buildSeed(now: number): SeedData {
+export function buildSeed(now: number, translate: SeedTranslate = PERSIAN): SeedData {
   const products: Product[] = []
   const observations: Observation[] = []
   let observationId = 1
@@ -161,14 +208,15 @@ export function buildSeed(now: number): SeedData {
     }
 
     const basis = spec.pricedOn === 'first' ? first : last
+    const note = spec.noteKey === undefined || spec.note === undefined ? spec.note : translate(spec.noteKey, spec.note)
     products.push({
       id: spec.id,
-      name: spec.name,
+      name: translate(spec.nameKey, spec.name),
       cost: last.cost,
       targetMarginPercent: spec.targetMarginPercent,
       price: roundUpTo(basis.cost * (1 + spec.targetMarginPercent / 100), SEED_ROUNDING),
       unit: 'toman',
-      ...(spec.note === undefined ? {} : { note: spec.note }),
+      ...(note === undefined ? {} : { note }),
       costUpdatedAt: at(now, last.monthsAgo),
       category: spec.category,
       createdAt: at(now, first.monthsAgo),
@@ -183,8 +231,8 @@ export function buildSeed(now: number): SeedData {
  * Writes the demo shop into a freshly created practice database, in one transaction: a half-seeded
  * shop would have a lesson explaining figures that are not on the screen.
  */
-export async function seedPractice(db: PracticeDb, now: number): Promise<SeedData> {
-  const seed = buildSeed(now)
+export async function seedPractice(db: PracticeDb, now: number, translate?: SeedTranslate): Promise<SeedData> {
+  const seed = buildSeed(now, translate)
   await db.transaction('rw', db.products, db.observations, db.storeProfile, async () => {
     await db.products.bulkAdd(seed.products)
     await db.observations.bulkAdd(seed.observations)
