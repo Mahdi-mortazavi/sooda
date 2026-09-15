@@ -7,6 +7,10 @@ import pkg from './package.json'
 
 const BASE = '/sooda/'
 
+// @types/node is intentionally not a dependency (tsconfig limits `types` to the
+// vite clients), so declare the sliver of process the commit stamp needs.
+declare const process: { env: Record<string, string | undefined> }
+
 /**
  * Inlines the built stylesheet into index.html, removing a render-blocking
  * request on first load. Font URLs in the CSS are absolute, so relocation is safe.
@@ -45,6 +49,30 @@ function inlineCss(): Plugin {
   }
 }
 
+/**
+ * Emits dist/version.json so a deployed build can be identified over the network
+ * without unpacking the bundle — the post-deploy check reads it to confirm the
+ * new release is actually live.
+ */
+function versionManifest(): Plugin {
+  return {
+    name: 'sooda:version-manifest',
+    apply: 'build',
+    generateBundle() {
+      const source = `${JSON.stringify(
+        {
+          version: pkg.version,
+          commit: process.env.GITHUB_SHA ?? process.env.SOODA_COMMIT ?? 'local',
+          builtAt: new Date().toISOString(),
+        },
+        null,
+        2,
+      )}\n`
+      this.emitFile({ type: 'asset', fileName: 'version.json', source })
+    },
+  }
+}
+
 export default defineConfig({
   base: BASE,
   define: {
@@ -54,6 +82,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     inlineCss(),
+    versionManifest(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'og.png'],
@@ -98,10 +127,19 @@ export default defineConfig({
             url: `${BASE}?m=discount`,
             icons: [{ src: 'shortcut-discount.png', sizes: '192x192', type: 'image/png' }],
           },
+          {
+            name: 'My products · کالاهای من',
+            short_name: 'Products',
+            url: `${BASE}?tab=products`,
+            icons: [{ src: 'shortcut-products.png', sizes: '192x192', type: 'image/png' }],
+          },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
+        // version.json must always come from the network, otherwise a post-deploy
+        // check would read the precached copy and never see the new release.
+        globIgnores: ['**/version.json'],
         navigateFallback: `${BASE}index.html`,
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,

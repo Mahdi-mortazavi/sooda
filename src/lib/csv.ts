@@ -1,4 +1,5 @@
 import type { HistoryEntry } from './db'
+import { at } from './numbers'
 
 function escapeCell(value: string): string {
   return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
@@ -12,10 +13,10 @@ export function buildHistoryCsv(entries: HistoryEntry[], headers: string[], mode
       [
         new Date(e.createdAt).toISOString(),
         modeLabels[e.mode] ?? e.mode,
-        String(e.inputs[0]),
-        String(e.inputs[1]),
-        String(e.results[0]),
-        String(e.results[1]),
+        String(at(e.inputs, 0)),
+        String(at(e.inputs, 1)),
+        String(at(e.results, 0)),
+        String(at(e.results, 1)),
         e.unit && e.unit !== 'none' ? e.unit : '',
       ]
         .map(escapeCell)

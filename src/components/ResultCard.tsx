@@ -4,23 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { vibrate } from '../lib/haptics'
 import type { AppLanguage } from '../lib/numbers'
 import { formatNumber } from '../lib/numbers'
+import type { ResultDisplay } from '../lib/modes/types'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { CountUp } from './CountUp'
 import { IconBasketPlus, IconCheck, IconCopy, IconLink } from './Icons'
 
-export interface ResultDisplay {
-  key: string
-  primaryLabel: string
-  primaryValue: number
-  /** Set for percentage results (the ٪/% sign); money results use the active unit instead. */
-  primaryUnit?: string
-  secondaryLabel: string
-  secondaryValue: number
-  secondaryUnit?: string
-  isLoss: boolean
-  notice?: string
-  copyText: string
-}
+/* ResultDisplay is produced by the mode registry's pure `present` functions and only
+ * rendered here, so it lives with the other mode types. Re-exported for existing importers. */
+export type { ResultDisplay }
 
 /** Subtle SVG refraction shine that sweeps across the glass. */
 function RefractionShine() {

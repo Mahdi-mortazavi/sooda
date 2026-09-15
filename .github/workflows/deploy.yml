@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 # Deploys by publishing dist/ to the gh-pages branch. GitHub enables Pages
@@ -34,10 +35,20 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: i18n parity
+        run: npm run i18n:check
+
       - name: Build
         run: npm run build
+        env:
+          # Stamped into dist/version.json so a deploy can be identified over the wire.
+          SOODA_COMMIT: ${{ github.sha }}
+
+      - name: Bundle budget
+        run: npm run budget
 
       - name: Deploy to gh-pages
+        if: github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

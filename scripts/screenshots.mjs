@@ -82,7 +82,10 @@ const fill = (a, b, calcRe) => async (page) => {
 
 const pickSegment = (index) => async (page) => {
   await page.locator('[role="tablist"]').first().locator('[role="tab"]').nth(index).click()
-  await page.waitForTimeout(800)
+  // Switching segments runs two shared-layout springs at once (the indicator and the
+  // sliding panel) plus the sub-control's height spring; 800ms caught them mid-flight
+  // and made the discount shots differ run to run.
+  await page.waitForTimeout(1400)
 }
 
 const addToBasket = (re) => async (page) => {

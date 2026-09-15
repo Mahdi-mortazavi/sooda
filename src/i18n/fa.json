@@ -7,7 +7,9 @@
     "profit": "درصد سود",
     "sell": "قیمت فروش",
     "discount": "تخفیف",
-    "rdiscount": "تخفیف معکوس"
+    "rdiscount": "تخفیف معکوس",
+    "installment": "اقساطی",
+    "rinstallment": "بررسی اقساط"
   },
   "fields": {
     "purchasePrice": "قیمت خرید",
@@ -54,27 +56,9 @@
     "notPositive": "باید بزرگ‌تر از صفر باشد",
     "tooLarge": "این عدد خیلی بزرگ است",
     "discountRange": "تخفیف باید بین ۰ تا ۱۰۰ باشد",
-    "reverseDiscountRange": "تخفیف باید از ۰ تا کمتر از ۱۰۰ باشد"
-  },
-  "history": {
-    "title": "تاریخچه",
-    "open": "بازکردن تاریخچه",
-    "searchPlaceholder": "جست‌وجو در تاریخچه…",
-    "empty": {
-      "title": "هنوز خبری نیست",
-      "body": "محاسبه‌های شما این‌جا نمایش داده می‌شوند — به‌صورت خصوصی روی همین دستگاه."
-    },
-    "noMatches": "نتیجه‌ای مطابق جست‌وجو پیدا نشد.",
-    "deleteEntry": "حذف این مورد",
-    "csvHeaders": [
-      "تاریخ",
-      "حالت",
-      "ورودی ۱",
-      "ورودی ۲",
-      "نتیجه ۱",
-      "نتیجه ۲",
-      "واحد"
-    ]
+    "reverseDiscountRange": "تخفیف باید از ۰ تا کمتر از ۱۰۰ باشد",
+    "downPaymentTooHigh": "پیش‌پرداخت باید کمتر از قیمت نقدی باشد",
+    "installmentCountInvalid": "تعداد اقساط باید عدد صحیح باشد"
   },
   "settings": {
     "title": "تنظیمات",
@@ -110,28 +94,54 @@
     "iosStep3": "روی «Add» بزنید — تمام! سودا حالا مثل یک اپ واقعی آفلاین کار می‌کند.",
     "dismiss": "بستن پیشنهاد نصب"
   },
-  "basket": {
-    "title": "سبد محاسبه",
-    "open": "بازکردن سبد",
-    "add": "افزودن به سبد",
-    "added": "به سبد اضافه شد!",
-    "empty": {
-      "title": "سبد خالی است",
-      "body": "یک محاسبه انجام دهید و روی نتیجه دکمهٔ سبد را بزنید تا چند قلم را با هم جمع کنید."
-    },
-    "items": "قلم",
-    "deleteItem": "حذف از سبد",
-    "totals": "جمع کل",
-    "totalCost": "جمع قیمت خرید",
-    "totalRevenue": "جمع فروش",
-    "totalProfit": "سود کل",
-    "totalLoss": "زیان کل",
-    "overallMargin": "حاشیه سود کل",
-    "totalOriginal": "جمع قیمت اصلی",
-    "totalPay": "جمع پرداختی شما",
-    "totalSaved": "جمع صرفه‌جویی",
-    "sellerSection": "فروش‌ها",
-    "shopperSection": "خریدها"
+  "lens": {
+    "title": "پول‌تان کی برمی‌گردد؟",
+    "now": "الان",
+    "m1": "۱ ماه",
+    "m3": "۳ ماه",
+    "m6": "۶ ماه",
+    "m12": "۱۲ ماه",
+    "sourceKnown": "قیمت خرید فعلی را می‌دانم",
+    "sourceInflation": "با تورم تخمین بزن",
+    "replacementField": "قیمت خرید امروز",
+    "inflationChip": "تورم سالانه {{percent}} ›",
+    "blockTitle": "سود واقعی",
+    "nominalProfit": "سود ظاهری",
+    "realProfit": "سود واقعی",
+    "statusHealthy": "سالم",
+    "statusThin": "کم‌سود",
+    "statusLosing": "زیان‌ده",
+    "losingNotice": "با این قیمت نمی‌توانید همین جنس را دوباره بخرید.",
+    "explainer": "اگر پول‌تان {{months}} ماه بعد برگردد، خرید دوبارهٔ همین جنس حدود {{amount}} تمام می‌شود.",
+    "suggestedPrice": "قیمت پیشنهادی",
+    "gapVsNaive": "بیشتر از قیمت ساده",
+    "replacementCost": "هزینهٔ خرید دوباره",
+    "exact": "دقیق: {{value}}"
+  },
+  "installment": {
+    "cash": "نقدی",
+    "installments": "اقساطی",
+    "forward": "چقدر اضافه بگیرم؟",
+    "reverse": "شرایط فعلی‌ام سودده است؟",
+    "cashPrice": "قیمت نقدی",
+    "count": "تعداد اقساط",
+    "countCustom": "دلخواه",
+    "downPayment": "پیش‌پرداخت",
+    "downPaymentAmount": "مبلغ",
+    "downPaymentPercent": "درصد",
+    "flatMonthlyInput": "درصد ماهانه‌ای که می‌گیرید",
+    "monthly": "قسط ماهانه",
+    "total": "جمع دریافتی",
+    "markup": "درصد اضافه لازم",
+    "flatMonthly": "معادل سود سادهٔ ماهانه",
+    "explainer": "این مقدار فقط برای این است که ضرر نکنید؛ سود شما در قیمت نقدی است.",
+    "realGain": "سود واقعی نسبت به فروش نقدی",
+    "realLoss": "زیان واقعی نسبت به فروش نقدی",
+    "presentValue": "این پول‌ها امروز چقدر می‌ارزد"
+  },
+  "tabs": {
+    "calculator": "ماشین‌حساب",
+    "products": "کالاهای من"
   },
   "dev": {
     "craftedBy": "ساخته‌شده با 💚 توسط",

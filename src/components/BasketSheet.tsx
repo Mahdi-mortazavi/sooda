@@ -2,11 +2,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { computeBasketTotals, type BasketTotals } from '../lib/basket'
 import { clearBasket, db, deleteBasketItem, type BasketItem } from '../lib/db'
 import { vibrate } from '../lib/haptics'
-import { formatNumber, type AppLanguage } from '../lib/numbers'
+import { at, formatNumber, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit, unitShortLabel, type Unit } from '../lib/units'
 import { IconBasket, IconPercent, IconScale, IconTag, IconTagReverse, IconTrash } from './Icons'
 import { Sheet } from './Sheet'
@@ -198,21 +199,21 @@ function BasketRow({
   const fmt = (v: number) => formatNumber(v, lang)
   const fmtU = (v: number) => formatAmountWithUnit(v, lang, unit)
   const pct = t('fields.percentUnit')
-  const isLoss = item.mode === 'sell' && item.results[1] < 0
+  const isLoss = item.mode === 'sell' && at(item.results, 1) < 0
 
   let summary: string
   switch (item.mode) {
     case 'profit':
-      summary = `${fmt(item.inputs[0])} + ${fmt(item.inputs[1])}${pct} → ${fmtU(item.results[0])}`
+      summary = `${fmt(at(item.inputs, 0))} + ${fmt(at(item.inputs, 1))}${pct} → ${fmtU(at(item.results, 0))}`
       break
     case 'sell':
-      summary = `${fmt(item.inputs[0])} → ${fmt(item.inputs[1])} = ${fmt(item.results[0])}${pct}`
+      summary = `${fmt(at(item.inputs, 0))} → ${fmt(at(item.inputs, 1))} = ${fmt(at(item.results, 0))}${pct}`
       break
     case 'discount':
-      summary = `${fmt(item.inputs[0])} − ${fmt(item.inputs[1])}${pct} → ${fmtU(item.results[0])}`
+      summary = `${fmt(at(item.inputs, 0))} − ${fmt(at(item.inputs, 1))}${pct} → ${fmtU(at(item.results, 0))}`
       break
     case 'rdiscount':
-      summary = `${fmt(item.inputs[0])} @ ${fmt(item.inputs[1])}${pct} → ${fmtU(item.results[0])}`
+      summary = `${fmt(at(item.inputs, 0))} @ ${fmt(at(item.inputs, 1))}${pct} → ${fmtU(at(item.results, 0))}`
       break
   }
 

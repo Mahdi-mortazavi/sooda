@@ -14,6 +14,8 @@
     "test:watch": "vitest",
     "assets": "node scripts/generate-assets.mjs",
     "screenshots": "node scripts/screenshots.mjs",
+    "budget": "node scripts/bundle-budget.mjs",
+    "i18n:check": "node scripts/i18n-parity.mjs",
     "verify": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

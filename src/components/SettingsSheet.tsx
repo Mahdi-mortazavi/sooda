@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import '../i18n/sheets'
 import type { ThemePreference } from '../hooks/useTheme'
 import { clearHistory } from '../lib/db'
 import { vibrate } from '../lib/haptics'

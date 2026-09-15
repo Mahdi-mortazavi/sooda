@@ -2,11 +2,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { buildHistoryCsv, downloadCsv } from '../lib/csv'
 import { clearHistory, db, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
 import { vibrate } from '../lib/haptics'
-import { formatNumber, normalizeDigits, type AppLanguage } from '../lib/numbers'
+import { at, formatNumber, normalizeDigits, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit } from '../lib/units'
 import { IconClock, IconDownload, IconPercent, IconScale, IconSearch, IconTag, IconTagReverse, IconTrash } from './Icons'
 import { Sheet } from './Sheet'
@@ -201,17 +202,17 @@ function HistoryItem({
   let isLoss = false
   switch (entry.mode) {
     case 'profit':
-      summary = `${fmt(entry.inputs[0])} + ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
+      summary = `${fmt(at(entry.inputs, 0))} + ${fmt(at(entry.inputs, 1))}${pct} ${arrow} ${fmtU(at(entry.results, 0))}`
       break
     case 'sell':
-      isLoss = entry.results[1] < 0
-      summary = `${fmt(entry.inputs[0])} ${arrow} ${fmt(entry.inputs[1])} = ${fmt(entry.results[0])}${pct}`
+      isLoss = at(entry.results, 1) < 0
+      summary = `${fmt(at(entry.inputs, 0))} ${arrow} ${fmt(at(entry.inputs, 1))} = ${fmt(at(entry.results, 0))}${pct}`
       break
     case 'discount':
-      summary = `${fmt(entry.inputs[0])} − ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
+      summary = `${fmt(at(entry.inputs, 0))} − ${fmt(at(entry.inputs, 1))}${pct} ${arrow} ${fmtU(at(entry.results, 0))}`
       break
     case 'rdiscount':
-      summary = `${fmt(entry.inputs[0])} @ ${fmt(entry.inputs[1])}${pct} ${arrow} ${fmtU(entry.results[0])}`
+      summary = `${fmt(at(entry.inputs, 0))} @ ${fmt(at(entry.inputs, 1))}${pct} ${arrow} ${fmtU(at(entry.results, 0))}`
       break
   }
 
