@@ -337,7 +337,7 @@ export default function App() {
           lang={lang}
           unit={unit}
           ready={!needsLang}
-          practice={practice !== null}
+          practiceDb={practice?.db ?? null}
           requestedMode={requestedMode}
           onModeApplied={() => setRequestedMode(null)}
           /* A lesson pins both, so its figures cannot move when a maintainer updates a CPI

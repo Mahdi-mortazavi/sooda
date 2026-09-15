@@ -7,8 +7,7 @@
  * Only starting one reaches through here.
  */
 
-import type { LessonStep } from '../coach/types'
-import type { Lesson } from '../lessons/types'
+import type { Lesson, Mission } from '../lessons/types'
 import type { LessonId } from './types'
 
 export type LessonDefinition = Lesson
@@ -19,34 +18,12 @@ export type LessonDefinition = Lesson
  * It never enters `LESSON_IDS`, never gets a card in the centre and never touches the progress
  * store's lesson map: it is the welcome, not a lesson someone can pass. `lessons` owns the script.
  */
-export interface MissionDefinition {
-  steps: LessonStep[]
-  /** «آقا رضا شالی را ۱۰۰٬۰۰۰ تومان خریده…» — the story card, shown before the first step. */
-  storyKey: string
-  /** The suggestion chip offered beside a field on the first step. */
-  suggestion?: { field: string; value: string; labelKey: string }
-}
+export type MissionDefinition = Mission
 
-/**
- * Fetches Mission 1.
- *
- * The suggestion chip is assembled here rather than declared on `Mission`: its value is already
- * in `LESSON_INPUTS.mission.cost`, which is what the mission's own first step is judged against,
- * and a second copy of the figure beside it is a second thing to keep in step with the engine.
- */
+/** Fetches Mission 1. Handed over whole — every figure in it is the engine's, including the chip's. */
 export async function loadMission(): Promise<MissionDefinition | null> {
   try {
-    const module = await import('../lessons')
-    const mission = module.loadMission()
-    return {
-      steps: mission.steps,
-      storyKey: mission.storyKey,
-      suggestion: {
-        field: 'cost',
-        value: module.LESSON_INPUTS.mission.cost,
-        labelKey: 'learn.mission.suggestCost',
-      },
-    }
+    return (await import('../lessons')).loadMission()
   } catch {
     return null
   }

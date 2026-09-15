@@ -128,11 +128,9 @@ export function NumberField({
           data-tour={`chip-suggest-${suggestion.field}`}
           onClick={() => {
             onChange(suggestion.value)
-            /* Both events, because the step after this one waits on the commit a blur would
-               normally give — a chip that filled the field silently would stall the mission. */
+            /* A change, not a commit: nothing was focused, so nothing will blur. `filled()` — the
+               predicate a suggestion step is written with — accepts either, for exactly this. */
             emitTour({ type: 'field:change', field: suggestion.field, value: suggestion.value })
-            const parsed = parseAmount(suggestion.value)
-            if (Number.isFinite(parsed)) emitTour({ type: 'field:commit', field: suggestion.field, value: parsed })
           }}
           className="mt-2 rounded-full bg-accent-500/16 px-3 py-1 text-[13px] font-bold text-[var(--accent-text)]"
         >

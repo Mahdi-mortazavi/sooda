@@ -5,8 +5,9 @@ import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { buildHistoryCsv, downloadCsv } from '../lib/csv'
-import { clearHistory, db, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
+import { clearHistory, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
 import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
 import { LessonLink } from '../learn/ui/LessonLink'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, normalizeDigits, type AppLanguage } from '../lib/numbers'
@@ -28,7 +29,10 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
   const [confirmingClear, setConfirmingClear] = useState(false)
   const reducedMotion = useReducedMotion()
 
-  const entries = useLiveQuery(() => db.history.orderBy('createdAt').reverse().toArray(), [], undefined)
+  /* The practice shop's history during a lesson. Lesson 7 calculates twice and then exports the
+   * result — on the real store that would have handed the learner a CSV of their own trading. */
+  const { db, practice } = useRepository()
+  const entries = useLiveQuery(() => db.history.orderBy('createdAt').reverse().toArray(), [db], undefined)
 
   const modeLabels: Record<Mode, string> = {
     profit: t('modes.profit'),
@@ -74,8 +78,13 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
   const onClearAll = async () => {
     vibrate()
     emitTour({ type: 'action', name: 'clear-history' })
-    await clearHistory()
+    await (practice ? db.history.clear() : clearHistory())
     setConfirmingClear(false)
+  }
+
+  /* One row, deleted from whichever store the sheet is showing. */
+  const deleteEntry = async (id: number): Promise<void> => {
+    await (practice ? db.history.delete(id) : deleteHistoryEntry(id))
   }
 
   const hasEntries = (entries?.length ?? 0) > 0
@@ -111,6 +120,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
                 index={i}
                 modeLabel={modeLabels[entry.mode]}
                 dateFormatter={dateFormatter}
+                onDelete={deleteEntry}
                 reducedMotion={!!reducedMotion}
               />
             ))}
@@ -184,6 +194,7 @@ function HistoryItem({
   index,
   modeLabel,
   dateFormatter,
+  onDelete,
   reducedMotion,
 }: {
   entry: HistoryEntry
@@ -191,6 +202,7 @@ function HistoryItem({
   index: number
   modeLabel: string
   dateFormatter: Intl.DateTimeFormat
+  onDelete: (id: number) => Promise<void>
   reducedMotion: boolean
 }) {
   const { t } = useTranslation()
@@ -239,7 +251,7 @@ function HistoryItem({
         type="button"
         onClick={() => {
           vibrate()
-          void deleteHistoryEntry(entry.id)
+          void onDelete(entry.id)
         }}
         aria-label={t('history.deleteEntry')}
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-tertiary)] transition-colors hover:bg-loss-500/12 hover:text-loss-600 dark:hover:text-loss-400"

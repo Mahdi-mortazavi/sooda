@@ -114,7 +114,7 @@ export function HelpButton({ lesson, className = '' }: { lesson: string; classNa
       onClick={() => learn.open(lesson)}
       aria-label={label}
       title={label}
-      className={`glass glass-ring flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[12px] font-bold leading-none text-[var(--accent-text)] ${className}`}
+      className={`glass glass-ring flex h-[22px] w-[22px] items-center justify-center rounded-full text-[12px] font-bold text-[var(--accent-text)] ${className}`}
     >
       <span aria-hidden>{t('learn.helpMark', { defaultValue: '?' })}</span>
     </button>

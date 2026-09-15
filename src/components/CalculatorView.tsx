@@ -17,6 +17,7 @@ import {
   visibleFields,
 } from '../lib/modes/registry'
 import type { ModeId, ModeState, ResultDisplay, ScheduleInfo, SegmentId, Translate } from '../lib/modes/types'
+import type { SoodaDb } from '../lib/db'
 import type { RatesFile } from '../lib/rates/schema'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import type { RoundingStep } from '../lib/rounding'
@@ -65,11 +66,15 @@ interface CalculatorViewProps {
   /** Persisted with the calculator draft so a service-worker reload lands where the user was. */
   tab: DraftState['tab']
   /**
-   * A lesson is running. The calculator is the surface being taught on, so it keeps working —
-   * but it must stop touching anything of the shopkeeper's: no draft is read or written, no
-   * history row is added, nothing reaches the real basket. The plan forbids all three.
+   * The practice database while a lesson is running, `null` otherwise.
+   *
+   * The calculator is the surface being taught on, so it keeps working — but everything it
+   * writes has to land in the demo store: the plan forbids a lesson touching the shopkeeper's
+   * history, basket or draft, and lesson 7 then reads back the two calculations it just made.
+   * The bound helpers in `lib/db` are tied to the real database and also mirror the basket count
+   * into localStorage for the header badge, which is why practice writes the tables directly.
    */
-  practice?: boolean
+  practiceDb?: SoodaDb | null
   /** A mode a lesson step asked for, applied once and then cleared through `onModeApplied`. */
   requestedMode?: string | null
   onModeApplied?: () => void
@@ -86,7 +91,7 @@ export function CalculatorView({
   rates,
   onProductsChanged,
   tab,
-  practice = false,
+  practiceDb = null,
   requestedMode = null,
   onModeApplied,
 }: CalculatorViewProps) {
@@ -98,6 +103,7 @@ export function CalculatorView({
   // (?m=profit) from PWA shortcuts just open the right calculator. A link always
   // beats a restored draft — the user clicked it on purpose.
   const shared = useMemo(() => parseModeShareQuery(window.location.search), [])
+  const practice = practiceDb !== null
   const restored = useMemo(() => (shared || practice ? null : readDraft()), [shared, practice])
   const sharedRan = useRef(false)
 
@@ -258,25 +264,33 @@ export function CalculatorView({
       setResults((prev) => ({ ...prev, [mode]: display }))
       lastComputed.current[mode] = { ...snapshot, unit }
       emitTour({ type: 'result:shown', mode })
-      /* Practice writes no history. The demo shop is isolated, but `addHistoryEntry` is bound to
-       * the real database at import time, so the guard has to be here rather than in the sandbox. */
-      if (saveToHistory && !practice) {
-        const { addHistoryEntry } = await import('../lib/db')
-        await addHistoryEntry({ mode, inputs: snapshot.inputs, results: snapshot.results, unit, createdAt: now })
+      if (!saveToHistory) return
+      const row = { mode, inputs: snapshot.inputs, results: snapshot.results, unit, createdAt: now }
+      if (practiceDb !== null) {
+        // The demo store's own history: lesson 7 opens it and exports what the learner just did.
+        await practiceDb.history.add(row as never)
+        return
       }
+      const { addHistoryEntry } = await import('../lib/db')
+      await addHistoryEntry(row)
     },
-    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, monthlyInflationPercent, roundingStep, practice],
+    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, monthlyInflationPercent, roundingStep, practiceDb],
   )
 
   const addToBasket = useCallback(async () => {
     const snap = lastComputed.current[mode]
     if (!snap) return
     emitTour({ type: 'action', name: 'add-to-basket' })
-    // The real basket, and the badge that mirrors it, are off limits during a lesson.
-    if (practice) return
+    const row = { mode, inputs: snap.inputs, results: snap.results, unit: snap.unit, createdAt: Date.now() }
+    if (practiceDb !== null) {
+      /* Straight to the table, not through `addBasketItem`: that helper re-publishes the header
+       * badge from the real basket, and a lesson must not move the number on the app icon. */
+      await practiceDb.basket.add(row as never)
+      return
+    }
     const { addBasketItem } = await import('../lib/db')
-    await addBasketItem({ mode, inputs: snap.inputs, results: snap.results, unit: snap.unit, createdAt: Date.now() })
-  }, [mode, practice])
+    await addBasketItem(row)
+  }, [mode, practiceDb])
 
   // Auto-compute a shared link once (after the language is known), then clean the URL.
   useEffect(() => {

@@ -16,7 +16,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from 'react-i18next'
 import '../../i18n/sheets'
 import { formatNumber, type AppLanguage } from '../../lib/numbers'
-import { emitTour } from '../coach/events'
+import { emitTour, subscribeTour } from '../coach/events'
 import type { SandboxState, TourCtx, TourDestination } from '../coach/types'
 import type { PracticeSession } from '../sandbox'
 import { Challenges } from './Challenges'
@@ -54,6 +54,10 @@ interface ActiveRun {
   quiz: Challenge[]
   /** The lesson's own one-line summary, shown as «این را یاد گرفتید» after a right answer. */
   summaryKey: string
+  /** Its figures assume the pinned 3%/month, so the note has to be on screen while it runs. */
+  showsRate: boolean
+  /** …but not from the first step. See the banner. */
+  rateNoteLater: boolean
   session: PracticeSession
   startIndex: number
 }
@@ -161,6 +165,10 @@ export function LearnHost({
       steps: LessonStep[]
       challenges: Challenge[]
       summaryKey: string
+      /** The pinned-rate note belongs on screen for any run whose figures depend on it. */
+      showsRate: boolean
+      /** Hold that note back until there is a figure for it to qualify. See the banner below. */
+      rateNoteLater?: boolean
       suggestion?: { field: string; value: string; label: string }
     }) => {
       setNotice(null)
@@ -194,6 +202,8 @@ export function LearnHost({
         steps: split.steps,
         quiz: split.quiz,
         summaryKey: run.summaryKey,
+        showsRate: run.showsRate,
+        rateNoteLater: run.rateNoteLater === true,
         session,
         startIndex: stored !== null && stored.status === 'progress' ? stored.step : 0,
       })
@@ -214,6 +224,7 @@ export function LearnHost({
         steps: definition.steps,
         challenges: definition.challenges,
         summaryKey: definition.summaryKey,
+        showsRate: definition.showsRate,
       })
     },
     [startRun, t],
@@ -237,19 +248,19 @@ export function LearnHost({
       steps: mission.steps,
       challenges: [],
       summaryKey: mission.storyKey,
-      ...(mission.suggestion === undefined
-        ? {}
-        : {
-            suggestion: {
-              field: mission.suggestion.field,
-              value: mission.suggestion.value,
-              /* Translated here, so `NumberField` — which is in the entry chunk — never has to
-               * reach for i18next to draw a chip almost nobody will ever see. */
-              label: t(mission.suggestion.labelKey, {
-                replace: { value: formatNumber(Number(mission.suggestion.value), lang, 0) },
-              }),
-            },
-          }),
+      showsRate: mission.showsRate,
+      /* The mission's own figure, never a second copy of it: the chip fills the field with the
+       * same 100,000 its first step is judged against. */
+      suggestion: {
+        field: mission.suggestion.field,
+        value: mission.suggestion.value,
+        /* Translated here, so `NumberField` — which is in the entry chunk — never has to reach
+         * for i18next to draw a chip almost nobody will ever see. */
+        label: t(mission.suggestion.labelKey, {
+          replace: { value: formatNumber(Number(mission.suggestion.value), lang, 0) },
+        }),
+      },
+      ...(mission.rateNoteFromStep === undefined ? {} : { rateNoteLater: true }),
     })
   }, [lang, startRun, t])
 
@@ -314,6 +325,29 @@ export function LearnHost({
     }
     void startLesson(request.id)
   }, [request, startLesson])
+
+  /**
+   * When the pinned-rate note joins the practice banner.
+   *
+   * «در این تمرین فرض می‌کنیم قیمت‌ها ماهی ۳٪ گران می‌شوند.» qualifies a figure, so it appears
+   * with the first figure. A lesson can afford to state the assumption from step 1; Mission 1
+   * cannot — thirty seconds long, and the first thing anyone reads — which is why it sets
+   * `rateNoteFromStep`.
+   *
+   * The coach owns the step index and does not report it, and re-deriving it here would mean
+   * running every `expect` a second time against a snapshot the coach has already refreshed —
+   * two judges, eventually disagreeing. So the trigger is the event the named step always
+   * follows: a result on screen. For the mission, `rateNoteFromStep` is the lens step, which is
+   * the step after «حساب کن».
+   */
+  const [sawResult, setSawResult] = useState(false)
+  useEffect(() => {
+    if (active === null || !active.rateNoteLater) return
+    setSawResult(false)
+    return subscribeTour((event) => {
+      if (event.type === 'result:shown') setSawResult(true)
+    })
+  }, [active])
 
   /* ---- the coach's context ---- */
 
@@ -416,6 +450,25 @@ export function LearnHost({
           available={lessonsAvailable()}
           notice={noticeStrip}
         />
+
+      {/* A lesson is running against a throwaway shop, and every figure in it assumes a pinned
+        * rate. Both facts have to be on screen the whole time, not buried in a step's text: a
+        * learner who looks up mid-lesson must be able to see that none of this is their data.
+        * Non-interactive, so the coach's `inert` sweep outside its cutout costs it nothing. */}
+      {active !== null ? (
+        <div
+          role="status"
+          className="glass-sheet glass-ring pointer-events-none fixed inset-x-3 z-[70] mx-auto max-w-[480px] rounded-2xl px-3.5 py-2 text-center"
+          style={{ top: 'calc(0.5rem + env(safe-area-inset-top))' }}
+        >
+          <p className="text-[12px] font-semibold leading-snug text-[var(--text-secondary)]">
+            {t('learn.practiceNotice')}
+          </p>
+          {active.showsRate && (!active.rateNoteLater || sawResult) ? (
+            <p className="mt-0.5 text-[12px] leading-snug text-[var(--text-tertiary)]">{t('learn.practiceRate')}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {active !== null && ctx !== null ? (
         <Suspense fallback={null}>
