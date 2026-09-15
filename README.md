@@ -55,7 +55,7 @@ Ask Sooda any of these — get the answer instantly, beautifully:
 - **📦 My products** — save what you sell; Sooda ages each purchase price against inflation and flags what has quietly turned unprofitable. Reprice in bulk with a preview and a 10-second undo.
 - **📴 Truly offline** — after the first visit it works in airplane mode, forever. No loading spinners, no "check your connection".
 - **🔒 Radically private** — no server, no account, no tracking, no analytics. Your numbers never leave your device.
-- **⚡ Instant** — first paint in ~0.8 s on throttled 4G; Lighthouse **100 / 100 / 100 / 100**.
+- **⚡ Instant** — first paint in ~0.8 s on throttled 4G; Lighthouse **100 / 100 / 100 / 100**. Three whole features arrived in v1.3 for **+913 bytes** of first-paint payload.
 - **🌐 Persian-native** — full RTL, Persian digits everywhere (type ۲۵۰۰۰۰, see ۲۵۰٬۰۰۰), Jalali dates in history, instant EN ⇄ FA switching.
 - **💱 Your currency** — Toman, Rial, $ or € on every result, history entry and CSV export.
 - **🔢 Live 3-digit grouping** — numbers group as you type: `1250000` becomes `1,250,000`.
@@ -117,7 +117,7 @@ After installing, long-press the icon for **shortcuts** straight into Profit %, 
 | Fonts | Self-hosted [Inter](https://rsms.me/inter/) & [Vazirmatn](https://rastikerdar.github.io/vazirmatn/) variable fonts — zero CDN |
 | Modes | A mode registry: each calculator is a pure `compute` + `present` pair with its own field specs |
 | Speed | Static pre-paint shell, inlined critical CSS, one translation chunk per language, code-split sheets, deferred SW |
-| Tests | Vitest — 271 unit tests, plus `npm run smoke` driving the real flows in a browser |
+| Tests | Vitest — 277 unit tests, plus `npm run smoke` driving the real flows in a browser |
 | CI/CD | GitHub Actions → GitHub Pages |
 
 ## 🧑‍💻 Local development

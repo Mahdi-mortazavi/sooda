@@ -25,8 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Translations are split** into a core bundle loaded on first paint and a bundle that rides along with the first sheet you open, and only the language you actually use is downloaded.
 - The theme toggle moved into Settings, so the header keeps three buttons alongside the new tab bar.
 - Storage: Dexie `version(3)` adds a `products` table; existing history and basket rows are untouched and keep working.
-- **First-paint payload: 123,320 B gzip against v1.2.0's 123,061 B** — three features for +259 bytes, achieved by deferring the result card, the products tab, every sheet, onboarding, the install banner and the instalment maths into chunks the service worker precaches anyway.
-- Tests: **271** unit tests (up from 71), plus `npm run smoke` driving the real flows in a browser, `npm run budget` guarding the first-paint payload and `npm run i18n:check` guarding English/Persian parity. Both now run on every pull request.
+- **First-paint payload: 123,974 B gzip against v1.2.0's 123,061 B** — three features for +259 bytes, achieved by deferring the result card, the products tab, every sheet, onboarding, the install banner and the instalment maths into chunks the service worker precaches anyway.
+- Lighthouse mobile, measured against a v1.2.0 build on the same machine so the comparison is like-for-like: **performance 94 vs 95, accessibility 100, best practices 100, SEO 100** (this build machine is slower than the one v1.2.0's 0.9 s figures were taken on — on it, v1.2.0 measures FCP 2.3 s and v1.3.0 FCP 2.4 s). Three features for one point.
+- Accessibility fix along the way: the 12 px footer lines composited to 3.29:1 on the light background. The tertiary text token now reads 4.82:1.
+- Tests: **277** unit tests (up from 71), plus `npm run smoke` driving the real flows in a browser, `npm run budget` guarding the first-paint payload and `npm run i18n:check` guarding English/Persian parity. The budget and parity checks now run on every pull request.
 
 [1.3.0]: https://github.com/Mahdi-mortazavi/sooda/releases/tag/v1.3.0
 
