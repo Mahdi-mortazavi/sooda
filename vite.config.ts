@@ -133,6 +133,13 @@ export default defineConfig({
             url: `${BASE}?tab=products`,
             icons: [{ src: 'shortcut-products.png', sizes: '192x192', type: 'image/png' }],
           },
+          {
+            // A bare ?learn opens the Learning Centre; ?learn=<id> would go straight to a lesson.
+            name: 'Learn Sooda · آموزش سودا',
+            short_name: 'Learn',
+            url: `${BASE}?learn`,
+            icons: [{ src: 'shortcut-learn.png', sizes: '192x192', type: 'image/png' }],
+          },
         ],
       },
       workbox: {

@@ -35,11 +35,10 @@ export const LESSONS: readonly LessonMeta[] = [
  * then "inflation" is shown pricing's answer first and never the same lesson twice.
  */
 const GOAL_PATHS: Record<GoalId, readonly LessonId[]> = {
-  pricing: ['profit', 'discount', 'everyday'],
-  inflation: ['realProfit', 'smartRates', 'profit'],
+  pricing: ['profit', 'realProfit', 'everyday'],
   installments: ['installments', 'profit'],
   products: ['products', 'smartRates', 'realProfit'],
-  explore: ['everyday', 'profit', 'safety'],
+  discounts: ['discount', 'everyday'],
 }
 
 /**

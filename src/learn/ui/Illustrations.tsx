@@ -34,44 +34,58 @@ export function IllustrationPrice({ className = '' }: IllustrationProps) {
   )
 }
 
-/** Card 2 — a rising line over bars: "costs move, and your price has to keep up". */
-export function IllustrationRise({ className = '' }: IllustrationProps) {
+/**
+ * Card 2 — «اقساط، کالاها و قیمت‌ها — همه با یک لمس.»
+ *
+ * Three cards fanned under one tap: the picture is breadth reachable in a single touch, not
+ * prices going up. Drawn symmetrically about the vertical axis so nothing has to mirror for RTL.
+ */
+export function IllustrationEverything({ className = '' }: IllustrationProps) {
   return (
     <svg viewBox="0 0 200 132" fill="none" aria-hidden className={`${BOX} ${className}`}>
-      <g opacity="0.22" fill="currentColor">
-        <rect x="34" y="78" width="20" height="28" rx="6" />
-        <rect x="66" y="66" width="20" height="40" rx="6" />
-        <rect x="98" y="54" width="20" height="52" rx="6" />
-        <rect x="130" y="38" width="20" height="68" rx="6" />
+      <g stroke="currentColor" strokeWidth="5" strokeLinejoin="round" opacity="0.32">
+        <rect x="24" y="34" width="46" height="60" rx="12" />
+        <rect x="130" y="34" width="46" height="60" rx="12" />
       </g>
-      <path
-        d="M34 84 66 70l32-16 42-26"
-        stroke="var(--accent-fill-strong)"
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M124 26h20v20" stroke="var(--accent-fill-strong)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="72" y="24" width="56" height="70" rx="14" fill="var(--accent-fill-strong)" opacity="0.14" />
+      <rect x="72" y="24" width="56" height="70" rx="14" stroke="var(--accent-fill-strong)" strokeWidth="5" />
+      {/* the three things: a coin, a box and a receipt line */}
+      <circle cx="100" cy="46" r="7" fill="var(--accent-fill-strong)" />
+      <path d="M88 64h24M88 76h16" stroke="var(--accent-fill-strong)" strokeWidth="5" strokeLinecap="round" />
+      <g stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity="0.32">
+        <path d="M36 54h22M36 66h14M142 54h22M142 66h14" />
+      </g>
+      {/* one finger, on the middle card */}
+      <circle cx="100" cy="106" r="10" fill="var(--accent-fill-strong)" opacity="0.2" />
+      <circle cx="100" cy="106" r="5" fill="var(--accent-fill-strong)" />
     </svg>
   )
 }
 
-/** Card 3 — a hand tapping a card: "you learn it by doing it, on your own screen". */
-export function IllustrationPractice({ className = '' }: IllustrationProps) {
+/**
+ * Card 3 — «رایگان، بدون ثبت‌نام، آفلاین. اعداد شما فقط روی گوشی خودتان می‌ماند.»
+ *
+ * A phone holding its own figures behind a closed padlock, with the cloud struck through: the
+ * claim is privacy and working offline, so the picture has to say where the numbers are *not*
+ * going as plainly as where they are.
+ */
+export function IllustrationPrivate({ className = '' }: IllustrationProps) {
   return (
     <svg viewBox="0 0 200 132" fill="none" aria-hidden className={`${BOX} ${className}`}>
-      <rect x="46" y="18" width="108" height="72" rx="16" stroke="currentColor" strokeWidth="5" opacity="0.4" />
-      <rect x="62" y="36" width="52" height="8" rx="4" fill="currentColor" opacity="0.28" />
-      <rect x="62" y="54" width="76" height="8" rx="4" fill="currentColor" opacity="0.18" />
-      <circle cx="122" cy="88" r="22" fill="var(--accent-fill-strong)" opacity="0.16" />
-      <circle cx="122" cy="88" r="11" fill="var(--accent-fill-strong)" />
-      <path
-        d="M122 104v14M110 112l12 6 12-6"
-        stroke="var(--accent-fill-strong)"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <rect x="66" y="16" width="68" height="100" rx="16" stroke="var(--accent-fill-strong)" strokeWidth="5" />
+      <rect x="66" y="16" width="68" height="100" rx="16" fill="var(--accent-fill-strong)" opacity="0.1" />
+      {/* the shopkeeper's figures, staying put */}
+      <g stroke="var(--accent-fill-strong)" strokeWidth="5" strokeLinecap="round" opacity="0.55">
+        <path d="M82 40h30M82 52h22" />
+      </g>
+      {/* a closed padlock */}
+      <rect x="86" y="74" width="28" height="22" rx="6" fill="var(--accent-fill-strong)" />
+      <path d="M92 74v-6a8 8 0 0 1 16 0v6" stroke="var(--accent-fill-strong)" strokeWidth="5" />
+      {/* the cloud it never reaches */}
+      <g stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.3">
+        <path d="M18 48h22a11 11 0 0 0 0-22 15 15 0 0 0-28-4 9 9 0 0 0 1 26h5" />
+        <path d="m14 22 32 32" />
+      </g>
     </svg>
   )
 }

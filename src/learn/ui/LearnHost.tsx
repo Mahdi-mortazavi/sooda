@@ -19,6 +19,7 @@ import type { AppLanguage } from '../../lib/numbers'
 import { emitTour } from '../coach/events'
 import type { SandboxState, TourCtx, TourDestination } from '../coach/types'
 import type { PracticeSession } from '../sandbox'
+import { Challenges } from './Challenges'
 import { LearnCenter } from './LearnCenter'
 import { Onboarding, type OnboardingStage } from './Onboarding'
 import { TipBar } from './TipBar'
@@ -34,6 +35,7 @@ import {
 import type { RepositoryValue } from './repositoryContext'
 import { isLessonId, type GoalId, type LearnProgress, type LessonId } from './types'
 import type { LessonStep } from '../coach/types'
+import type { Challenge } from '../lessons/types'
 import type { LearnRequest } from './entry'
 
 const Coach = lazy(() => import('../coach/Coach').then((m) => ({ default: m.Coach })))
@@ -47,16 +49,40 @@ const NO_PERSIST = async (): Promise<boolean> => false
 interface ActiveLesson {
   id: LessonId
   steps: LessonStep[]
+  /** The questions asked after the steps: the typed and multiple-choice ones only. */
+  quiz: Challenge[]
   session: PracticeSession
   startIndex: number
   /** Onboarding's Mission 1 returns to the celebration screen rather than to the centre. */
   mission: boolean
 }
 
+/**
+ * A `task` challenge is «do it in the practice shop», which is what a step already is — same
+ * target, same event-judged predicate, same demo. So it is appended to the steps and the coach
+ * runs it, rather than a second runner being built to do the same job slightly differently.
+ */
+function splitChallenges(steps: LessonStep[], challenges: Challenge[]): { steps: LessonStep[]; quiz: Challenge[] } {
+  const tasks: LessonStep[] = []
+  const quiz: Challenge[] = []
+  for (const challenge of challenges) {
+    if (challenge.kind !== 'task') {
+      quiz.push(challenge)
+      continue
+    }
+    tasks.push({
+      id: challenge.id,
+      target: challenge.target,
+      textKey: challenge.promptKey,
+      expect: challenge.done,
+      demo: challenge.demo,
+    })
+  }
+  return { steps: [...steps, ...tasks], quiz }
+}
+
 export interface LearnHostProps {
   request: LearnRequest
-  lang: AppLanguage
-  rtl: boolean
   /** Swaps what `RepositoryContext` provides. `null` puts the real shop back. */
   onPractice: (value: RepositoryValue | null) => void
   /** Puts the app where a step needs it before the step runs. */
@@ -69,19 +95,23 @@ export interface LearnHostProps {
 
 export function LearnHost({
   request,
-  lang,
-  rtl,
   onPractice,
   navigate,
   tip,
   onTipDismiss,
   onClose,
 }: LearnHostProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  /* Derived rather than passed: App would have to compute and thread both through the entry
+   * chunk, and i18next already knows. */
+  const lang: AppLanguage = i18n.language.startsWith('fa') ? 'fa' : 'en'
+  const rtl = lang === 'fa'
   const [progress, setProgress] = useState<LearnProgress>(readProgress)
   const [stage, setStage] = useState<OnboardingStage>('intro')
   const [active, setActive] = useState<ActiveLesson | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /* The lesson whose questions are being asked. Practice has already been torn down by then. */
+  const [quiz, setQuiz] = useState<ActiveLesson | null>(null)
   const [centerOpen, setCenterOpen] = useState(request.kind !== 'onboarding')
   const startedFor = useRef<string | null>(null)
 
@@ -139,9 +169,11 @@ export function LearnHost({
         pinned: { monthlyInflationPercent: TUTORIAL_MONTHLY_PERCENT, roundingStep: TUTORIAL_ROUNDING_STEP },
       })
       const stored = readProgress().lessons[id]
+      const split = splitChallenges(definition.steps, definition.challenges)
       setActive({
         id,
-        steps: definition.steps,
+        steps: split.steps,
+        quiz: split.quiz,
         session,
         startIndex: stored.status === 'progress' ? stored.step : 0,
         mission,
@@ -151,25 +183,50 @@ export function LearnHost({
     [onPractice, t],
   )
 
-  const finishLesson = useCallback(
-    (lesson: ActiveLesson, outcome: { passed: boolean; atStep: number }) => {
-      setActive(null)
-      void leavePractice()
-      const next = outcome.passed
-        ? markLessonPassed(lesson.id)
-        : setLessonProgress(lesson.id, { status: 'progress', step: outcome.atStep })
-      setProgress(next)
+  /** Where a lesson lands once its steps and its questions are behind it. */
+  const settle = useCallback(
+    (lesson: ActiveLesson, passed: boolean) => {
+      setProgress(passed ? markLessonPassed(lesson.id) : setLessonProgress(lesson.id, { status: 'done', step: 0 }))
       if (lesson.mission) {
         setProgress(finishOnboarding(true))
         setStage('celebrate')
         return
       }
       setCenterOpen(true)
-      if (outcome.passed) {
-        setNotice(t('learn.passedNotice', { defaultValue: 'Lesson passed.' }))
-      }
+      setNotice(
+        passed
+          ? t('learn.passedNotice', { defaultValue: 'Lesson passed.' })
+          : t('learn.doneNotice', { defaultValue: 'Lesson finished — answer its question to pass it.' }),
+      )
     },
-    [leavePractice, t],
+    [t],
+  )
+
+  const finishLesson = useCallback(
+    (lesson: ActiveLesson, outcome: { finished: boolean; atStep: number }) => {
+      setActive(null)
+      void leavePractice()
+      if (!outcome.finished) {
+        /* Left partway through. The step index is kept so «ادامه» resumes exactly there —
+         * nothing in the tutorial is ever lost by walking away from it. */
+        setProgress(setLessonProgress(lesson.id, { status: 'progress', step: outcome.atStep }))
+        if (lesson.mission) {
+          setProgress(finishOnboarding(true))
+          setStage('celebrate')
+          return
+        }
+        setCenterOpen(true)
+        return
+      }
+      /* The practice store is gone by now, and the remaining questions do not need it: a `task`
+       * challenge was run as a step. Anything left is a figure to type or a verdict to pick. */
+      if (lesson.quiz.length > 0) {
+        setQuiz(lesson)
+        return
+      }
+      settle(lesson, true)
+    },
+    [leavePractice, settle],
   )
 
   /* ---- the request ---- */
@@ -244,7 +301,7 @@ export function LearnHost({
     <>
       {onboarding ? (
         <Onboarding
-          open={active === null}
+          open={active === null && quiz === null}
           stage={stage}
           lang={lang}
           rtl={rtl}
@@ -264,7 +321,7 @@ export function LearnHost({
 
       {onboarding && !centerOpen ? null : (
         <LearnCenter
-          open={centerOpen && active === null}
+          open={centerOpen && active === null && quiz === null}
           onClose={onClose}
           lang={lang}
           progress={progress}
@@ -280,10 +337,27 @@ export function LearnHost({
             steps={active.steps}
             ctx={ctx}
             initialIndex={active.startIndex}
-            onComplete={() => finishLesson(active, { passed: true, atStep: 0 })}
-            onExit={(atIndex) => finishLesson(active, { passed: false, atStep: atIndex })}
+            onComplete={() => finishLesson(active, { finished: true, atStep: 0 })}
+            onExit={(atIndex) => finishLesson(active, { finished: false, atStep: atIndex })}
           />
         </Suspense>
+      ) : null}
+
+      {quiz !== null ? (
+        <Challenges
+          open
+          lang={lang}
+          title={t(`learn.lessons.${quiz.id}.title`)}
+          challenges={quiz.quiz}
+          onPassed={() => {
+            setQuiz(null)
+            settle(quiz, true)
+          }}
+          onSkip={() => {
+            setQuiz(null)
+            settle(quiz, false)
+          }}
+        />
       ) : null}
 
       <AnimatePresence>

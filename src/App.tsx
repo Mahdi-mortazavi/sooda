@@ -167,13 +167,11 @@ export default function App() {
   )
   useEffect(() => {
     storeLastSeenVersion(__APP_VERSION__)
-  }, [])
-
-  /* `?learn` has been read into state by now, so it is taken out of the address bar — otherwise
-   * every later reload, and the reload a new service worker triggers, would reopen the centre. */
-  useEffect(() => {
-    if (parseLearnQuery(window.location.search) === null) return
-    window.history.replaceState({}, '', import.meta.env.BASE_URL)
+    /* `?learn` has been read into state by now, so it comes out of the address bar — left there,
+     * every later reload (including the one a new service worker triggers) reopens the centre. */
+    if (parseLearnQuery(window.location.search) !== null) {
+      window.history.replaceState({}, '', import.meta.env.BASE_URL)
+    }
   }, [])
 
   const setUnit = useCallback((u: Unit) => {
@@ -220,10 +218,10 @@ export default function App() {
       const sheet = to.sheet
       if (sheet === 'history') setHistoryMounted(true)
       if (sheet === 'settings') setSettingsMounted(true)
-      if (sheet === 'basket') setBasketMounted(true)
       setHistoryOpen(sheet === 'history')
       setSettingsOpen(sheet === 'settings')
-      setBasketOpen(sheet === 'basket')
+      /* Not the basket: it is reached by the header button, which is a target of its own. */
+      setBasketOpen(false)
       setCheckInOpen(sheet === 'check-in')
       setProfileOpen(sheet === 'store-profile')
       setTourSheet(sheet)
@@ -286,7 +284,6 @@ export default function App() {
           setHistoryOpen(true)
           emitTour({ type: 'sheet:open', sheet: 'history' })
         },
-        tour: null,
       },
       {
         key: 'settings',
@@ -505,8 +502,6 @@ export default function App() {
           <FeatureBoundary label="the tutorial">
             <LearnHost
               request={learnRequest ?? { kind: 'center' }}
-              lang={lang}
-              rtl={lang === 'fa'}
               onPractice={setPractice}
               navigate={navigateForTour}
               tip={tip}
@@ -531,14 +526,14 @@ function HeaderButton({
   onClick: () => void
   label: string
   /** The `data-tour` name from `src/learn/lessons/targets.ts`, when a lesson points at it. */
-  tour?: string | null
+  tour?: string | undefined
   children: React.ReactNode
 }) {
   const reducedMotion = useReducedMotion()
   return (
     <motion.button
       type="button"
-      data-tour={tour ?? undefined}
+      data-tour={tour}
       onClick={() => {
         vibrate()
         onClick()

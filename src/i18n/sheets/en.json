@@ -292,7 +292,7 @@
       }
     },
     "profit": {
-      "cost": "Put the shawl’s purchase price here: 150,000",
+      "cost": "A tin of tuna cost you 150,000. Put that here.",
       "margin": "How much profit do you want? 25 percent.",
       "calculate": "Now tap “Calculate”.",
       "read": "Here is the selling price and the profit. Copy it to send to a customer.",
@@ -364,7 +364,7 @@
       "auto": "And whenever you want, go back to automatic.",
       "checkin": "Every so often Sooda asks whether prices have moved. Open it.",
       "challenge": {
-        "record": "Record the price of two products in “Price check”. If one has not moved, tap “No change”."
+        "record": "Answer for two products in “Price check”: where the price has gone up, enter today’s price; where it has not, tap “No change”. That is a complete answer too."
       }
     },
     "everyday": {
@@ -434,7 +434,8 @@
       "inflation": "Price rises and real profit",
       "installments": "Selling on installments",
       "products": "Managing my product prices",
-      "explore": "Just looking around"
+      "explore": "Just looking around",
+      "discounts": "Buying and discounts"
     },
     "missionCta": "Try it on a real calculation",
     "badgeFirstStep": "First step",
@@ -480,6 +481,18 @@
       "source": {
         "q": "Is Sooda free?",
         "a": "Yes, completely free and open source, under the MIT licence."
+      },
+      "realProfit": {
+        "q": "What does real profit mean?",
+        "a": "Paper profit is the selling price minus the purchase price. Real profit is what you actually have left once you have bought the same goods again. In a market where prices keep rising, the two are very different."
+      },
+      "inflation": {
+        "q": "I don’t know the inflation rate. Is that a problem?",
+        "a": "No. Sooda has a default rate that comes from the national figures, and you can change it in Settings. And if you know the new purchase price, you don’t need inflation at all: just enter it directly."
+      },
+      "phone": {
+        "q": "What happens if I change phones?",
+        "a": "Take a backup file from Settings and restore it on the new phone. Because the data lives on the phone, without a backup it goes when the browser is cleared."
       }
     }
   }

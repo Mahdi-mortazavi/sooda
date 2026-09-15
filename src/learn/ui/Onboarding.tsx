@@ -16,17 +16,22 @@ import { useTranslation } from 'react-i18next'
 import '../../i18n/sheets'
 import { vibrate } from '../../lib/haptics'
 import { formatNumber, type AppLanguage } from '../../lib/numbers'
-import { BadgeMedal, IllustrationPractice, IllustrationPrice, IllustrationRise } from './Illustrations'
+import { BadgeMedal, IllustrationEverything, IllustrationPrivate, IllustrationPrice } from './Illustrations'
 import { LearnSurface } from './Surface'
 import { GOAL_IDS, type GoalId } from './types'
 
 /** Which stage the host wants shown. The mission itself is the coach's, over the real UI. */
 export type OnboardingStage = 'intro' | 'goals' | 'celebrate'
 
+/*
+ * The ids are copy's, and the sentences behind them are frozen by the brief; the drawings follow
+ * the sentence, not the id. `rise` is «همه‌چیز یک‌جا» and `practice` is «روی گوشی خودتان» —
+ * renaming either would break three keys for no reader's benefit.
+ */
 const CARDS: { id: string; art: ReactNode }[] = [
   { id: 'price', art: <IllustrationPrice /> },
-  { id: 'rise', art: <IllustrationRise /> },
-  { id: 'practice', art: <IllustrationPractice /> },
+  { id: 'rise', art: <IllustrationEverything /> },
+  { id: 'practice', art: <IllustrationPrivate /> },
 ]
 
 /** A swipe shorter than this is a scroll that wandered, not a decision. */

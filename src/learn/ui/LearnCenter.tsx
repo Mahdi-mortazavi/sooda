@@ -56,10 +56,12 @@ const STATUS_FALLBACK: Record<LessonStatus, string> = {
   passed: 'Passed',
 }
 
-/* Five questions, because those are the ones a shopkeeper asks before trusting a tutorial with
- * their price list: is this real data, can I stop, does it cost anything, why the numbers differ
- * from the app's, and where the figures come from. `copy` owns the answers. */
-const FAQ_IDS = ['data', 'stop', 'offline', 'rate', 'source'] as const
+/*
+ * The brief's eight, in the order someone reads them: what the app is actually claiming, then
+ * where its numbers come from, then whether they can trust it with their price list. `copy` owns
+ * every question and answer behind these ids.
+ */
+const FAQ_IDS = ['realProfit', 'rate', 'record', 'data', 'newPhone', 'offline', 'stop', 'source'] as const
 
 interface LearnCenterProps {
   open: boolean

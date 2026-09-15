@@ -18,8 +18,13 @@ export function isLessonId(value: string): value is LessonId {
   return (LESSON_IDS as readonly string[]).includes(value)
 }
 
-/** What the shopkeeper said they came for, asked once during onboarding and editable after. */
-export const GOAL_IDS = ['pricing', 'inflation', 'installments', 'products', 'explore'] as const
+/**
+ * What the shopkeeper said they came for, asked once during onboarding.
+ *
+ * Exactly the four chips the brief froze. `discounts` is the only one that speaks to them as a
+ * buyer rather than a seller, which is why it is not folded into `pricing`.
+ */
+export const GOAL_IDS = ['pricing', 'installments', 'products', 'discounts'] as const
 
 export type GoalId = (typeof GOAL_IDS)[number]
 
