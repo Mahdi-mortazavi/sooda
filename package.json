@@ -23,7 +23,8 @@
     "rates:set": "node scripts/rates/set.mjs",
     "rates:cpi": "node scripts/rates/cpi.mjs",
     "rates:fallback": "node scripts/rates/fallback.mjs",
-    "rates:test": "node --test scripts/rates/update.test.mjs"
+    "rates:test": "node --test scripts/rates/update.test.mjs",
+    "docs:examples": "node scripts/docs-examples.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

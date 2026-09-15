@@ -29,9 +29,12 @@ describe('confidenceOf', () => {
     expect(confidenceOf(0.339, fresh, NOW)).toBe('low')
   })
 
-  it('is low whatever lambda says once the rates file goes stale', () => {
-    expect(confidenceOf(1, daysAgo(STALE_DAYS + 1), NOW)).toBe('low')
+  it('drops one step when the rates file goes stale, rather than all the way to low', () => {
+    /* The penalty is proportional to how much the file contributed. At λ=1 the answer is the
+     * shop's own books and the index barely spoke, so an old index cannot make it worthless. */
+    expect(confidenceOf(1, daysAgo(STALE_DAYS + 1), NOW)).toBe('medium')
     expect(confidenceOf(0.5, daysAgo(365), NOW)).toBe('low')
+    expect(confidenceOf(0.1, daysAgo(365), NOW)).toBe('low')
   })
 
   it('still trusts a file exactly STALE_DAYS old', () => {
@@ -39,9 +42,11 @@ describe('confidenceOf', () => {
   })
 
   it('treats an unknown or unparseable date as stale, never as fine', () => {
-    expect(confidenceOf(1, null, NOW)).toBe('low')
-    expect(confidenceOf(1, 'yesterday', NOW)).toBe('low')
-    expect(confidenceOf(1, '', NOW)).toBe('low')
+    /* Sooda ships with no national figures, so this is the state every install starts in:
+     * one step down, not pinned to "low" regardless of what the shopkeeper has recorded. */
+    expect(confidenceOf(1, null, NOW)).toBe('medium')
+    expect(confidenceOf(1, 'yesterday', NOW)).toBe('medium')
+    expect(confidenceOf(0.2, '', NOW)).toBe('low')
   })
 
   it('does not choke on a non-finite lambda', () => {

@@ -168,8 +168,9 @@ describe('productRate', () => {
     const rich = [at(9, 60_000), at(6, 70_000), at(4, 80_000), at(2, 90_000), at(0, 100_000)]
     expect(productRate(request({ observations: rich })).confidence).toBe('high')
     expect(productRate(request({ observations: [] })).confidence).toBe('low')
+    // A stale file costs one step, not everything: this fit is mostly the shop's own prices.
     expect(productRate(request({ observations: rich, rates: ratesFile({ updatedAt: '2025-01-01' }) })).confidence).toBe(
-      'low',
+      'medium',
     )
   })
 
