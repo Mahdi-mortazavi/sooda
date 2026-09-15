@@ -7,7 +7,7 @@
     "That endpoint is verified reachable from cloud runners but is undocumented and",
     "carries no published usage policy, so opting in is the maintainer's call.",
     "CPI: no adapter exists. amar.org.ir and cbi.ir refuse connections from non-Iranian",
-    "IPs, so CPI is maintained by hand. See docs in the v1.4 rates report."
+    "IPs, so CPI is maintained by hand. See docs/rates.md for what to fill in and how."
   ],
   "fx": {
     "adapter": "manual",
