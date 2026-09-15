@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-09-15
+
+### Fixed
+
+- **A browser that refuses to store data no longer costs you the whole app.** v1.4.0 wrapped everything in a single error boundary, so one database failure inside one feature replaced the entire screen — including the calculator, which needs no storage at all. Storage-backed features (products, history, basket, the product link under a result) now fail on their own, and the calculator keeps working. Covered by a browser test that runs the app with IndexedDB completely disabled.
+- **The error message no longer blames your browser for our bugs.** Any render error at all used to produce "turn off private browsing", which does nothing for a fault that has nothing to do with storage. The cause is now detected: a genuine storage problem says so and explains that the calculator still works, and anything else is reported honestly as a fault in Sooda, with a "try again" button.
+
 ## [1.4.0] - 2026-09-15
 
 ### Added

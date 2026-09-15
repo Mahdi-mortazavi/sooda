@@ -1,60 +1,74 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { ErrorBoundary } from './ErrorBoundary'
 
-interface Props {
-  children: ReactNode
-}
-
-interface State {
-  failed: boolean
+/**
+ * The last resort, around the whole app.
+ *
+ * Two rules it did not follow before, both of which cost the user the app:
+ *
+ * 1. It blamed storage for everything. Someone hitting an unrelated bug was told to turn off
+ *    private browsing — useless advice, and it pins our crash on their browser. The cause is
+ *    now detected, and an unknown fault says so.
+ * 2. It was the ONLY boundary, so a Dexie failure inside one feature replaced the entire
+ *    screen. The calculator needs no storage at all and must keep working; the narrower
+ *    `FeatureBoundary` below is what keeps a storage fault inside the feature that hit it.
+ *
+ * The copy is hardcoded rather than translated, because i18n itself reads storage and a
+ * boundary that depends on the thing that just broke is not a boundary. It is bilingual, since
+ * the user may not have reached the language picker.
+ */
+export function StorageBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      label="the app"
+      fallback={({ storage, reset }) => (
+        <div role="alert" className="mx-auto max-w-[30rem] px-6 py-12 text-center leading-relaxed">
+          <p className="text-[16px] font-semibold" dir="rtl" lang="fa">
+            {storage
+              ? 'سودا نمی‌تواند روی این مرورگر حافظه بسازد. ماشین‌حساب کار می‌کند، ولی تاریخچه و کالاها ذخیره نمی‌شوند. اگر حالت ناشناس یا مسدودکردن کوکی‌ها روشن است، خاموشش کنید.'
+              : 'سودا به مشکل خورد. یک بار دوباره امتحان کنید؛ اگر باز هم تکرار شد، لطفاً به سازنده خبر بدهید.'}
+          </p>
+          <p className="mt-5 text-[16px] font-semibold" dir="ltr" lang="en">
+            {storage
+              ? 'Sooda can’t store anything on this browser. The calculator still works, but history and products won’t be saved. If private browsing or “block all cookies” is on, turn it off.'
+              : 'Sooda hit a problem. Try once more — and if it keeps happening, please tell the maker.'}
+          </p>
+          {/* Retry in place; a full reload is the user's own next step if it persists. */}
+          <button
+            type="button"
+            onClick={reset}
+            className="mt-6 rounded-full bg-[var(--accent-fill-strong)] px-6 py-3 text-[15px] font-bold text-white"
+          >
+            تلاش دوباره · Try again
+          </button>
+        </div>
+      )}
+    >
+      {children}
+    </ErrorBoundary>
+  )
 }
 
 /**
- * Catches the one class of failure Sooda cannot design around: a browser that refuses to give
- * it a database. Safari with "Block All Cookies", an exhausted quota, a corrupted store, or a
- * rollback to an older build over a newer schema all make Dexie throw — and `useLiveQuery`
- * re-throws during render, which without a boundary unmounts the whole root and leaves a blank
- * white page rather than a degraded one.
- *
- * The message is deliberately hardcoded rather than translated: i18n itself reads storage, and
- * a boundary that depends on the thing that just failed is not a boundary. It is bilingual
- * instead, because the user has not necessarily reached the language picker.
+ * Wraps one storage-dependent feature so its failure stays local. The rest of Sooda — above
+ * all the calculator, which touches no database — carries on.
  */
-export class StorageBoundary extends Component<Props, State> {
-  state: State = { failed: false }
-
-  static getDerivedStateFromError(): State {
-    return { failed: true }
-  }
-
-  componentDidCatch(error: Error, info: ErrorInfo): void {
-    // No reporter to send this to — Sooda has no server — but the console is the one place a
-    // maintainer helping a shopkeeper over the phone can actually look.
-    console.error('Sooda could not start:', error, info.componentStack)
-  }
-
-  render(): ReactNode {
-    if (!this.state.failed) return this.props.children
-    return (
-      <div
-        role="alert"
-        style={{
-          maxWidth: '30rem',
-          margin: '0 auto',
-          padding: '3rem 1.5rem',
-          textAlign: 'center',
-          fontFamily: 'system-ui, sans-serif',
-          lineHeight: 1.7,
-        }}
-      >
-        <p style={{ fontSize: '1.05rem', fontWeight: 600 }} dir="rtl" lang="fa">
-          سودا نمی‌تواند روی این مرورگر حافظه بسازد. اگر حالت ناشناس یا مسدودکردن کوکی‌ها روشن است،
-          خاموشش کنید و دوباره باز کنید.
-        </p>
-        <p style={{ marginTop: '1.25rem', fontSize: '1.05rem', fontWeight: 600 }} dir="ltr" lang="en">
-          Sooda can’t open storage on this browser. If private browsing or “block all cookies” is
-          on, turn it off and reload.
-        </p>
-      </div>
-    )
-  }
+export function FeatureBoundary({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <ErrorBoundary
+      label={label}
+      fallback={({ storage }) => (
+        <div
+          role="status"
+          className="glass glass-ring mx-auto my-4 max-w-[26rem] rounded-2xl px-4 py-5 text-center text-[13.5px] leading-relaxed text-[var(--text-secondary)]"
+        >
+          {storage
+            ? 'این بخش برای کار کردن به حافظهٔ مرورگر نیاز دارد و روی این مرورگر در دسترس نیست. بقیهٔ سودا کار می‌کند.'
+            : 'این بخش باز نشد. بقیهٔ سودا کار می‌کند.'}
+        </div>
+      )}
+    >
+      {children}
+    </ErrorBoundary>
+  )
 }

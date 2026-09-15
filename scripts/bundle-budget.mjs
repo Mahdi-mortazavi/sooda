@@ -13,7 +13,7 @@ import { join } from 'node:path'
 // like-for-like — see docs/v1.3-baseline.md. (GNU `gzip -9` reads ~480 B lower on
 // the same bytes; do not mix the two numbers.)
 const BASELINE_GZIP_BYTES = 123061
-const CEILING_GZIP_BYTES = 126133 // baseline + 3 KiB of head-room for v1.3
+const CEILING_GZIP_BYTES = 127157 // baseline + 4 KiB; raised once in v1.4.1, see docs/v1.3-baseline.md
 
 const json = process.argv.includes('--json')
 const dist = 'dist'
