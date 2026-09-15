@@ -108,6 +108,7 @@ export const productsLesson: Lesson = {
       kind: 'task',
       id: 'bulk',
       promptKey: 'learn.products.challenge.bulk',
+      hintKey: 'learn.products.challenge.bulk.hint',
       target: 'bulk-panel',
       before: (ctx) => ctx.navigate({ tab: 'products', sheet: 'bulk-reprice' }),
       done: repriced,

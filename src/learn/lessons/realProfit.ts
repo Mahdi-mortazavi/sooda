@@ -104,6 +104,8 @@ export const realProfitLesson: Lesson = {
       kind: 'choice',
       id: 'verdict',
       promptKey: 'learn.realProfit.challenge.verdict.prompt',
+      hintKey: 'learn.realProfit.challenge.verdict.hint',
+      takeawayKey: 'learn.realProfit.challenge.verdict.takeaway',
       options: [
         {
           id: 'stillProfit',

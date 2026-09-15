@@ -82,6 +82,7 @@ export const discountLesson: Lesson = {
       kind: 'number',
       id: 'original',
       promptKey: 'learn.discount.challenge.original',
+      hintKey: 'learn.discount.challenge.original.hint',
       answer: ANSWER.challenge.originalPrice,
       tolerance: TUTORIAL_ROUNDING_STEP,
       unit: 'money',

@@ -55,6 +55,14 @@ function everyKey(): { key: string; where: string }[] {
     for (const step of lesson.steps) out.push({ key: step.textKey, where: `${lesson.id}.${step.id}` })
     for (const challenge of lesson.challenges) {
       out.push({ key: challenge.promptKey, where: `${lesson.id} challenge ${challenge.id}` })
+      /* The hint and the takeaway are exactly the shape that has gone dead three times in this
+       * release: written, in parity, and named by nothing that resolves them. */
+      if (challenge.hintKey !== undefined) {
+        out.push({ key: challenge.hintKey, where: `${lesson.id} challenge ${challenge.id} hint` })
+      }
+      if (challenge.takeawayKey !== undefined) {
+        out.push({ key: challenge.takeawayKey, where: `${lesson.id} challenge ${challenge.id} takeaway` })
+      }
       if (challenge.kind !== 'choice') continue
       for (const option of challenge.options) {
         out.push({ key: option.labelKey, where: `${lesson.id} challenge ${challenge.id} option ${option.id}` })

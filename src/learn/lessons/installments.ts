@@ -107,6 +107,7 @@ export const installmentsLesson: Lesson = {
       kind: 'number',
       id: 'monthly',
       promptKey: 'learn.installments.challenge.monthly',
+      hintKey: 'learn.installments.challenge.monthly.hint',
       answer: ANSWER.monthly,
       tolerance: MONTHLY_TOLERANCE,
       unit: 'money',
@@ -115,6 +116,7 @@ export const installmentsLesson: Lesson = {
       kind: 'choice',
       id: 'verdict',
       promptKey: 'learn.installments.challenge.verdict.prompt',
+      hintKey: 'learn.installments.challenge.verdict.hint',
       /* The bar is a cash sale — exactly what the reverse card itself judges against. */
       options: [
         {

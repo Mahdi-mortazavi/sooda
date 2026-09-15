@@ -49,6 +49,7 @@ export const safetyLesson: Lesson = {
       kind: 'task',
       id: 'backup',
       promptKey: 'learn.safety.challenge.backup',
+      hintKey: 'learn.safety.challenge.backup.hint',
       target: 'settings-backup',
       before: (ctx) => ctx.navigate({ sheet: 'settings' }),
       /* The practice shop's own exporter runs here, so the file the learner is handed holds the
@@ -60,6 +61,7 @@ export const safetyLesson: Lesson = {
       kind: 'choice',
       id: 'where',
       promptKey: 'learn.safety.challenge.where.prompt',
+      hintKey: 'learn.safety.challenge.where.hint',
       /* Not an engine answer — a fact about the app. It is the one question in the whole set whose
        * correctness is a property of the product rather than of a calculation. */
       options: [

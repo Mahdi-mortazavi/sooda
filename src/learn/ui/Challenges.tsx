@@ -35,8 +35,6 @@ interface ChallengesProps {
   challenges: Challenge[]
   /** The lesson's own one-line summary — «این را یاد گرفتید» is shown against it. */
   summaryKey: string
-  /** Spotlights what a challenge points at, for the second miss. Absent when it has no target. */
-  onShowMe?: ((at: { target: string; hintKey: string }) => void) | undefined
   /** Every question answered — the lesson is `passed`. */
   onPassed: () => void
   /** Closed early. The lesson stays `done`: they did it, they just did not answer. */
@@ -49,7 +47,6 @@ export function Challenges({
   title,
   challenges,
   summaryKey,
-  onShowMe,
   onPassed,
   onSkip,
 }: ChallengesProps) {
@@ -64,6 +61,11 @@ export function Challenges({
 
   const challenge = challenges[index]
   if (!challenge) return null
+
+  /* Most questions taught what the lesson taught. One does not: a binary option standing in for
+   * a three-state answer needs the nuance said after the answer is in, rather than folded into
+   * an option that would then be visibly longer than the wrong one. */
+  const takeawayKey = challenge.takeawayKey ?? summaryKey
 
   const last = index + 1 >= challenges.length
 
@@ -90,11 +92,11 @@ export function Challenges({
    * The lesson's own hint for this challenge.
    *
    * `learn.challenge.hintMore` is a label — "another hint" — and on its own it is not a hint at
-   * all, which is what a second miss was getting. `lessons` is adding a per-challenge `hintKey`;
+   * all, which is what a second miss was getting. Every challenge now carries a `hintKey`;
    * it is read structurally so this compiles either side of that landing and starts saying
-   * something real the moment it does. Once `hintKey` is on `ChallengeBase`, drop the cast.
+   * the fallback is kept only so a challenge added without one degrades to the old label.
    */
-  const hintKey = (challenge as { hintKey?: string }).hintKey ?? 'learn.challenge.hintMore'
+  const hintKey = challenge.hintKey ?? 'learn.challenge.hintMore'
 
   const counter = t('learn.stepOf', {
     defaultValue: '{{current}} / {{total}}',
@@ -117,7 +119,7 @@ export function Challenges({
       }
     >
       <p className="sr-only" aria-live="polite">
-        {correct ? `${t('learn.challenge.correct')} ${t(summaryKey)}` : `${counter}. ${prompt}`}
+        {correct ? `${t('learn.challenge.correct')} ${t(takeawayKey)}` : `${counter}. ${prompt}`}
       </p>
 
       <p className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
@@ -143,7 +145,7 @@ export function Challenges({
             <p className="text-[12.5px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
               {t('learn.challenge.takeawayLabel')}
             </p>
-            <p className="mt-1 text-[15px] leading-relaxed">{t(summaryKey)}</p>
+            <p className="mt-1 text-[15px] leading-relaxed">{t(takeawayKey)}</p>
           </div>
           <motion.button
             type="button"
@@ -223,26 +225,6 @@ export function Challenges({
                 <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
                   {t(hintKey)}
                 </p>
-                {onShowMe !== undefined && challenge.target !== undefined ? (
-                  <>
-                    <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
-                      {t('learn.challenge.showMeOffer')}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        vibrate()
-                        /* Points at where the answer is. It never types anything: practice is over
-                         * by now, and a demo that drove the real calculator would be writing to the
-                         * shopkeeper's own app in the middle of a question. */
-                        onShowMe({ target: challenge.target as string, hintKey })
-                      }}
-                      className="mt-2 rounded-full bg-accent-500/16 px-3.5 py-1.5 text-[13px] font-bold text-[var(--accent-text)]"
-                    >
-                      {t('learn.challenge.showMe')}
-                    </button>
-                  </>
-                ) : null}
               </div>
             ) : null}
           </div>

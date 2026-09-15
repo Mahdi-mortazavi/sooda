@@ -52,6 +52,27 @@ interface ChallengeBase {
   promptKey: string
   /** Where to point while the challenge is open, when it asks for something to be done. */
   target?: TourTargetName
+  /**
+   * What this question taught, when that is not simply what the lesson taught.
+   *
+   * The screen shows the lesson's own `summaryKey` after a right answer, which is right for
+   * most challenges. It is not enough where a binary option is standing in for a three-state
+   * answer: `realProfit.challenge` is `thin` at one month, so «هنوز سود می‌کند» is true and
+   * «کم‌سود» — the app's own word, on the card the learner saw two steps earlier — is also
+   * true. Lengthening the correct option to say both would make it visibly longer and more
+   * qualified than the wrong one, which is the oldest tell in multiple choice and would stop
+   * the question testing anything. So the nuance goes here, after the answer is in.
+   */
+  takeawayKey?: string
+  /**
+   * One sentence, shown on a second miss, pointing at *where* the answer was.
+   *
+   * The brief asks for "a hint rather than a correction", and without this the second miss
+   * rendered the label «راهنمایی» over the words «یک راهنمایی دیگر» — no correction, and no
+   * hint either. A hint names the thing on screen the learner should think about again; it
+   * never states the answer, or the question stops being one.
+   */
+  hintKey?: string
 }
 
 /** Type a figure. `answer` always comes from the engine — see `expected.source.ts`. */
