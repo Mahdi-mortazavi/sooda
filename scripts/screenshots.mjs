@@ -425,6 +425,37 @@ await shot('fa/products-dark', {
 await shot('en/whatsnew-dark', { lang: 'en', theme: 'dark', whatsNew: true, wait: 1400 })
 await shot('fa/whatsnew-light', { lang: 'fa', theme: 'light', whatsNew: true, wait: 1400 })
 
+/* ---------------- v1.5 surfaces: the Learning Centre and a lesson in progress ---------------- */
+/*
+ * `?learn` with no value opens the centre; `?learn=<id>` starts that lesson. Onboarding cannot
+ * intercept either, because `shot()` already writes `sooda:last-version`, and a returning user is
+ * never offered the first run. A lesson shot is taken in the practice shop, so nothing here
+ * depends on the seeded data the v1.4 screens need.
+ */
+
+/** Wait for the coach to have measured its first step, so the cutout is not caught mid-flight. */
+const coachReady = (waitMs) => async (page) => {
+  await page.getByRole('dialog').first().waitFor({ state: 'visible', timeout: 20000 })
+  await page.waitForTimeout(waitMs)
+}
+
+await shot('en/learn-center-dark', { lang: 'en', theme: 'dark', query: '?learn', wait: 1200 })
+await shot('fa/learn-center-light', { lang: 'fa', theme: 'light', unit: 'toman', query: '?learn', wait: 1200 })
+
+await shot('en/learn-lesson-light', {
+  lang: 'en',
+  theme: 'light',
+  query: '?learn=profit',
+  setup: coachReady(1400),
+})
+await shot('fa/learn-lesson-dark', {
+  lang: 'fa',
+  theme: 'dark',
+  unit: 'toman',
+  query: '?learn=profit',
+  setup: coachReady(1400),
+})
+
 /* ---------------- v1.4 surfaces: store setup, the rate card, the check-in ---------------- */
 /*
  * These four screens are states of the shopkeeper's own data, not of the calculator, so they
