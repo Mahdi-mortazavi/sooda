@@ -72,6 +72,7 @@ export async function loadStrings() {
     /* The lens's own word for a margin that survived but barely — «کم‌سود». Mission 1 ends on
      * it, and it is the half of the payoff that is not a number. */
     statusThin: at(bundle, 'lens.statusThin'),
+    realProfitLabel: at(bundle, 'lens.realProfit'),
     resultTitle: at(bundle, 'results.title'),
   })
   return {
@@ -369,6 +370,21 @@ export async function answerChallenges(page, { words, facts }) {
   return { seconds: (Date.now() - started) / 1000, answered, error: null }
 }
 
+/**
+ * Persian digits and separators, in the ASCII the expectations are written in.
+ *
+ * U+066B is the decimal separator and U+066C the thousands one; leaving them alone turns 9.82
+ * into "9٫82", which matches nothing — and a check that silently cannot match is worse than no
+ * check, because it reads as a bug in the app.
+ */
+function normalizeDigits(text) {
+  return text
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/\u066b/g, '.')
+    .replace(/\u066a/g, '%')
+    .replace(/[\u066c,\u2066\u2067\u2068\u2069]/g, '')
+}
+
 function escapeRe(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -416,7 +432,7 @@ export function printDurations(log = console.log) {
  * Returns everything the caller needs to decide what passed, and leaves the page open so a flow
  * can look at what is on screen afterwards.
  */
-async function playLesson(ctx, { lesson, lang, words, watchTargets = false }) {
+async function playLesson(ctx, { lesson, lang, words, watchTargets = false, label = '' }) {
   const page = await ctx.open({ lang, query: `?learn=${lesson.id}` })
   const misplaced = []
 
@@ -449,7 +465,7 @@ async function playLesson(ctx, { lesson, lang, words, watchTargets = false }) {
           : ''
 
   durations.push({
-    name: `lesson: ${lesson.id} (${lang})`,
+    name: `lesson: ${lesson.id} (${lang}${label === '' ? '' : `, ${label}`})`,
     seconds: played.seconds + answers.seconds,
     gate: LESSON_GATE_S,
     claimed: lesson.estimateSeconds,
@@ -487,6 +503,7 @@ export async function runLearnFlows(ctx) {
       lang: 'fa',
       words: words.fa,
       watchTargets: true,
+      label: 'targets checked',
     })
 
     check(
@@ -632,19 +649,25 @@ export async function runLearnFlows(ctx) {
       window.__payoffOn = false
       return window.__payoff ?? []
     })
-    const withLens = frames.filter(
-      (frame) =>
-        frame.text !== null &&
-        frame.text.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).includes(String(realPercent)),
-    )
+    /* The figure has to be the real margin, not any run of digits that happens to contain it: a
+     * count-up passing through 19,999.82 on its way to 20,000 reads as "9.82" to a loose match,
+     * and a check that can pass on the wrong card is not a check. So: the percentage with its
+     * sign, on a card that is also showing the lens's own label. */
+    const realProfitLabel = words_.realProfitLabel
+    const withLens = frames.filter((frame) => {
+      if (frame.text === null || !frame.text.includes(realProfitLabel)) return false
+      return normalizeDigits(frame.text).includes(`${realPercent}%`)
+    })
     check(
       `onboarding: the result card shows the real margin at ${realPercent}%`,
       withLens.length > 0,
       withLens.length > 0 ? '' : `last card seen: ${firstLines(frames.filter((f) => f.text).pop()?.text ?? '')}`,
     )
+    const fullest = withLens.map((frame) => frame.text).sort((a, b) => b.length - a.length)[0] ?? ''
     check(
       `onboarding: that card calls it «${words_.statusThin}»`,
       withLens.some((frame) => frame.text.includes(words_.statusThin)),
+      fullest === '' ? '' : `the most complete card seen was: ${fullest.replace(/\n+/g, ' | ').slice(0, 320)}`,
     )
     /* Why it is or is not there, in one more reading: the mission's last act but one is choosing
      * «۳ ماه», and the card only carries a real margin while that chip is still chosen. */

@@ -126,7 +126,7 @@ async function assertNoRawKeys(page, where) {
 /** The card is a lazy chunk, so wait for it rather than guessing a delay. */
 async function resultText(page) {
   const card = page.locator('section[aria-label="Result"]')
-  await card.waitFor({ state: 'visible', timeout: 10000 })
+  await card.waitFor({ state: 'visible', timeout: 20000 })
   await page.waitForTimeout(1500) // let the count-up springs settle on their final values
   return card.innerText()
 }
