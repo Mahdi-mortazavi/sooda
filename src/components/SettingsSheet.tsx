@@ -284,7 +284,13 @@ export function SettingsSheet({
                  * step waits for the guide to open, so on Chromium «نشانم بده» could never
                  * finish it. */
                 if (install.canNativePrompt && !practice) void install.promptInstall()
-                else setGuideOpen(true)
+                else {
+                  /* Announced, like every other sheet in the app. Only the close was, so lesson 8
+                   * waited on an opening it was never told about while the guide sat open in
+                   * front of the learner. */
+                  emitTour({ type: 'sheet:open', sheet: 'install-guide' })
+                  setGuideOpen(true)
+                }
               }}
               className="glass glass-ring flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-start"
             >

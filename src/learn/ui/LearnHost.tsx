@@ -81,6 +81,11 @@ function splitChallenges(steps: LessonStep[], challenges: Challenge[]): { steps:
       textKey: challenge.promptKey,
       expect: challenge.done,
       demo: challenge.demo,
+      /* A task is a step, and that includes where it has to be done. Dropping this worked by
+       * luck for two of the three — their sheet happened to be the one the last step left open
+       * — and left lesson 5 asking for a group reprice with the product sheet still covering
+       * the screen and the bulk panel never mounted. */
+      ...(challenge.before === undefined ? {} : { before: challenge.before }),
     })
   }
   return { steps: [...steps, ...tasks], quiz }
