@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.5.0] - 2026-09-15
 
+<div dir="rtl">
+
+### داستان این نسخه
+
+آقا رضا سودا را نصب می‌کند و هیچ‌کس به او نمی‌گوید این برنامه چه کار می‌کند. پس این‌بار خود سودا نشانش می‌دهد.
+
+شالی را ۱۰۰٬۰۰۰ تومان خریده و ۲۰٪ سود می‌خواهد. چهار لمس بعد، روی همان صفحه‌ای که هر روز با آن کار خواهد کرد، می‌بیند که اگر آن شال سه ماه روی دستش بماند، آن ۲۰٪ در واقع **۹٫۸۲٪** است — چون تا آن موقع، خریدِ دوبارهٔ همان جنس گران‌تر تمام می‌شود. این تمرین ده ثانیه طول می‌کشد، و همان چیزی است که سودا برای آن ساخته شده.
+
+بعد از آن، هشت درس کوتاه در «آموزش سودا» هست: سود، تخفیف، سود واقعی، اقساط، کالاها، نرخ گرانی، کار روزمره، و پشتیبان‌گیری. هیچ‌کدام خواندنی نیست — روی دکمه‌های واقعی کار می‌کنید، توی یک **مغازهٔ تمرینی** با پنج کالای نمونه که وقتی درس تمام شد پاک می‌شود. کالاها، قیمت‌ها و تاریخچهٔ خودتان دست نمی‌خورد. آخر هر درس یک سؤال هست که خود موتور محاسبهٔ سودا جوابش را بررسی می‌کند، و اگر اشتباه بود کسی سرزنش‌تان نمی‌کند: دوباره امتحان می‌کنید، و بار دوم سودا خودش نشان می‌دهد.
+
+</div>
+
 ### Added
 
 - **آموزش سودا — an interactive tutorial you do rather than watch.** Eight lessons, each 50–90 seconds, performed on the real screens with real buttons inside a practice shop stocked with five demo products. Nothing you do in a lesson touches your own shop: it runs on a separate store that is deleted when you leave. Every step waits for you to actually do the thing — nothing advances on a timer — and «رد شدن» is on screen at every moment.
