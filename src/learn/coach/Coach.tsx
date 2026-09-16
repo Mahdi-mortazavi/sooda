@@ -118,9 +118,19 @@ export function Coach({ steps, ctx, onComplete, onExit, initialIndex = 0, onStep
   const describe = useCallback(
     (action: DemoAction): string =>
       action.type === 'type'
-        ? label('learn.demoType', 'Typing {{value}}', { value: action.value })
+        ? label('learn.demoType', 'Typing {{value}}', {
+            /* Demo values are ASCII digit strings, and interpolating one raw put «۱۵۰۰۰۰» on a
+             * Persian line as `150000` — Latin digits, no U+066C grouping, directly beneath the
+             * step's own «۱۵۰٬۰۰۰». The parity script cannot see this: the key is in both
+             * bundles, and it is the value that is wrong. The one non-numeric demo value is a
+             * product name, which must pass through untouched. */
+            value:
+              action.value.trim() !== '' && Number.isFinite(Number(action.value))
+                ? formatNumber(Number(action.value), lang, 0)
+                : action.value,
+          })
         : label('learn.demoTap', 'Tapping here'),
-    [label],
+    [label, lang],
   )
 
   const playDemo = useCallback(async () => {

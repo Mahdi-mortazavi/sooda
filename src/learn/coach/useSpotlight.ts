@@ -74,15 +74,37 @@ export function useSpotlightTarget(name: string): SpotlightTarget {
   const [rect, setRect] = useState<Rect | null>(null)
   const reducedMotion = useReducedMotion()
 
-  /* A step often starts while the sheet holding its target is still mounting, so a miss is
-   * normal for a frame or two. Setting the same null twice is free — React bails out. */
+  /*
+   * A step often starts while the sheet holding its target is still mounting, so a miss is
+   * normal for a frame or two. Setting the same null twice is free — React bails out.
+   *
+   * It keeps watching after a hit, and that is the whole point. This used to stop resolving the
+   * moment it found anything, which held whatever node existed at that instant for the life of
+   * the step — so when the previous step's mode switch made React re-create the control, the
+   * coach stayed pinned to the detached one. Everything downstream then failed together:
+   * `measure` bailed on `!isConnected` and the hole fell back to a stub offscreen, the `inert`
+   * sweep never re-ran around the live node so the real target stayed inside an inert subtree,
+   * and the blocker swallowed every click on it. Six of the eight lessons dead-ended, and
+   * «نشانم بده» could not get past it either, because it calls `click()` on an inert element.
+   *
+   * The re-query is skipped while the element we hold is still connected, so the steady-state
+   * cost is an identity check per frame rather than a `querySelector`.
+   */
   useEffect(() => {
     let frame = 0
     const deadline = Date.now() + FIND_TIMEOUT_MS
+    let everFound = false
     const find = () => {
-      const found = findTourTarget(name)
-      setElement(found)
-      if (found === null && Date.now() < deadline) frame = requestAnimationFrame(find)
+      setElement((previous) => {
+        if (previous !== null && previous.isConnected) return previous
+        const found = findTourTarget(name)
+        if (found !== null) everFound = true
+        return found
+      })
+      /* The deadline only governs a target that has never appeared — a step pointing at
+       * something that does not exist must not spin forever. Once one has been seen, the step
+       * keeps watching for as long as it is on screen, because the node can be replaced again. */
+      if (everFound || Date.now() < deadline) frame = requestAnimationFrame(find)
     }
     find()
     return () => cancelAnimationFrame(frame)
@@ -281,6 +303,16 @@ export function applyInertOutside(target: Element | null, keep: readonly (Elemen
     // Something already inert stays inert and is left off the list, so restoring the page
     // cannot un-hide a sheet's backdrop that was inert before the lesson started.
     if (kept.has(element) || element.hasAttribute('inert')) return
+    /*
+     * `inert` removes a subtree from the accessibility tree, not just from the tab order — so
+     * sweeping the practice banner took «این یک مغازهٔ تمرینی است…» and the pinned-rate note
+     * away from screen-reader users for the whole lesson. Those are the two facts the plan says
+     * must be on screen the entire time, and they were the two an assistive-technology user was
+     * never told. Opting out by attribute rather than by ref keeps the rule in the markup that
+     * needs it; the containment check matters because the banner is usually a descendant of a
+     * branch this would otherwise mark wholesale.
+     */
+    if (element.querySelector('[data-coach-keep]') !== null || element.hasAttribute('data-coach-keep')) return
     element.setAttribute('inert', '')
     marked.push(element)
   }

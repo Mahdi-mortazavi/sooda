@@ -484,10 +484,15 @@ export function LearnHost({
       {/* A lesson is running against a throwaway shop, and every figure in it assumes a pinned
         * rate. Both facts have to be on screen the whole time, not buried in a step's text: a
         * learner who looks up mid-lesson must be able to see that none of this is their data.
-        * Non-interactive, so the coach's `inert` sweep outside its cutout costs it nothing. */}
+        *
+        * `data-coach-keep` holds it out of the coach's `inert` sweep. It is non-interactive, so
+        * being swept looked free — but `inert` takes a subtree out of the accessibility tree as
+        * well as the tab order, which meant the one user who cannot glance up at a banner was
+        * also the one never told they were in a practice shop, or what rate its figures assume. */}
       {active !== null ? (
         <div
           role="status"
+          data-coach-keep=""
           className="glass-sheet glass-ring pointer-events-none fixed inset-x-3 z-[70] mx-auto max-w-[480px] rounded-2xl px-3.5 py-2 text-center"
           style={{ top: 'calc(0.5rem + env(safe-area-inset-top))' }}
         >
