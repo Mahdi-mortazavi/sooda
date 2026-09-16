@@ -153,3 +153,5 @@ zz-scratch*
 __review_tmp*
 __ordercheck*
 tmp-probe*
+.audit-tmp/
+.ux-audit-tmp/
