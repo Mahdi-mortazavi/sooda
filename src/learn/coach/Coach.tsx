@@ -281,14 +281,6 @@ function wait(ms: number): Promise<void> {
 }
 
 /**
- * Do what the demo says, for real.
- *
- * «نشانم بده» has to drive the actual controls: the components are what emit `TourEvent`s,
- * so a finger that only mimed would leave the step's `expect` waiting forever. A tap is a
- * tap; typing goes through the prototype's `value` setter because React holds the input's
- * value and a plain assignment is invisible to it.
- */
-/**
  * The control a tap on this target has to land on.
  *
  * Several `data-tour` names are on the card rather than on the button inside it — the settings
@@ -306,6 +298,14 @@ function controlWithin(host: HTMLElement): HTMLElement {
   return host.querySelector<HTMLElement>(INTERACTIVE) ?? host
 }
 
+/**
+ * Do what the demo says, for real.
+ *
+ * «نشانم بده» has to drive the actual controls: the components are what emit `TourEvent`s,
+ * so a finger that only mimed would leave the step's `expect` waiting forever. A tap is a
+ * tap; typing goes through the prototype's `value` setter because React holds the input's
+ * value and a plain assignment is invisible to it.
+ */
 function performDemoAction(action: DemoAction): void {
   const host = findTourTarget(action.target)
   if (!host) return
