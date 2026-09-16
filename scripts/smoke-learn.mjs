@@ -668,19 +668,25 @@ export async function runLearnFlows(ctx) {
       withLens.some((frame) => frame.text.includes(words_.statusThin)),
       fullest === '' ? '' : `the most complete card seen was: ${fullest.replace(/\n+/g, ' | ').slice(0, 320)}`,
     )
-    /* Why it is or is not there, in one more reading: the mission's last act but one is choosing
-     * «۳ ماه», and the card only carries a real margin while that chip is still chosen. */
-    const monthsChip = await page.evaluate(() => {
-      const chips = [...document.querySelectorAll('[data-tour^="chip-months-"]')]
-      const chosen = chips.find(
-        (chip) => chip.getAttribute('aria-checked') === 'true' || chip.getAttribute('aria-pressed') === 'true',
-      )
-      return chosen?.getAttribute('data-tour') ?? null
-    })
+    /* Which chip the lens row is on, as the page sees it. Asked twice below: once while the badge
+     * is up, which says whether the card above could have carried a real margin at all, and once
+     * after «با اعداد خودم امتحان کنم», which is the hand-back the plan actually promises. */
+    const monthsChip = () =>
+      page.evaluate(() => {
+        const chips = [...document.querySelectorAll('[data-tour^="chip-months-"]')]
+        const chosen = chips.find(
+          (chip) => chip.getAttribute('aria-checked') === 'true' || chip.getAttribute('aria-pressed') === 'true',
+        )
+        return chosen?.getAttribute('data-tour') ?? null
+      })
+
+    /* Why the card above is or is not there, in one more reading: the mission's last act but one
+     * is choosing «۳ ماه», and the card only carries a real margin while that chip is chosen. */
+    const duringBadge = await monthsChip()
     check(
-      'onboarding: the calculator is handed back with the mission’s «۳ ماه» still chosen',
-      monthsChip === 'chip-months-3',
-      `the lens row is on ${monthsChip ?? 'nothing'}`,
+      'onboarding: the payoff is still on the calculator behind the badge',
+      duringBadge === 'chip-months-3',
+      `the lens row is on ${duringBadge ?? 'nothing'}`,
     )
 
     /* How long the payoff was actually readable. Not a gate — a number the report needs, because
@@ -704,9 +710,31 @@ export async function runLearnFlows(ctx) {
       played.stalled === null ? '' : 'the mission did not finish, so the time is a floor',
     )
 
-    // It is over for good: a second launch goes straight to the calculator.
+    /* «با اعداد خودم امتحان کنم». The plan's done screen says this "exits to the real calculator
+     * in the same mode", and the mode Mission 1 leaves it in is the lens on «۳ ماه» — so the
+     * reading that matters is taken here, on the shopkeeper's own calculator, after the demo shop
+     * has gone. Taken before this tap it passes on the practice calculator and says nothing about
+     * the hand-back at all. */
     await page.getByRole('button', { name: words_.celebrateStart }).first().click()
-    await page.waitForTimeout(600)
+    await page.waitForTimeout(1200)
+    const handedBack = await monthsChip()
+    check(
+      'onboarding: the calculator is handed back with the mission’s «۳ ماه» still chosen',
+      handedBack === 'chip-months-3',
+      `the lens row is on ${handedBack ?? 'nothing'}`,
+    )
+    /* …and with nothing else: the figures are «آقا رضا»'s, and the practice boundary exists so
+     * that none of them follow the learner out into their own shop. */
+    const carried = await page.evaluate(() =>
+      [...document.querySelectorAll('main input[inputmode="decimal"]')].map((input) => input.value),
+    )
+    check(
+      'onboarding: …and with none of the mission’s figures in the fields',
+      carried.every((value) => value === ''),
+      carried.join(' | '),
+    )
+
+    // It is over for good: a second launch goes straight to the calculator.
     await page.reload({ waitUntil: 'networkidle' })
     await page.waitForTimeout(1200)
     check(

@@ -78,6 +78,15 @@ interface CalculatorViewProps {
   /** A mode a lesson step asked for, applied once and then cleared through `onModeApplied`. */
   requestedMode?: string | null
   onModeApplied?: () => void
+  /**
+   * The lens month Mission 1 finished on, read once at the first render of the real calculator.
+   *
+   * Onboarding's done screen promises «the real calculator in the same mode», and the mode the
+   * mission leaves it in is the lens on «۳ ماه» — the whole point of the minute. Everything else
+   * it did stays behind: this is a month and nothing else, and it is ignored while a lesson is
+   * running, so the demo calculator never inherits it either.
+   */
+  handBackLensMonths?: string | null
 }
 
 export function CalculatorView({
@@ -94,6 +103,7 @@ export function CalculatorView({
   practiceDb = null,
   requestedMode = null,
   onModeApplied,
+  handBackLensMonths = null,
 }: CalculatorViewProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
@@ -116,6 +126,13 @@ export function CalculatorView({
         const saved = restored.modes[key]
         if (saved) initial[key] = { ...initial[key], ...saved }
       }
+    }
+    /* Mission 1's «۳ ماه», the one thing that crosses the practice boundary. The mission runs on
+     * the profit calculator, so that is the row it applies to; a shared link still wins, because
+     * that one was clicked on purpose. `practice` guards the other direction: starting a lesson
+     * remounts this too, and the demo shop must open on its own defaults. */
+    if (handBackLensMonths !== null && !practice) {
+      initial.profit = { ...initial.profit, months: handBackLensMonths }
     }
     if (shared) {
       const target = { ...initial[shared.mode] }

@@ -111,6 +111,16 @@ export default function App() {
   /* A step may ask for a mode before it runs; the calculator owns `mode`, so the request is passed
    * down and cleared once it has been applied. */
   const [requestedMode, setRequestedMode] = useState<string | null>(null)
+  /**
+   * The one thing Mission 1 is allowed to leave behind: the lens month it finished on.
+   *
+   * «با اعداد خودم امتحان کنم» hands the shopkeeper «the real calculator in the same mode», and
+   * the mode the mission leaves it in is «۳ ماه». The calculator below is remounted the instant
+   * practice ends — deliberately, so no demo figure can follow the learner out — and this is the
+   * single value that crosses with them. A month, typed as a month; see
+   * `Mission.handBackLensMonths` for why it is not an object with room in it.
+   */
+  const [handBackLensMonths, setHandBackLensMonths] = useState<string | null>(null)
   /* The products tab owns the detail and bulk sheets, so a step that asks for one is relayed
    * there rather than reached into. Cleared by the tab once it has acted. */
   const [tourSheet, setTourSheet] = useState<string | null>(null)
@@ -341,6 +351,7 @@ export default function App() {
           practiceDb={practice?.db ?? null}
           requestedMode={requestedMode}
           onModeApplied={clearRequestedMode}
+          handBackLensMonths={handBackLensMonths}
           /* A lesson pins both, so its figures cannot move when a maintainer updates a CPI
            * number or the shopkeeper has rounding switched off. Neither is ever stored. */
           monthlyInflationPercent={practice?.pinned?.monthlyInflationPercent ?? monthlyInflationPercent}
@@ -508,6 +519,7 @@ export default function App() {
             <LearnHost
               request={learnRequest}
               onPractice={setPractice}
+              onHandBackLens={setHandBackLensMonths}
               navigate={navigateForTour}
               tip={tip}
               onTipDismiss={() => setTip(null)}

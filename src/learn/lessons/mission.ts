@@ -45,6 +45,9 @@ export const MISSION: Mission = {
   estimateSeconds: 60,
   showsRate: true,
   rateNoteFromStep: 'months',
+  /* The same «۳ ماه» step 4 asks for, from the same place its answer came from: the done screen
+   * hands the calculator back with the lens where the mission left it. */
+  handBackLensMonths: IN.months,
   steps: [
     {
       /* The suggestion chip is the step. A first-run user who has never seen a number field

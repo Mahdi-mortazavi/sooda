@@ -22,6 +22,7 @@ import type { PracticeSession } from '../sandbox'
 import { Challenges } from './Challenges'
 import { LearnCenter } from './LearnCenter'
 import { Onboarding, type OnboardingStage } from './Onboarding'
+import { splitChallenges } from './steps'
 import { TipBar } from './TipBar'
 import { TUTORIAL_MONTHLY_PERCENT, TUTORIAL_ROUNDING_STEP } from '../lessons/rate'
 import { loadLesson, loadMission, lessonsAvailable } from './lessonSource'
@@ -58,37 +59,10 @@ interface ActiveRun {
   showsRate: boolean
   /** …but not from the first step: the step id it is held back until. See the banner. */
   rateNoteFromStep: string | null
+  /** Mission 1 only: the lens month the real calculator keeps afterwards. See `Mission`. */
+  handBackLensMonths: string | null
   session: PracticeSession
   startIndex: number
-}
-
-/**
- * A `task` challenge is «do it in the practice shop», which is what a step already is — same
- * target, same event-judged predicate, same demo. So it is appended to the steps and the coach
- * runs it, rather than a second runner being built to do the same job slightly differently.
- */
-function splitChallenges(steps: LessonStep[], challenges: Challenge[]): { steps: LessonStep[]; quiz: Challenge[] } {
-  const tasks: LessonStep[] = []
-  const quiz: Challenge[] = []
-  for (const challenge of challenges) {
-    if (challenge.kind !== 'task') {
-      quiz.push(challenge)
-      continue
-    }
-    tasks.push({
-      id: challenge.id,
-      target: challenge.target,
-      textKey: challenge.promptKey,
-      expect: challenge.done,
-      demo: challenge.demo,
-      /* A task is a step, and that includes where it has to be done. Dropping this worked by
-       * luck for two of the three — their sheet happened to be the one the last step left open
-       * — and left lesson 5 asking for a group reprice with the product sheet still covering
-       * the screen and the bulk panel never mounted. */
-      ...(challenge.before === undefined ? {} : { before: challenge.before }),
-    })
-  }
-  return { steps: [...steps, ...tasks], quiz }
 }
 
 export interface LearnHostProps {
@@ -96,6 +70,15 @@ export interface LearnHostProps {
   request: LearnRequest | null
   /** Swaps what `RepositoryContext` provides. `null` puts the real shop back. */
   onPractice: (value: RepositoryValue | null) => void
+  /**
+   * The lens month Mission 1 leaves behind, handed up the moment the mission is finished.
+   *
+   * It has to reach `App` before practice is dropped, because dropping practice is what remounts
+   * the calculator — the new one reads this at its first render and never again. A `string`, and
+   * only ever the lens: see `Mission.handBackLensMonths` for why the type is deliberately too
+   * narrow to carry anything else out of the demo shop.
+   */
+  onHandBackLens: (months: string) => void
   /** Puts the app where a step needs it before the step runs. */
   navigate: (to: TourDestination) => Promise<void>
   /**
@@ -113,6 +96,7 @@ export interface LearnHostProps {
 export function LearnHost({
   request,
   onPractice,
+  onHandBackLens,
   navigate,
   tip,
   onTipDismiss,
@@ -180,6 +164,8 @@ export function LearnHost({
       showsRate: boolean
       /** Hold that note back until this step is on screen. See the banner below. */
       rateNoteFromStep?: string
+      /** Mission 1 only. See `Mission.handBackLensMonths`. */
+      handBackLensMonths?: string
       suggestion?: { field: string; value: string; label: string }
     }) => {
       setNotice(null)
@@ -215,6 +201,7 @@ export function LearnHost({
         summaryKey: run.summaryKey,
         showsRate: run.showsRate,
         rateNoteFromStep: run.rateNoteFromStep ?? null,
+        handBackLensMonths: run.handBackLensMonths ?? null,
         session,
         startIndex: stored !== null && stored.status === 'progress' ? stored.step : 0,
       })
@@ -271,6 +258,7 @@ export function LearnHost({
           replace: { value: formatNumber(Number(mission.suggestion.value), lang, 0) },
         }),
       },
+      handBackLensMonths: mission.handBackLensMonths,
       ...(mission.rateNoteFromStep === undefined ? {} : { rateNoteFromStep: mission.rateNoteFromStep }),
     })
   }, [lang, startRun, t])
@@ -315,7 +303,13 @@ export function LearnHost({
        * lesson's questions are asked with the store already gone, and a mission walked out of
        * halfway has no payoff to keep.
        */
-      if (!(lesson.id === null && outcome.finished)) void leavePractice()
+      if (lesson.id === null && outcome.finished) {
+        /* Handed up now, not when the welcome closes: dropping practice is what remounts the
+         * calculator, and the new one reads this at its first render. */
+        if (lesson.handBackLensMonths !== null) onHandBackLens(lesson.handBackLensMonths)
+      } else {
+        void leavePractice()
+      }
       if (!outcome.finished) {
         if (lesson.id === null) {
           setProgress(finishOnboarding(true))
@@ -336,7 +330,7 @@ export function LearnHost({
       }
       settle(lesson, true)
     },
-    [leavePractice, settle],
+    [leavePractice, onHandBackLens, settle],
   )
 
   /* ---- the request ---- */

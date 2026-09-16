@@ -135,6 +135,22 @@ export interface Mission {
    * that follows — so it appears when the lens engages and the learner has a reason to want it.
    */
   rateNoteFromStep?: string
+  /**
+   * The lens month the real calculator keeps when the welcome closes.
+   *
+   * The plan's done screen returns the shopkeeper to «the real calculator in the same mode», and
+   * the mode Mission 1 leaves it in is the lens on «۳ ماه» — the one setting the minute exists to
+   * teach. Without it the row snaps back to «الان» the moment the badge is dismissed, and the
+   * first calculation they do on their own numbers quietly answers the question the mission just
+   * spent a minute saying was the wrong one.
+   *
+   * A bare month, and not a bag of field values, on purpose. `App` remounts the calculator across
+   * the practice boundary precisely so that «آقا رضا»'s cost and margin cannot appear in the
+   * shopkeeper's own screen, and this is the one hole in that wall. A channel that can carry a
+   * month could carry a cost; widening it has to be somebody's deliberate act, not a tempting
+   * extra key in an object that is already there.
+   */
+  handBackLensMonths: string
   steps: LessonStepSpec[]
   /** Always empty. Present so the host can hand a mission to the same runner as a lesson. */
   challenges: Challenge[]
