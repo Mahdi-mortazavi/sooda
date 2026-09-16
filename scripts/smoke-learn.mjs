@@ -68,6 +68,12 @@ export async function loadStrings() {
     challengeFinish: at(bundle, 'learn.challenge.finish'),
     answerLabel: at(bundle, 'learn.challenge.answerLabel'),
   })
+  /* Each lesson's own title, which is what its question surface is labelled with — the one
+   * thing that tells it apart from the Learning Centre, whose cards mention «چالش» too. */
+  const titles = (bundle) =>
+    Object.fromEntries(
+      Object.entries(bundle.learn?.lessons ?? {}).map(([id, entry]) => [id, entry?.title]).filter(([, v]) => typeof v === 'string'),
+    )
   const forCore = (bundle) => ({
     /* The lens's own word for a margin that survived but barely — «کم‌سود». Mission 1 ends on
      * it, and it is the half of the payoff that is not a number. */
@@ -76,8 +82,8 @@ export async function loadStrings() {
     resultTitle: at(bundle, 'results.title'),
   })
   return {
-    fa: { ...forLang(fa), ...forCore(coreFa) },
-    en: { ...forLang(en), ...forCore(coreEn) },
+    fa: { ...forLang(fa), ...forCore(coreFa), lessonTitles: titles(fa) },
+    en: { ...forLang(en), ...forCore(coreEn), lessonTitles: titles(en) },
   }
 }
 
@@ -290,55 +296,57 @@ export async function playByDemo(page, { words, onStep }) {
  * them is accepted and the question can be got past, not that a script knows which.
  */
 export async function answerChallenges(page, { words, facts }) {
-  /* Scoped to the surface that is actually asking a question. The Learning Centre is a modal
-   * dialog too, and it opens the instant the last question is answered — a looser locator
-   * answers the lesson and then starts clicking lesson cards, which is how this flow first
-   * "failed" with a thirty-second timeout on a button that was never a challenge option. */
-  const surface = page
-    .locator('[role="dialog"][aria-modal="true"]')
-    .filter({ hasText: words.challengeLabel })
+  /* Scoped by the lesson's own title. The Learning Centre is a modal dialog too, it opens the
+   * instant the last question is answered, and its cards talk about challenges — so a looser
+   * locator answers the lesson and then starts clicking lesson cards, which is how this flow
+   * first "failed" with a thirty-second timeout on a button that was never an option. */
+  const surface = page.locator('[role="dialog"][aria-modal="true"]').filter({ hasText: words.challengeLabel })
   const started = Date.now()
   const answered = []
   const numbers = facts.challenges.filter((c) => c.kind === 'number').map((c) => c.answer)
   let typedSoFar = 0
-
   const asked = facts.challenges.length
-  if (asked > 0) {
-    // The questions open as the lesson's last step passes; the surface springs in.
-    await surface.first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {})
-    if ((await surface.count()) === 0) {
-      return { seconds: (Date.now() - started) / 1000, answered, error: 'the lesson asked nothing after its steps' }
-    }
-  }
+  const stop = (error) => ({ seconds: (Date.now() - started) / 1000, answered, error })
 
-  for (let guard = 0; guard < 8; guard += 1) {
-    if ((await surface.count()) === 0) break
+  if (asked === 0) return stop(null)
+
+  // The questions open as the lesson's last step passes; the surface springs in.
+  await surface.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {})
+  if ((await surface.count()) === 0) return stop('the lesson asked nothing after its steps')
+
+  /* Exactly as many passes as there are questions — never one more. The loop used to end by
+   * finding nothing left to click, which is what walked it into the Learning Centre. */
+  for (let question = 0; question < asked; question += 1) {
+    await surface.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {})
+    if ((await surface.count()) === 0) return stop(`the surface closed after ${answered.length} of ${asked}`)
+
     const input = surface.locator('input[inputmode="decimal"]')
     const correct = surface.getByText(words.challengeCorrect, { exact: false })
 
     if ((await input.count()) > 0) {
       const answer = numbers[typedSoFar]
       typedSoFar += 1
-      if (answer === undefined) return { seconds: (Date.now() - started) / 1000, answered, error: 'no answer known' }
+      if (answer === undefined) return stop('the lesson asks a figure this run could not resolve')
       await input.first().fill(String(answer))
       await surface
-        .getByRole('button', { name: new RegExp(`${escapeRe(words.challengeCheck)}|${escapeRe(words.challengeTryAgain)}`) })
+        .getByRole('button', {
+          name: new RegExp(`${escapeRe(words.challengeCheck)}|${escapeRe(words.challengeTryAgain)}`),
+        })
         .first()
-        .click()
+        .click({ timeout: 10000 })
       await page.waitForTimeout(700)
-      if ((await correct.count()) === 0) {
-        return { seconds: (Date.now() - started) / 1000, answered, error: `the typed answer ${answer} was rejected` }
-      }
+      if ((await correct.count()) === 0) return stop(`the engine's own answer, ${answer}, was rejected`)
       answered.push(`number:${answer}`)
     } else {
-      /* A choice question. Its options are the only buttons in the body; the surface's own
-       * header close and the skip link are excluded by name. */
+      /* A choice question. Its options are the list buttons in the body; working through them
+       * until one is accepted is the point — that a learner can get past it, not that a script
+       * knows which one is right. */
       const options = surface.locator('li button')
       const count = await options.count()
-      if (count === 0) break
+      if (count === 0) return stop('a question with neither a field nor an option')
       let accepted = false
       for (let i = 0; i < count; i += 1) {
-        await options.nth(i).click()
+        await options.nth(i).click({ timeout: 10000 })
         await page.waitForTimeout(500)
         if ((await correct.count()) > 0) {
           accepted = true
@@ -346,28 +354,19 @@ export async function answerChallenges(page, { words, facts }) {
           break
         }
       }
-      if (!accepted) {
-        return { seconds: (Date.now() - started) / 1000, answered, error: 'no option was accepted' }
-      }
+      if (!accepted) return stop('no option was accepted')
     }
 
     // «آموزش بعدی» / «بازگشت به آموزش‌ها» — the takeaway is read, then the question advances.
     const onwards = surface.getByRole('button', {
       name: new RegExp(`${escapeRe(words.challengeNext)}|${escapeRe(words.challengeFinish)}`),
     })
-    if ((await onwards.count()) === 0) break
-    await onwards.first().click()
+    if ((await onwards.count()) === 0) return stop('the takeaway offered no way onwards')
+    await onwards.first().click({ timeout: 10000 })
     await page.waitForTimeout(900)
   }
 
-  if (answered.length < asked) {
-    return {
-      seconds: (Date.now() - started) / 1000,
-      answered,
-      error: `${answered.length} of ${asked} questions were answered`,
-    }
-  }
-  return { seconds: (Date.now() - started) / 1000, answered, error: null }
+  return stop(answered.length < asked ? `${answered.length} of ${asked} questions were answered` : null)
 }
 
 /**

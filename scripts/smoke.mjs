@@ -69,6 +69,7 @@ async function flow(name, run) {
     await run()
   } catch (err) {
     check(`${name} completed`, false, String(err.message).split('\n')[0])
+    if (process.env.SMOKE_STACK) console.log(String(err.stack).split('\n').slice(0, 6).join('\n'))
   }
 }
 
