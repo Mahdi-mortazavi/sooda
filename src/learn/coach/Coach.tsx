@@ -288,11 +288,29 @@ function wait(ms: number): Promise<void> {
  * tap; typing goes through the prototype's `value` setter because React holds the input's
  * value and a plain assignment is invisible to it.
  */
+/**
+ * The control a tap on this target has to land on.
+ *
+ * Several `data-tour` names are on the card rather than on the button inside it — the settings
+ * install row is a `<section>` around its button, a product row a `<li>` around its — and they
+ * are on the card deliberately: the hole the step cuts is supposed to show the whole row, not a
+ * word of it. `click()` on a wrapper does nothing at all, though, so the demo stood there tapping
+ * a `<section>` until the step timed out. Typing has always descended to the `input` it found;
+ * this is the same descent for a tap, and nothing more: a host that is itself a control, or that
+ * holds no control at all, is returned untouched.
+ */
+function controlWithin(host: HTMLElement): HTMLElement {
+  const INTERACTIVE =
+    'button, a[href], input, select, textarea, summary, [role="button"], [role="radio"], [role="checkbox"], [role="tab"], [role="switch"], [role="link"]'
+  if (host.matches(INTERACTIVE)) return host
+  return host.querySelector<HTMLElement>(INTERACTIVE) ?? host
+}
+
 function performDemoAction(action: DemoAction): void {
   const host = findTourTarget(action.target)
   if (!host) return
   if (action.type === 'tap') {
-    host.click()
+    controlWithin(host).click()
     return
   }
   const field = host instanceof HTMLInputElement || host instanceof HTMLTextAreaElement

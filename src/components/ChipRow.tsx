@@ -64,10 +64,16 @@ export function ChipRow({ options, value, onChange, layoutId, ariaLabel, tour, t
             role="radio"
             aria-checked={selected}
             onClick={() => {
+              /* Announced before the guard, and deliberately: choosing the option that is already
+               * chosen changes nothing on screen, but it is still the user choosing it. A lesson
+               * step that asks for a row's own default — «شش قسط», where `n` starts at 6 — waited
+               * for ever otherwise, and «نشانم بده» could not finish it either, because the tap it
+               * plays is the same tap. Nothing below the guard moves: no haptic, no `onChange`, so
+               * a shopkeeper who never opens a lesson sees exactly what they saw before. */
+              if (tourKey !== undefined) emitTour({ type: 'chip:select', group: tourKey, value: option.value })
               if (selected) return
               vibrate()
               onChange(option.value)
-              if (tourKey !== undefined) emitTour({ type: 'chip:select', group: tourKey, value: option.value })
             }}
             className={`relative shrink-0 rounded-full px-3 py-1.5 text-[13.5px] font-semibold transition-colors duration-300 ${
               selected ? 'text-white dark:text-[hsl(168_90%_8%)]' : 'text-[var(--text-secondary)]'

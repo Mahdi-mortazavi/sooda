@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import type { Product, StoreProfile } from '../lib/db'
@@ -105,10 +105,6 @@ export function ProductsView({
   }, [all, pinned])
 
   const visible = useMemo(() => sortProducts(searchProducts(all, query), sort, statuses), [all, query, sort, statuses])
-  /* Read by the tour-sheet effect below without making it depend on the sorted array: a step that
-   * asks for «the first product» wants the row on screen, not a re-run on every keystroke. */
-  const visibleRef = useRef(visible)
-  visibleRef.current = visible
 
   /* A finished check-in hands over the products whose cost went up. Selecting them and
    * opening the bulk sheet is the whole point of the hand-off, so it happens without a tap;
@@ -125,15 +121,22 @@ export function ProductsView({
     onRepriceConsumed()
   }, [repriceIds, onRepriceConsumed])
 
+  /* The row a «show me the first product» step means. Depended on by name rather than read out of
+   * `visibleRef`, because the request below arrives on the same tick as the tab switch — before
+   * Dexie has handed the practice products back — and a request answered against an empty list
+   * was still marked handled, which left `smartRates` pointing at a rate card that was never on
+   * the page. Re-running when the first row appears costs nothing: the body returns immediately
+   * whenever no step has asked for a sheet, which is every render outside a lesson. */
+  const firstVisibleId = visible[0]?.id
+
   useEffect(() => {
     if (tourSheet === null) return
     if (tourSheet === 'product') {
-      const first = visibleRef.current[0]
       setBulkOpen(false)
-      if (first !== undefined) {
-        setDetailId(first.id)
-        setDetailOpen(true)
-      }
+      // Not consumed yet: the list is still loading, and the step is waiting for the sheet.
+      if (firstVisibleId === undefined) return
+      setDetailId(firstVisibleId)
+      setDetailOpen(true)
     } else if (tourSheet === 'bulk-reprice') {
       setDetailOpen(false)
       setBulkMounted(true)
@@ -143,7 +146,7 @@ export function ProductsView({
       setBulkOpen(false)
     }
     onTourSheetHandled?.()
-  }, [tourSheet, onTourSheetHandled])
+  }, [tourSheet, firstVisibleId, onTourSheetHandled])
 
   const showToast = useCallback((message: string, action?: { label: string; onAction: () => void }) => {
     setToast({ message, action })
