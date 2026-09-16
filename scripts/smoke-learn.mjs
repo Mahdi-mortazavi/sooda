@@ -594,12 +594,18 @@ export async function runLearnFlows(ctx) {
      * screen while the mission was running. */
     await page.evaluate((label) => {
       window.__payoff = []
-      window.__payoffTimer = setInterval(() => {
+      window.__payoffOn = true
+      /* Every frame, not every tenth of a second: the payoff is on screen for less time than a
+       * 100ms sampler can be relied on to catch, which is itself part of what this reports. */
+      const sample = () => {
+        if (!window.__payoffOn) return
         const card = document.querySelector(`section[aria-label="${label}"]`)
         const text = card === null ? null : card.innerText
         const last = window.__payoff[window.__payoff.length - 1]
         if (last === undefined || last.text !== text) window.__payoff.push({ at: Date.now(), text })
-      }, 100)
+        requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
     }, words_.resultTitle)
 
     const played = await playByDemo(page, { words: words_ })
@@ -623,7 +629,7 @@ export async function runLearnFlows(ctx) {
      * the mission, so a reading taken the moment the tooltip vanishes is a frame too early. */
     await page.waitForTimeout(1500)
     const frames = await page.evaluate(() => {
-      clearInterval(window.__payoffTimer)
+      window.__payoffOn = false
       return window.__payoff ?? []
     })
     const withLens = frames.filter(
@@ -640,6 +646,21 @@ export async function runLearnFlows(ctx) {
       `onboarding: that card calls it «${words_.statusThin}»`,
       withLens.some((frame) => frame.text.includes(words_.statusThin)),
     )
+    /* Why it is or is not there, in one more reading: the mission's last act but one is choosing
+     * «۳ ماه», and the card only carries a real margin while that chip is still chosen. */
+    const monthsChip = await page.evaluate(() => {
+      const chips = [...document.querySelectorAll('[data-tour^="chip-months-"]')]
+      const chosen = chips.find(
+        (chip) => chip.getAttribute('aria-checked') === 'true' || chip.getAttribute('aria-pressed') === 'true',
+      )
+      return chosen?.getAttribute('data-tour') ?? null
+    })
+    check(
+      'onboarding: the calculator is handed back with the mission’s «۳ ماه» still chosen',
+      monthsChip === 'chip-months-3',
+      `the lens row is on ${monthsChip ?? 'nothing'}`,
+    )
+
     /* How long the payoff was actually readable. Not a gate — a number the report needs, because
      * a screen that is right for a quarter of a second has not shown anybody anything. */
     if (withLens.length > 0) {
