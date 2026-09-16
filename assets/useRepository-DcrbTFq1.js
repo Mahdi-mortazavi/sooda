@@ -1,0 +1,1 @@
+import{r as e,ac as r}from"./index-CmQLBG1o.js";import{a as t}from"./db-DCBhc-SJ.js";import{r as o,d as s,e as a}from"./products-DZNOEdMf.js";const i={repository:{...a(t),...s(t)},db:t,persist:o,practice:!1,pinned:null,suggestion:null};function c(){return e.useContext(r)??i}export{c as u};

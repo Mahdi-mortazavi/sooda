@@ -1,0 +1,1 @@
+const n=2;async function c(o,r){const[t,s,e,a,i]=await Promise.all([o.products.toArray(),o.history.toArray(),o.basket.toArray(),o.observations.toArray(),o.storeProfile.get("me")]);return{app:"sooda",version:2,exportedAt:r,products:t,history:s,basket:e,observations:a,storeProfile:i??null,settings:{}}}export{n as PRACTICE_BACKUP_VERSION,c as buildPracticeBackup};
