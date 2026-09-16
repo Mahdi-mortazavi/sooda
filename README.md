@@ -70,6 +70,31 @@ That's it. The rest of this guide is about what Sooda does *beyond* that.
 
 ---
 
+## 🎓 Interactive tutorial
+
+**When is it for?** The first time you open Sooda, and any time afterwards that you want to
+learn a part of it. There is nothing to read — you work on the real buttons.
+
+**What to do**
+1. On first run, Sooda offers a short exercise; tap **"Let's work it out together"**.
+2. Later, open the **"Learn Sooda"** card in **Settings**.
+3. Start any lesson you like — and tap **"Skip"** whenever you want.
+
+**Example** — the first exercise: Reza bought a shawl for 100,000 and wants 20% profit. Four
+taps later you see that if the same shawl sits on his shelf for three months, that 20% on paper
+is really **under 10%**. The whole thing takes about a minute.
+
+**Tip** — all of it happens in a **practice shop**: five sample products made only for the
+lesson and deleted when it ends. Your own products, prices and history are never touched. If you
+get stuck, **"Show me"** does the step in front of you.
+
+There are eight lessons — profit percentage, discounts, real profit, instalments, products,
+smart rates, everyday use, and backups — each 50 to 90 seconds. Each ends with a small question,
+marked by Sooda's own calculation engine, and a wrong answer is never called wrong: you just try
+again.
+
+---
+
 ## 📘 Step-by-step guide
 
 ### 🧮 Profit %
