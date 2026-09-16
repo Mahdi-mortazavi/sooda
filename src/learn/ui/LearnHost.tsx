@@ -293,7 +293,24 @@ export function LearnHost({
   const finishLesson = useCallback(
     (lesson: ActiveRun, outcome: { finished: boolean; atStep: number }) => {
       setActive(null)
-      void leavePractice()
+      /*
+       * Mission 1 ends ON its payoff, and that is the one ending the demo shop must survive.
+       *
+       * The last thing the mission asks for is the second «محاسبه کن», and the card that tap
+       * paints — «قیمت پیشنهادی ۱۳۲٬۰۰۰ · سود واقعی ۹٫۸۲٪ · کم‌سود» — is the entire reason the
+       * minute exists. Leaving practice here unmounts the calculator in the same frame the step
+       * passes, because `App` remounts it across the practice boundary: the payoff was measured
+       * on screen for between zero and four tenths of a second, in roughly one run in four, and
+       * otherwise never painted at all. A first-time user reached the badge having been shown
+       * the one number onboarding is for exactly never.
+       *
+       * So it is left standing behind the celebration — which is, after all, celebrating it —
+       * and comes down when the welcome is closed: by the three handlers below, and by the
+       * unmount cleanup whatever happens. Only for the mission, and only when it finished: a
+       * lesson's questions are asked with the store already gone, and a mission walked out of
+       * halfway has no payoff to keep.
+       */
+      if (!(lesson.id === null && outcome.finished)) void leavePractice()
       if (!outcome.finished) {
         if (lesson.id === null) {
           setProgress(finishOnboarding(true))
@@ -405,10 +422,14 @@ export function LearnHost({
     [startLesson],
   )
 
+  /* Every way out of the welcome, and each one has to put the real shop back: the mission leaves
+   * its demo store standing so the badge lands over the payoff rather than over a blank
+   * calculator, which makes closing the welcome the moment it is no longer wanted. */
   const onSkipOnboarding = useCallback(() => {
+    void leavePractice()
     setProgress(finishOnboarding(true))
     onClose()
-  }, [onClose])
+  }, [leavePractice, onClose])
 
   /**
    * Onboarding's one forward button, which means something different on each stage: cards →
@@ -460,11 +481,13 @@ export function LearnHost({
           storyKey={missionStory}
           onSkip={onSkipOnboarding}
           onOpenCenter={() => {
+            void leavePractice()
             setProgress(finishOnboarding(true))
             setStage('intro')
             setCenterOpen(true)
           }}
           onFinish={() => {
+            void leavePractice()
             setProgress(finishOnboarding(true))
             onClose()
           }}

@@ -121,12 +121,12 @@ export function ProductsView({
     onRepriceConsumed()
   }, [repriceIds, onRepriceConsumed])
 
-  /* The row a «show me the first product» step means. Depended on by name rather than read out of
-   * `visibleRef`, because the request below arrives on the same tick as the tab switch — before
-   * Dexie has handed the practice products back — and a request answered against an empty list
-   * was still marked handled, which left `smartRates` pointing at a rate card that was never on
-   * the page. Re-running when the first row appears costs nothing: the body returns immediately
-   * whenever no step has asked for a sheet, which is every render outside a lesson. */
+  /* The row a «show me the first product» step means, depended on by the effect below rather than
+   * read out of a ref. The request arrives on the same tick as the tab switch — before Dexie has
+   * handed the practice products back — and answering it against an empty list still marked it
+   * handled, so `smartRates` spent its whole second step pointing at a rate card that was never
+   * on the page. Re-running when the first row appears costs nothing: the effect returns on its
+   * first line whenever no step has asked for a sheet, which is every render outside a lesson. */
   const firstVisibleId = visible[0]?.id
 
   useEffect(() => {
