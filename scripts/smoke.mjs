@@ -69,6 +69,9 @@ async function flow(name, run) {
     await run()
   } catch (err) {
     check(`${name} completed`, false, String(err.message).split('\n')[0])
+    /* `SMOKE_STACK=1` adds Playwright's own call log, which names the locator that gave up —
+     * the difference between "a click timed out" and "it was clicking a lesson card in the
+     * Learning Centre". Off by default: it is six lines per failure. */
     if (process.env.SMOKE_STACK) console.log(String(err.stack).split('\n').slice(0, 6).join('\n'))
   }
 }
