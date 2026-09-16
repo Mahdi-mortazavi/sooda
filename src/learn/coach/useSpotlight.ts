@@ -87,20 +87,23 @@ export function useSpotlightTarget(name: string): SpotlightTarget {
    * and the blocker swallowed every click on it. Six of the eight lessons dead-ended, and
    * «نشانم بده» could not get past it either, because it calls `click()` on an inert element.
    *
-   * The re-query is skipped while the element we hold is still connected, so the steady-state
-   * cost is an identity check per frame rather than a `querySelector`.
+   * It re-queries every frame rather than holding on to a live node, and the distinction is not
+   * academic: an attempt to skip the lookup "while the element we hold is still connected" broke
+   * every step transition, because the previous step's target is still perfectly connected when
+   * the next step begins. The coach kept the cost field while the step asked for the margin one,
+   * and the cutout sat over 8% of the right control. "The node I hold is alive" and "the node I
+   * hold is the one this step asked for" are different claims. A `querySelector` per frame for
+   * the length of a step is not worth conflating them.
    */
   useEffect(() => {
     let frame = 0
     const deadline = Date.now() + FIND_TIMEOUT_MS
     let everFound = false
     const find = () => {
-      setElement((previous) => {
-        if (previous !== null && previous.isConnected) return previous
-        const found = findTourTarget(name)
-        if (found !== null) everFound = true
-        return found
-      })
+      const found = findTourTarget(name)
+      if (found !== null) everFound = true
+      // Setting the same element twice is free — React bails out on an unchanged value.
+      setElement((previous) => (previous === found ? previous : found))
       /* The deadline only governs a target that has never appeared — a step pointing at
        * something that does not exist must not spin forever. Once one has been seen, the step
        * keeps watching for as long as it is on screen, because the node can be replaced again. */
