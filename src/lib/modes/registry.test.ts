@@ -131,11 +131,11 @@ describe('validateMode', () => {
     expect(result.errors['cost']).toBe('required')
   })
 
-  it('treats a blank optional field as zero rather than an error', () => {
+  it('requires the restock price once the user says they know it', () => {
     const state = { ...emptyState('profit'), cost: '100000', margin: '20', months: '3', src: 'known' }
     const result = validateMode('profit', state)
-    expect(result.ok).toBe(true)
-    expect(result.values['replacement']).toBe(0)
+    expect(result.ok).toBe(false)
+    expect(result.errors['replacement']).toBe('required')
   })
 
   it('never turns a toggle into a number', () => {

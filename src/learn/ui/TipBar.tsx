@@ -55,7 +55,7 @@ export function TipBar({ id, onDismiss, onOpenLesson }: TipBarProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 14 }}
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-      className="glass-sheet glass-ring fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-[480px] items-center gap-2 rounded-2xl px-3.5 py-2.5"
+      className="glass-floating glass-ring fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-[480px] items-center gap-2 rounded-2xl px-3.5 py-2.5"
     >
       <p className="min-w-0 flex-1 text-[13px] leading-snug text-[var(--text-secondary)]">{text}</p>
       {lesson !== undefined && isLessonId(lesson) ? (

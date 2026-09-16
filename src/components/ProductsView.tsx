@@ -330,7 +330,11 @@ export function ProductsView({
             </ul>
           )}
 
-          <div className="mt-5 flex items-center gap-3">
+          {/*
+           * `items-stretch`, not `items-center`: a footer pair whose text wraps to two lines
+           * (see the label spans below) must not leave its sibling short and lopsided next to it.
+           */}
+          <div className="mt-5 flex items-stretch gap-3">
             {selecting ? (
               <>
                 <button
@@ -351,8 +355,12 @@ export function ProductsView({
                   }}
                   className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--accent-fill-strong)] px-4 py-3 text-[15px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
                 >
-                  <IconTrendUp size={18} />
-                  <span className="min-w-0 truncate">{t('products.bulkOpen')}</span>
+                  <IconTrendUp size={18} className="shrink-0" />
+                  {/* Two equal-width buttons sharing a 390px row have no reliable safe length for
+                      either label, in either language, forever — wrapping is what actually
+                      guarantees the whole word stays on screen; `truncate` here once quietly ate
+                      the ends of both. */}
+                  <span className="min-w-0 text-center [overflow-wrap:anywhere]">{t('products.bulkOpen')}</span>
                 </button>
               </>
             ) : (
@@ -362,8 +370,8 @@ export function ProductsView({
                   onClick={onExport}
                   className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
                 >
-                  <IconDownload size={18} />
-                  <span className="min-w-0 truncate">{t('products.exportCsv')}</span>
+                  <IconDownload size={18} className="shrink-0" />
+                  <span className="min-w-0 text-center [overflow-wrap:anywhere]">{t('products.exportCsv')}</span>
                 </button>
                 <button
                   type="button"
@@ -373,8 +381,8 @@ export function ProductsView({
                   }}
                   className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
                 >
-                  <IconTrendUp size={18} />
-                  <span className="min-w-0 truncate">{t('products.bulkOpen')}</span>
+                  <IconTrendUp size={18} className="shrink-0" />
+                  <span className="min-w-0 text-center [overflow-wrap:anywhere]">{t('products.bulkOpen')}</span>
                 </button>
               </>
             )}

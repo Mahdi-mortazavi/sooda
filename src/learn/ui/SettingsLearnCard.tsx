@@ -15,6 +15,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../../i18n/sheets'
+import { IconChevronForward } from '../../components/Icons'
 import { vibrate } from '../../lib/haptics'
 import { formatNumber, type AppLanguage } from '../../lib/numbers'
 import { ProgressRing } from './ProgressRing'
@@ -65,9 +66,7 @@ export function SettingsLearnCard({ lang }: { lang: AppLanguage }) {
               : t('learn.settingsHint', { defaultValue: 'Short lessons you do on the real app.' })}
           </span>
         </span>
-        <span aria-hidden className="shrink-0 text-[16px] text-[var(--text-tertiary)] rtl:rotate-180">
-          ›
-        </span>
+        <IconChevronForward aria-hidden size={16} className="shrink-0 text-[var(--text-tertiary)] rtl:rotate-180" />
       </motion.button>
 
       <div className="glass glass-ring mt-2.5 flex items-center gap-3 rounded-2xl px-4 py-3.5">

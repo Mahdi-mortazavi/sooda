@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-09-16
+
+### Fixed
+
+A full UI/UX pass across the app, from two independent audits (visual and interaction) verified by hand before each fix.
+
+- **Long results no longer run off the edge of the card.** The selling price and every secondary figure now shrink as their formatted text gets longer, and wrap as a last resort — a nine-figure price used to be clipped at the screen edge, not just cramped.
+- **The disclosure chevron now always points the right way in Persian.** `›` sits on Unicode's own bidi-mirroring list, so the browser silently flipped it under RTL before the app's own `rtl:rotate-180` ran, cancelling it out — in the real-profit lens, every row of the Learning Centre, its FAQ, and Settings. Replaced everywhere with a drawn icon, which has no bidi properties to fight.
+- **"Are your goods imported?" no longer truncates its middle answer.** «هم ایرانی هم وارداتی» is a full sentence with no shorter version that still answers the question; it now wraps onto its own chip like the category question above it, instead of ending in "…".
+- **Bulk reprice is easier to read and safer to use.** The percent field now rejects a cost cut steeper than -100% with an explanation, instead of silently clamping it to a number that had nothing to do with what was typed; the toggle's own labels no longer truncate, and the full sentence they used to carry stays visible underneath.
+- **The products screen's footer buttons no longer eat the ends of their own labels** on a narrow phone — they wrap instead of truncating.
+- **The onboarding goals question is no longer cut short** by the sheet header it shares with the Learning Centre — the header now wraps instead of assuming every title it is given is one line.
+- **The tutorial's tip bar and its practice-mode banner no longer show ghosted text from whatever is behind them** in dark mode — both sit directly over live content with no dimming scrim of their own, which their shared glass style was never opaque enough for.
+- Widened the calculator's own header buttons to the same 44px touch target its result-card buttons already use.
+- **Switching the down payment between Amount and Percent now converts the figure**, instead of silently re-reading the same digits under a new unit (2,000,000 briefly meaning "2,000,000%").
+- **The result card no longer keeps showing a stale answer after a field is edited.** Editing anything post-Calculate used to leave the previous figure on screen, unchanged, with "Save to my products" and "Add to basket" both still reading from it.
+- **The real-profit lens now requires an actual restock price once "I know today's price" is chosen**, rather than silently falling back to the inflation estimate when the field was left blank.
+- **The calculator's fields now submit on Enter**, like any other form — previously the only way to compute was to find and tap Calculate by hand.
+- **A negative selling price or margin on a saved product now blocks Save** with an explanation, instead of only showing up later as a nonsense health chip.
+- **Restoring a backup now says exactly what was wrong with the file** — unreadable, not a Sooda backup, from a newer app version, or damaged — instead of one generic message for every case.
+
 ## [1.5.0] - 2026-09-15
 
 <div dir="rtl">

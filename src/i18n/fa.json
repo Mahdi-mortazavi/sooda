@@ -58,7 +58,8 @@
     "discountRange": "تخفیف باید بین ۰ تا ۱۰۰ باشد",
     "reverseDiscountRange": "تخفیف باید از ۰ تا کمتر از ۱۰۰ باشد",
     "downPaymentTooHigh": "پیش‌پرداخت باید کمتر از قیمت نقدی باشد",
-    "installmentCountInvalid": "تعداد اقساط باید عدد صحیح باشد"
+    "installmentCountInvalid": "تعداد اقساط باید عدد صحیح باشد",
+    "bulkCostChangeTooLow": "قیمت خرید نمی‌تواند بیش از ۱۰۰٪ کاهش یابد"
   },
   "settings": {
     "title": "تنظیمات",

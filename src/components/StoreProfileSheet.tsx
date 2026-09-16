@@ -10,7 +10,6 @@ import {
   type CategoryId,
   type ImportDependency,
 } from '../lib/rates/categories'
-import { SegmentedControl } from './SegmentedControl'
 import { Sheet } from './Sheet'
 
 const IMPORT_LABEL_KEYS: Record<string, string> = {
@@ -101,24 +100,47 @@ export function StoreProfileSheet({ open, onClose, initial, onSave, onSkip }: St
       <h3 className="mb-2 mt-6 px-1 text-[13px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
         {t('profile.importTitle')}
       </h3>
-      {/* Three long Persian labels never fit one row on a 360px phone, so they stack. */}
-      <div className="flex flex-col gap-2">
-        <SegmentedControl<string>
-          layoutId="profile-import"
-          ariaLabel={t('profile.importTitle')}
-          value={String(dependency)}
-          onChange={(next) => {
-            const parsed = IMPORT_DEPENDENCIES.find((entry) => String(entry) === next)
-            if (parsed !== undefined) setDependency(parsed)
-          }}
-          size="sm"
-          // A question, not a set of tabs.
-          as="radiogroup"
-          options={IMPORT_DEPENDENCIES.map((entry) => ({
-            value: String(entry),
-            label: t(IMPORT_LABEL_KEYS[String(entry)] ?? 'profile.domestic'),
-          }))}
-        />
+      {/*
+       * A `SegmentedControl` was here, and its own comment claimed the three answers "never fit
+       * one row on a 360px phone, so they stack" — but a `SegmentedControl` always lays its
+       * options out in one equal-width, non-wrapping row (see its own `whitespace-nowrap` +
+       * `truncate`), and wrapping a single instance of it in a `flex-col` stacks nothing. The
+       * middle answer, «هم ایرانی هم وارداتی», is genuinely the whole sentence — there is no
+       * shorter version that still answers the question — so it was rendered as
+       * «هم ایرانی هم وار…» on every phone this was checked on, not only narrow ones.
+       *
+       * This is a radio question, not a set of tabs, so it gets the same wrapping chip grid the
+       * category question above it already uses successfully for the same reason (a Persian
+       * label with no safe abbreviation) — full labels, on their own row where they need one,
+       * one answer selected at a time.
+       */}
+      <div role="radiogroup" aria-label={t('profile.importTitle')} className="flex flex-wrap gap-2">
+        {IMPORT_DEPENDENCIES.map((entry) => {
+          const value = String(entry)
+          const selected = dependency === entry
+          return (
+            <motion.button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => {
+                if (!selected) {
+                  vibrate()
+                  setDependency(entry)
+                }
+              }}
+              whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+              className={`min-w-0 rounded-2xl px-3.5 py-2.5 text-[14px] font-semibold transition-colors ${
+                selected
+                  ? 'bg-[var(--accent-fill-strong)] text-white dark:text-[hsl(168_90%_8%)]'
+                  : 'glass glass-ring text-[var(--text-secondary)]'
+              }`}
+            >
+              {t(IMPORT_LABEL_KEYS[value] ?? 'profile.domestic')}
+            </motion.button>
+          )
+        })}
       </div>
 
       <div className="mt-6 flex items-center gap-3">

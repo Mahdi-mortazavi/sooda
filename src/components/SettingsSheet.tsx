@@ -11,6 +11,7 @@ import {
   practiceBackupFilename,
   validateBackup,
   type BackupFile,
+  type BackupProblem,
 } from '../lib/backup'
 import { formatDate } from '../lib/dates'
 import { clearAllData } from '../lib/db'
@@ -150,7 +151,9 @@ export function SettingsSheet({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingBackup, setPendingBackup] = useState<BackupFile | null>(null)
-  const [backupInvalid, setBackupInvalid] = useState(false)
+  // Which specific way the picked file failed — a corrupt download reads differently from a
+  // photo picked by mistake, and a shopkeeper can only act on the one that's actually true.
+  const [backupProblem, setBackupProblem] = useState<BackupProblem | null>(null)
   const [backupRestored, setBackupRestored] = useState(false)
   const [confirmingReplace, setConfirmingReplace] = useState(false)
 
@@ -209,19 +212,20 @@ export function SettingsSheet({
     setBackupRestored(false)
     setConfirmingReplace(false)
     setPendingBackup(null)
+    setBackupProblem(null)
     let parsed: unknown
     try {
       parsed = JSON.parse(await file.text())
     } catch {
-      setBackupInvalid(true)
+      setBackupProblem('notJson')
       return
     }
     const check = validateBackup(parsed)
     if (!check.ok) {
-      setBackupInvalid(true)
+      setBackupProblem(check.problem)
       return
     }
-    setBackupInvalid(false)
+    setBackupProblem(null)
     setPendingBackup(check.data)
   }
 
@@ -534,9 +538,9 @@ export function SettingsSheet({
             onChange={(e) => void readBackupFile(e.currentTarget)}
           />
 
-          {backupInvalid && (
+          {backupProblem && (
             <p role="alert" className="mt-2.5 px-1 text-[13px] font-medium text-loss-600 dark:text-loss-400">
-              {t('settings.backupInvalid')}
+              {t(`settings.backupProblem.${backupProblem}`)}
             </p>
           )}
 

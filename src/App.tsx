@@ -558,7 +558,10 @@ function HeaderButton({
       whileTap={reducedMotion ? undefined : { scale: 0.9 }}
       aria-label={label}
       title={label}
-      className="glass glass-ring relative flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-primary)]"
+      // 44px, matching the touch-target size the result card's own action buttons already use
+      // (`ResultCard.tsx`'s basket/share/copy buttons are `h-11 w-11`) — these were the one set
+      // of primary icon buttons in the app sized smaller than that, with nothing to justify it.
+      className="glass glass-ring relative flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-primary)]"
     >
       {children}
     </motion.button>
