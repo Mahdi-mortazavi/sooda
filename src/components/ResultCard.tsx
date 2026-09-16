@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { vibrate } from '../lib/haptics'
+import { emitTour } from '../learn/coach/events'
 import type { AppLanguage } from '../lib/numbers'
 import { formatNumber } from '../lib/numbers'
 import type { ProfitStatus } from '../lib/inflation'
@@ -110,6 +111,7 @@ export function ResultCard({
 
   const onCopy = async () => {
     vibrate()
+    emitTour({ type: 'action', name: 'copy-result' })
     try {
       await navigator.clipboard.writeText(result.copyText)
       setCopied(true)
@@ -123,6 +125,7 @@ export function ResultCard({
   const onShare = async () => {
     if (!shareUrl) return
     vibrate()
+    emitTour({ type: 'action', name: 'share-link' })
     const payload = { title: 'Sooda', text: result.copyText, url: shareUrl }
     try {
       if (navigator.share && (!navigator.canShare || navigator.canShare(payload))) {
@@ -154,6 +157,7 @@ export function ResultCard({
       initial={reducedMotion ? false : { opacity: 0, y: 18, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+      data-tour="result-card"
       className="glass-strong glass-ring relative rounded-3xl p-5"
       aria-label={t('results.title')}
     >
@@ -178,6 +182,7 @@ export function ResultCard({
         <div className="mt-1 flex shrink-0 gap-2">
           <motion.button
             type="button"
+            data-tour="btn-add-basket"
             onClick={() => void onBasket()}
             whileTap={reducedMotion ? undefined : { scale: 0.92 }}
             aria-label={basketed ? t('basket.added') : t('basket.add')}
@@ -188,6 +193,7 @@ export function ResultCard({
           </motion.button>
           <motion.button
             type="button"
+            data-tour="btn-share"
             onClick={() => void onShare()}
             whileTap={reducedMotion ? undefined : { scale: 0.92 }}
             aria-label={shared ? t('actions.linkCopied') : t('actions.share')}
@@ -198,6 +204,7 @@ export function ResultCard({
           </motion.button>
           <motion.button
             type="button"
+            data-tour="btn-copy"
             onClick={() => void onCopy()}
             whileTap={reducedMotion ? undefined : { scale: 0.92 }}
             aria-label={copied ? t('actions.copied') : t('actions.copy')}
@@ -268,8 +275,12 @@ export function ResultCard({
       {onSaveProduct && result.product ? (
         <motion.button
           type="button"
+          data-tour="btn-save-product"
           onClick={() => {
             vibrate()
+            /* Opening the naming sheet, not saving: `action: save-product` is announced by the
+               confirm button in that sheet, which is the moment a row actually exists. */
+            emitTour({ type: 'sheet:open', sheet: 'save-product' })
             onSaveProduct()
           }}
           whileTap={reducedMotion ? undefined : { scale: 0.97 }}
@@ -283,8 +294,10 @@ export function ResultCard({
       {onOpenSchedule && result.schedule ? (
         <motion.button
           type="button"
+          data-tour="btn-schedule"
           onClick={() => {
             vibrate()
+            emitTour({ type: 'sheet:open', sheet: 'schedule' })
             onOpenSchedule()
           }}
           whileTap={reducedMotion ? undefined : { scale: 0.97 }}

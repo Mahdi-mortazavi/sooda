@@ -6,6 +6,12 @@ export interface SegmentOption<T extends string> {
   value: T
   label: ReactNode
   ariaLabel?: string
+  /**
+   * Overrides the `data-tour` name this option would get from `tourPrefix`, or suppresses it
+   * with `null`. Needed where two controls on screen at once would otherwise generate the same
+   * name — the discount segment and the discount-direction toggle both have a `discount` option.
+   */
+  tour?: string | null
 }
 
 interface SegmentedControlProps<T extends string> {
@@ -21,6 +27,11 @@ interface SegmentedControlProps<T extends string> {
    * promises panels that do not exist and have no aria-controls to point at.
    */
   as?: 'tablist' | 'radiogroup'
+  /**
+   * Names each option `${tourPrefix}${value}` for `data-tour`. Off by default: only the controls
+   * a lesson actually points at are named, and the names come from `learn/lessons/targets.ts`.
+   */
+  tourPrefix?: string | null
 }
 
 /** iOS-style glass segmented control with a sliding liquid indicator. */
@@ -32,6 +43,7 @@ export function SegmentedControl<T extends string>({
   ariaLabel,
   size = 'md',
   as = 'tablist',
+  tourPrefix = null,
 }: SegmentedControlProps<T>) {
   const radio = as === 'radiogroup'
   return (
@@ -42,9 +54,11 @@ export function SegmentedControl<T extends string>({
     >
       {options.map((opt) => {
         const selected = opt.value === value
+        const tour = opt.tour ?? (tourPrefix === null ? undefined : `${tourPrefix}${opt.value}`)
         return (
           <button
             key={opt.value}
+            data-tour={tour ?? undefined}
             role={radio ? 'radio' : 'tab'}
             {...(radio ? { 'aria-checked': selected } : { 'aria-selected': selected })}
             aria-label={opt.ariaLabel}

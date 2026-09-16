@@ -93,9 +93,10 @@
   "whatsNew": {
     "title": "What’s new in Sooda {{version}}",
     "gotIt": "Got it",
-    "b1": "See whether your profit still buys the same goods back.",
-    "b2": "Price an installment deal without quietly losing money.",
-    "b3": "Save your products and reprice them all at once."
+    "b4": "Interactive lessons: instead of reading, you do it yourself on a practice shop.",
+    "b5": "Eight short lessons, each with a challenge — and the Sooda master badge for passing them all.",
+    "b6": "Stuck anywhere? The “?” beside it explains.",
+    "learnCta": "See the lessons"
   },
   "installment": {
     "schedule": {
@@ -110,8 +111,8 @@
     }
   },
   "settings": {
-    "inflation": "Annual inflation",
-    "inflationHint": "Used to estimate what buying the same goods again will cost.",
+    "inflation": "Monthly inflation",
+    "inflationHint": "The monthly rate used to estimate what buying the same goods again will cost.",
     "inflationSource": "Source: {{source}} · {{date}}",
     "inflationCustom": "Your value",
     "inflationReset": "Reset to default",
@@ -210,5 +211,321 @@
     "yes": "Record",
     "dismiss": "No",
     "done": "Price recorded!"
+  },
+  "help": {},
+  "learn": {
+    "stepOf": "{{current}} / {{total}}",
+    "skip": "Skip",
+    "showMe": "Show me",
+    "stuck": "A bit stuck? Tap the highlighted part.",
+    "demoTap": "Tapping here",
+    "demoType": "Typing {{value}}",
+    "practiceNotice": "This is a practice shop — your own products and prices stay untouched.",
+    "practiceRate": "In this exercise we assume prices rise 3% a month.",
+    "status": {
+      "new": "New",
+      "progress": "In progress",
+      "done": "Completed",
+      "passed": "Challenge passed"
+    },
+    "challenge": {
+      "label": "Challenge",
+      "answerLabel": "Your answer",
+      "check": "Check my answer",
+      "correct": "Well done — that’s right.",
+      "incorrect": "Not yet — let’s go back one step.",
+      "hint": "Hint",
+      "hintMore": "Another hint",
+      "tryAgain": "Give it another go",
+      "showMeOffer": "A bit stuck? Let me show you, step by step.",
+      "showMe": "Show me",
+      "theAnswer": "The answer:",
+      "takeawayLabel": "Here is what you learned:",
+      "next": "Next lesson",
+      "finish": "Back to the lessons"
+    },
+    "sandbox": {
+      "products": {
+        "rice": "Hashemi rice, premium, 10 kg",
+        "oil": "Sunflower oil, 1.8 L",
+        "shampoo": "Anti-dandruff shampoo, 400 ml",
+        "notebook": "Notebook, 100 sheets, hardcover",
+        "battery": "AA alkaline batteries, pack of 4"
+      },
+      "notes": {
+        "stalePrice": "Selling price still based on the previous purchase"
+      }
+    },
+    "lessons": {
+      "profit": {
+        "title": "Profit and selling price",
+        "body": "Enter what you paid and see what to sell it for."
+      },
+      "discount": {
+        "title": "Discounts, both ways",
+        "body": "The price after a discount, and the price it was discounted from."
+      },
+      "realProfit": {
+        "title": "Real profit",
+        "body": "See whether your profit still buys the same goods back."
+      },
+      "installments": {
+        "title": "Selling on installments",
+        "body": "Price an installment deal without quietly losing money."
+      },
+      "products": {
+        "title": "My products",
+        "body": "Save your products and reprice them all at once."
+      },
+      "smartRates": {
+        "title": "How fast each product rises",
+        "body": "Sooda estimates a monthly rise for each product, and shows where the number came from."
+      },
+      "everyday": {
+        "title": "Everyday jobs",
+        "body": "The basket, your history, and sending a result to a customer."
+      },
+      "safety": {
+        "title": "Backing up your data",
+        "body": "Take a backup so nothing is lost when you change phones."
+      }
+    },
+    "profit": {
+      "cost": "A tin of tuna cost you 150,000. Put that here.",
+      "margin": "How much profit do you want? 25 percent.",
+      "calculate": "Now tap “Calculate”.",
+      "read": "Here is the selling price and the profit. Copy it to send to a customer.",
+      "toSell": "Now the other way round: the selling price is set — what does it earn?",
+      "undercut": "The same 150,000 purchase, but this time a selling price of 140,000.",
+      "loss": "Calculate again. The card turns red — at this price you lose money.",
+      "challenge": {
+        "price": {
+          "prompt": "A purchase price of 150,000 and 25 percent profit. What is the selling price?",
+          "hint": "That 25% rides on top of what he paid; it is not taken off a selling price."
+        }
+      }
+    },
+    "discount": {
+      "fill": "An original price of 500,000 and 30 percent off.",
+      "calculate": "Calculate to see the price after the discount.",
+      "reverse": "Now the customer’s question: the sign says 30% off — what was it before?",
+      "fillBack": "A final price of 350,000 and the same 30 percent off.",
+      "calculateBack": "Calculate, and see what price it was discounted from.",
+      "challenge": {
+        "original": {
+          "prompt": "A sign says 360,000, after 20% off. What was the price before the discount?",
+          "hint": "360,000 is what was left after the discount — so it is 80% of the number you are looking for."
+        }
+      }
+    },
+    "realProfit": {
+      "fill": "Reza’s oil: he pays 118,000 and sells at 128,000.",
+      "nominal": "Calculate. This is the paper profit — profit on paper.",
+      "months": "How many months until this money comes back? Tap “3 months”.",
+      "verdict": "Calculate again and look at the real profit.",
+      "known": "Know today’s purchase price? Then no estimate is needed: enter 130,000.",
+      "again": "Calculate once more — now it is working from a real price, not an estimate.",
+      "challenge": {
+        "verdict": {
+          "prompt": "The same oil at the same selling price — but this time it sells within one month. Which is true?",
+          "stillProfit": "It still makes a profit",
+          "actuallyLoss": "It is actually a loss",
+          "takeaway": "The same oil at the same price — only the time until the money comes back changed: a loss over three months, “Thin” over one. And “Thin” is not “Healthy”.",
+          "hint": "The only thing that changed is how long the money is away. Over one month there is less price rise to catch up with."
+        }
+      }
+    },
+    "installments": {
+      "toInstallments": "A customer wants to pay in installments. Tap “Installments”.",
+      "cash": "Cash price 12,000,000. Leave the down payment empty — he pays nothing up front.",
+      "count": "Over how many months? Tap “6”.",
+      "calculate": "Calculate to see the monthly payment and the markup you need.",
+      "toReverse": "Now the second question: are the terms you already offer making money?",
+      "neighbour": "The shop across the road charges a flat 2% a month. Enter the same 12,000,000, and 2.",
+      "judge": "Calculate — Sooda says whether these terms beat a cash sale or fall short of it.",
+      "schedule": "Open the payment schedule. This is what you send the customer.",
+      "challenge": {
+        "monthly": {
+          "prompt": "A cash price of 12,000,000 over six months, nothing down. What is the monthly payment?",
+          "hint": "The card showed the “Required markup”. The cash price plus that, split six ways."
+        },
+        "verdict": {
+          "prompt": "A flat 2% a month on this deal — how does it compare with a cash sale?",
+          "better": "Better than a cash sale",
+          "worse": "Worse than a cash sale",
+          "hint": "What it is measured against is cash in hand today, not the price on the sign."
+        }
+      }
+    },
+    "products": {
+      "price": "A new line of tea: 120,000 to buy, 20 percent profit.",
+      "calculate": "Calculate to get its selling price.",
+      "save": "Save this product so Sooda keeps an eye on its price.",
+      "name": "Give it a name and save it.",
+      "health": "This row is red: its selling price has fallen behind what a restock costs. Open it.",
+      "newCost": "Has your supplier quoted a new price? Record it: 2,700,000",
+      "challenge": {
+        "bulk": {
+          "prompt": "Your supplier has put everything up 10%. Apply it in one go with “Reprice as a group”.",
+          "hint": "“Preview” shows what will change before anything is saved, and “Undo” is there afterwards."
+        }
+      }
+    },
+    "smartRates": {
+      "profile": "What do you sell, and how much do you rely on the dollar? Answer and save — the estimates get sharper.",
+      "why": "This card says roughly how fast this product rises each month. Tap “Why this number?”.",
+      "manual": "Know better? Set the rate by hand: 4",
+      "auto": "And whenever you want, go back to automatic.",
+      "checkin": "Every so often Sooda asks whether prices have moved. Open it.",
+      "challenge": {
+        "record": {
+          "prompt": "Answer for two products in “Price check”: where the price has gone up, enter today’s price; where it has not, tap “No change”. That is a complete answer too.",
+          "hint": "It needs two products — and “No change” is a complete answer for one of them."
+        }
+      }
+    },
+    "everyday": {
+      "rice": "A sack of rice: 2,480,000 to buy, 12 percent profit.",
+      "calcRice": "Calculate.",
+      "basketRice": "Add it to the basket so we can total them up later.",
+      "oilCost": "Now the oil. Replace the rice’s purchase price with 118,000.",
+      "oilMargin": "And the profit he wants on this one: 8 percent.",
+      "calcOil": "Calculate again.",
+      "basketOil": "Drop this one in the basket too.",
+      "totals": "Open the basket — the bottom adds up the profit on both.",
+      "csv": "And your history: “Export CSV” pulls everything out for yourself.",
+      "challenge": {
+        "combined": {
+          "prompt": "Rice at 12% profit and oil at 8% profit. What do the two earn together?",
+          "hint": "The basket had already added the profit on both lines together, at the bottom."
+        }
+      }
+    },
+    "safety": {
+      "settings": "Open Settings.",
+      "install": "Install Sooda on your home screen — after that it opens with no internet at all.",
+      "updates": "This switch only fetches the public rates file. Turn it off if you would rather not.",
+      "challenge": {
+        "backup": {
+          "prompt": "Take a backup file. That one file holds your whole shop.",
+          "hint": "The same part of Settings you just opened, under “Backup”."
+        },
+        "where": {
+          "prompt": "Where is your data stored?",
+          "phone": "On this phone",
+          "servers": "On Sooda’s servers",
+          "account": "In your user account",
+          "hint": "Sooda has no account, and it works with the internet switched off. Ask what those two things rule out."
+        }
+      }
+    },
+    "title": "Learn Sooda",
+    "recommended": "Recommended for you",
+    "allLessons": "All lessons",
+    "faqTitle": "Common questions",
+    "duration": "{{n}} sec",
+    "unavailable": "The lessons are not ready yet — everything else here already works.",
+    "needsStorage": "Practice needs browser storage, and this browser refused.",
+    "passedNotice": "Challenge passed.",
+    "progressTitle": "Your progress",
+    "progressBody": "{{passed}} of {{total}} challenges passed.",
+    "progressLabel": "{{done}} of {{total}} lessons finished",
+    "masterTitle": "Sooda master",
+    "masterBody": "The Sooda master badge is yours — nicely done.",
+    "badgeMaster": "Sooda master",
+    "next": "Next",
+    "introTitle": "Welcome to Sooda",
+    "introCta": "Let’s go",
+    "cardOf": "{{current}} of {{total}}",
+    "intro": {
+      "price": {
+        "title": "See your real profit",
+        "body": "Think you made 20% profit? Sooda shows you the real profit."
+      },
+      "rise": {
+        "title": "Everything in one place",
+        "body": "Installments, products and prices — all in one tap."
+      },
+      "practice": {
+        "title": "On your own phone",
+        "body": "Free, no sign-up, offline. Your numbers stay on your own phone."
+      }
+    },
+    "goalsTitle": "What do you mostly use Sooda for?",
+    "goalsBody": "Pick as many as you like — it only changes the order of the lessons.",
+    "goals": {
+      "pricing": "Pricing what I sell",
+      "installments": "Selling on installments",
+      "products": "Managing my product prices",
+      "discounts": "Buying and discounts"
+    },
+    "missionCta": "Try it on a real calculation",
+    "badgeFirstStep": "First step",
+    "celebrateTitle": "You have seen real profit",
+    "celebrateBody": "20% on paper, under 10% after three months. That is exactly what Sooda is for.",
+    "celebrateCenter": "More lessons",
+    "celebrateStart": "Try it with my own numbers",
+    "tips": {
+      "lens": "Will your profit survive the restock?",
+      "installments": "Selling on installments? Check you are not losing money.",
+      "bulk": "You can change all your prices at once.",
+      "rate": "Where did this number come from? Sooda will tell you."
+    },
+    "tipCta": "Show me",
+    "sixtySecond": "Take the 60-second lesson",
+    "settingsHint": "Short lessons on a practice shop — your own products and history stay untouched.",
+    "tipsToggle": "Little tips",
+    "tipsToggleHint": "A single short hint the first time you use something new.",
+    "replayIntro": "See the introduction again",
+    "replayIntroHint": "The three welcome cards and the first mission.",
+    "replayIntroDone": "It will appear the next time you open Sooda.",
+    "resetProgress": "Clear lesson progress",
+    "resetProgressHint": "Every lesson goes back to “New”. Your products, history and settings stay untouched.",
+    "faq": {
+      "realProfit": {
+        "q": "What does real profit mean?",
+        "a": "Paper profit is the selling price minus the purchase price. Real profit is what you actually have left once you have bought the same goods again. In a market where prices keep rising, the two are very different."
+      },
+      "rate": {
+        "q": "Where does the price-rise figure come from, and how accurate is it?",
+        "a": "From three things: the purchase prices you record yourself, how fast your product’s category is rising nationally, and the dollar (if the goods are imported). It is always an estimate, never a certainty — which is why Sooda says “about” everywhere, and why “Why this number?” shows how much of it came from where."
+      },
+      "inflation": {
+        "q": "I don’t know the inflation rate. Is that a problem?",
+        "a": "No. Sooda has a default rate that comes from the national figures, and you can change it in Settings. And if you know the new purchase price, you don’t need inflation at all: just enter it directly."
+      },
+      "data": {
+        "q": "Where is my data stored?",
+        "a": "On this phone, and only here. No account, no server, and nothing is sent from your device. The only thing Sooda fetches from the internet is a public rates file from its own site — and you can turn that off in Settings too."
+      },
+      "stop": {
+        "q": "Can I leave a lesson halfway through?",
+        "a": "Yes — tap “Skip” whenever you like. Every lesson runs on a separate practice shop that is deleted when you close it; your own products, history and settings stay exactly as they were."
+      },
+      "offline": {
+        "q": "Does it work without the internet?",
+        "a": "Yes. Install Sooda on your home screen and it opens fully offline. The only thing it fetches is a public rates file, and you can turn that off in Settings."
+      },
+      "phone": {
+        "q": "What happens if I change phones?",
+        "a": "Take a backup file from Settings and restore it on the new phone. Because the data lives on the phone, without a backup it goes when the browser is cleared."
+      },
+      "source": {
+        "q": "Is Sooda free?",
+        "a": "Yes, completely free and open source, under the MIT licence."
+      }
+    },
+    "doneNotice": "Lesson finished. Answer its question to pass the challenge too.",
+    "mission": {
+      "story": "Reza bought a shawl for 100,000 toman and wants to make 20% profit.",
+      "suggestCost": "Enter 100,000",
+      "cost": "What he paid goes here. Tap the suggestion and it fills itself.",
+      "margin": "Good! Now the profit he wants: 20 percent.",
+      "calculate": "Tap “Calculate”. That is his selling price.",
+      "months": "Now the real question: what if his money comes back in three months? Tap “3 months”.",
+      "again": "Calculate again, and see how much of that 20% is really left."
+    },
+    "missionTitle": "Your first real profit",
+    "missionStart": "Let’s work it out together"
   }
 }

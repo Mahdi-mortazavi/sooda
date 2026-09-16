@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-09-15
+
+### Added
+
+- **آموزش سودا — an interactive tutorial you do rather than watch.** Eight lessons, each 50–90 seconds, performed on the real screens with real buttons inside a practice shop stocked with five demo products. Nothing you do in a lesson touches your own shop: it runs on a separate store that is deleted when you leave. Every step waits for you to actually do the thing — nothing advances on a timer — and «رد شدن» is on screen at every moment.
+- **A sixty-second first run.** The app opens with your language, three cards, one question about what you mostly use Sooda for, and then a single mission: «آقا رضا» buys something for ۱۰۰٬۰۰۰ and wants ۲۰٪. Four taps later the same sale is worth under ۱۰٪, because in three months it costs more to replace than it did to buy. That is the whole app in one screen, and it is the first thing a new user sees.
+- **Every lesson ends with a question the app marks itself.** Not trivia — the answers are computed by Sooda's own engine, so a challenge cannot drift away from what the app actually does. A wrong answer is never corrected and never called wrong: you simply try again, and after a second try the lesson offers to show you where the answer was.
+- **«کمی گیر کرده‌اید؟ نشانم بده»** — every step can demonstrate itself, with a finger that taps and types for you. Under «کاهش حرکت» it is a still ring and a sentence instead.
+- **Help where you are, not only in a menu.** A «؟» beside the parts of the app that have a lesson behind them, a suggestion on an empty screen, and a link that opens one lesson directly.
+- **Your progress is yours.** Which lessons you have finished rides in your backup file, and "Erase all data" clears it with everything else.
+
+### Changed
+
+- The bundled price-growth figures moved to a monthly basis and now carry real national numbers (Statistical Center of Iran, Mordad ۱۴۰۵), with their source and date on screen. Lessons deliberately ignore them and pin ۳٪/month, so a lesson's answer cannot change when a figure is updated.
+- "Add to home screen" is now a row in Settings as well as a prompt.
+
+### Fixed
+
+- **Undoing a bulk reprice now takes back the price readings it created**, instead of leaving them behind to be learned from.
+
 ## [1.4.1] - 2026-09-15
 
 ### Fixed

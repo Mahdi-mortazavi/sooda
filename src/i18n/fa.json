@@ -104,7 +104,7 @@
     "sourceKnown": "قیمت خرید فعلی را می‌دانم",
     "sourceInflation": "با تورم تخمین بزن",
     "replacementField": "قیمت خرید امروز",
-    "inflationChip": "تورم سالانه {{percent}}",
+    "inflationChip": "گرانی ماهانه {{percent}}",
     "blockTitle": "سود واقعی",
     "nominalProfit": "سود ظاهری",
     "realProfit": "سود واقعی",
@@ -184,5 +184,9 @@
     "fix": "اصلاح عدد",
     "temporary": "موقتی/حراج",
     "excluded": "ثبت شد؛ روی تخمین اثری نمی‌گذارد."
+  },
+  "learn": {
+    "help": "راهنمای این بخش",
+    "helpMark": "؟"
   }
 }

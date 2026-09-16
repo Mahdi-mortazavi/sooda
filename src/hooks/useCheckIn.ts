@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CheckInItem } from '../components/CheckInSheet'
+import type { CheckInSource } from '../lib/checkin'
 import type { StoreProfile } from '../lib/db'
 import type { RatesFile } from '../lib/rates/schema'
 
@@ -26,7 +27,14 @@ const EMPTY: CheckInItem[] = []
  * Deliberately read-only. Writing a reading is the sheet's job, and this hook finding out
  * about it is what `reload` is for.
  */
-export function useCheckIn(rates: RatesFile | null, enabled: boolean): CheckInData {
+export function useCheckIn(
+  rates: RatesFile | null,
+  enabled: boolean,
+  /* Practice mode hands in the throwaway store, so the tutorial's check-in asks about the demo
+   * shop. Left out, the check-in reads the shopkeeper's own — which is what every real screen
+   * wants and what happened before this argument existed. */
+  source?: CheckInSource,
+): CheckInData {
   const [state, setState] = useState<Omit<CheckInData, 'reload'>>({
     items: EMPTY,
     now: 0,
@@ -45,10 +53,12 @@ export function useCheckIn(rates: RatesFile | null, enabled: boolean): CheckInDa
     void (async () => {
       const [{ computeCheckIn }, badge] = await Promise.all([import('../lib/checkin'), import('../lib/badge')])
       if (!live) return
-      const snapshot = await computeCheckIn(rates)
+      const snapshot = source === undefined ? await computeCheckIn(rates) : await computeCheckIn(rates, source)
       if (!live) return
       setState(snapshot)
-      void badge.setStaleBadge(snapshot.items.length)
+      /* The badge counts the real shop's stale prices. Badging it from a tutorial would put a
+       * number on the app icon that means nothing once the practice store is deleted. */
+      if (source === undefined) void badge.setStaleBadge(snapshot.items.length)
     })().catch(() => {
       /* A browser that refuses a database rejects here. There is nothing to show and nothing to
        * retry — the products tab has its own boundary — so the badge simply never appears. */
@@ -57,7 +67,7 @@ export function useCheckIn(rates: RatesFile | null, enabled: boolean): CheckInDa
     return () => {
       live = false
     }
-  }, [rates, enabled, nonce])
+  }, [rates, enabled, nonce, source])
 
   const reload = useCallback(() => setNonce((n) => n + 1), [])
 

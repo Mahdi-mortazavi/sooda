@@ -5,7 +5,10 @@ import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { computeBasketTotals, type BasketTotals } from '../lib/basket'
-import { clearBasket, db, deleteBasketItem, type BasketItem } from '../lib/db'
+import { clearBasket, deleteBasketItem, type BasketItem } from '../lib/db'
+import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
+import { LessonLink } from '../learn/ui/LessonLink'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit, unitShortLabel, type Unit } from '../lib/units'
@@ -25,9 +28,18 @@ export function BasketSheet({ open, onClose, lang }: BasketSheetProps) {
   const reducedMotion = useReducedMotion()
   const [confirmingClear, setConfirmingClear] = useState(false)
 
-  const items = useLiveQuery(() => db.basket.orderBy('createdAt').reverse().toArray(), [], undefined)
+  /* The practice basket during a lesson. The real one also mirrors its count into localStorage
+   * for the header badge, which a lesson must not move — so practice writes the table directly. */
+  const { db, practice } = useRepository()
+  const items = useLiveQuery(() => db.basket.orderBy('createdAt').reverse().toArray(), [db], undefined)
   const totals = computeBasketTotals(items ?? [])
   const hasItems = (items?.length ?? 0) > 0
+
+  /* One row, from whichever basket the sheet is showing. The real helper also re-publishes the
+   * header badge; the practice one must not, so it writes the table and stops there. */
+  const deleteItem = async (id: number): Promise<void> => {
+    await (practice ? db.basket.delete(id) : deleteBasketItem(id))
+  }
 
   const modeLabels: Record<Mode, string> = {
     profit: t('modes.profit'),
@@ -49,6 +61,7 @@ export function BasketSheet({ open, onClose, lang }: BasketSheetProps) {
           <p className="mt-1.5 max-w-[300px] text-[15px] leading-relaxed text-[var(--text-secondary)]">
             {t('basket.empty.body')}
           </p>
+          <LessonLink lesson="everyday" />
         </div>
       ) : (
         <>
@@ -64,6 +77,7 @@ export function BasketSheet({ open, onClose, lang }: BasketSheetProps) {
                   item={item}
                   lang={lang}
                   modeLabel={modeLabels[item.mode]}
+                  onDelete={deleteItem}
                   reducedMotion={!!reducedMotion}
                 />
               ))}
@@ -77,7 +91,8 @@ export function BasketSheet({ open, onClose, lang }: BasketSheetProps) {
                   type="button"
                   onClick={() => {
                     vibrate()
-                    void clearBasket().then(() => setConfirmingClear(false))
+                    emitTour({ type: 'action', name: 'clear-basket' })
+                    void (practice ? db.basket.clear() : clearBasket()).then(() => setConfirmingClear(false))
                   }}
                   className="flex-1 rounded-2xl bg-loss-600 px-3 py-3 text-[15px] font-semibold text-white"
                 >
@@ -183,11 +198,13 @@ function BasketRow({
   item,
   lang,
   modeLabel,
+  onDelete,
   reducedMotion,
 }: {
   item: BasketItem
   lang: AppLanguage
   modeLabel: string
+  onDelete: (id: number) => Promise<void>
   reducedMotion: boolean
 }) {
   const { t } = useTranslation()
@@ -230,7 +247,7 @@ function BasketRow({
         type="button"
         onClick={() => {
           vibrate()
-          void deleteBasketItem(item.id)
+          void onDelete(item.id)
         }}
         aria-label={t('basket.deleteItem')}
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-tertiary)] transition-colors hover:bg-loss-500/12 hover:text-loss-600 dark:hover:text-loss-400"

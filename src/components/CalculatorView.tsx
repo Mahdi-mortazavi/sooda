@@ -17,6 +17,7 @@ import {
   visibleFields,
 } from '../lib/modes/registry'
 import type { ModeId, ModeState, ResultDisplay, ScheduleInfo, SegmentId, Translate } from '../lib/modes/types'
+import type { BasketItem, HistoryEntry, SoodaDb } from '../lib/db'
 import type { RatesFile } from '../lib/rates/schema'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import type { RoundingStep } from '../lib/rounding'
@@ -28,6 +29,8 @@ import { LensRow } from './LensRow'
 import { ModeFields } from './ModeFields'
 import type { ProductDraft } from './SaveProductSheet'
 import { SegmentedControl } from './SegmentedControl'
+import { emitTour } from '../learn/coach/events'
+import { HelpButton, useLearn } from '../learn/ui/entry'
 
 const ScheduleSheet = lazy(() => import('./ScheduleSheet').then((m) => ({ default: m.ScheduleSheet })))
 // The result card only exists once the user has tapped Calculate, which is seconds
@@ -51,7 +54,7 @@ interface CalculatorViewProps {
   unit: Unit
   /** Onboarding is finished — safe to auto-run a shared link. */
   ready: boolean
-  annualInflationPercent: number
+  monthlyInflationPercent: number
   roundingStep: RoundingStep
   /** The lens's inflation chip is a shortcut into Settings, where the rate lives. */
   onOpenSettings: () => void
@@ -62,28 +65,56 @@ interface CalculatorViewProps {
   onProductsChanged: () => void
   /** Persisted with the calculator draft so a service-worker reload lands where the user was. */
   tab: DraftState['tab']
+  /**
+   * The practice database while a lesson is running, `null` otherwise.
+   *
+   * The calculator is the surface being taught on, so it keeps working — but everything it
+   * writes has to land in the demo store: the plan forbids a lesson touching the shopkeeper's
+   * history, basket or draft, and lesson 7 then reads back the two calculations it just made.
+   * The bound helpers in `lib/db` are tied to the real database and also mirror the basket count
+   * into localStorage for the header badge, which is why practice writes the tables directly.
+   */
+  practiceDb?: SoodaDb | null
+  /** A mode a lesson step asked for, applied once and then cleared through `onModeApplied`. */
+  requestedMode?: string | null
+  onModeApplied?: () => void
+  /**
+   * The lens month Mission 1 finished on, read once at the first render of the real calculator.
+   *
+   * Onboarding's done screen promises «the real calculator in the same mode», and the mode the
+   * mission leaves it in is the lens on «۳ ماه» — the whole point of the minute. Everything else
+   * it did stays behind: this is a month and nothing else, and it is ignored while a lesson is
+   * running, so the demo calculator never inherits it either.
+   */
+  handBackLensMonths?: string | null
 }
 
 export function CalculatorView({
   lang,
   unit,
   ready,
-  annualInflationPercent,
+  monthlyInflationPercent,
   roundingStep,
   onOpenSettings,
   onSaveProduct,
   rates,
   onProductsChanged,
   tab,
+  practiceDb = null,
+  requestedMode = null,
+  onModeApplied,
+  handBackLensMonths = null,
 }: CalculatorViewProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
+  const learn = useLearn()
 
   // A shared calculation link pre-fills and auto-computes; mode-only links
   // (?m=profit) from PWA shortcuts just open the right calculator. A link always
   // beats a restored draft — the user clicked it on purpose.
   const shared = useMemo(() => parseModeShareQuery(window.location.search), [])
-  const restored = useMemo(() => (shared ? null : readDraft()), [shared])
+  const practice = practiceDb !== null
+  const restored = useMemo(() => (shared || practice ? null : readDraft()), [shared, practice])
   const sharedRan = useRef(false)
 
   const [mode, setMode] = useState<ModeId>(() => shared?.mode ?? asModeId(restored?.mode) ?? 'profit')
@@ -95,6 +126,13 @@ export function CalculatorView({
         const saved = restored.modes[key]
         if (saved) initial[key] = { ...initial[key], ...saved }
       }
+    }
+    /* Mission 1's «۳ ماه», the one thing that crosses the practice boundary. The mission runs on
+     * the profit calculator, so that is the row it applies to; a shared link still wins, because
+     * that one was clicked on purpose. `practice` guards the other direction: starting a lesson
+     * remounts this too, and the demo shop must open on its own defaults. */
+    if (handBackLensMonths !== null && !practice) {
+      initial.profit = { ...initial.profit, months: handBackLensMonths }
     }
     if (shared) {
       const target = { ...initial[shared.mode] }
@@ -136,13 +174,28 @@ export function CalculatorView({
   const draftWriter = useMemo(() => createDraftWriter(), [])
   useEffect(() => () => draftWriter.cancel(), [draftWriter])
   useEffect(() => {
+    if (practice) return
     draftWriter.save({ modes: states, mode, tab })
-  }, [states, mode, tab, draftWriter])
+  }, [states, mode, tab, draftWriter, practice])
+
+  /* A step that needs a particular mode gets it here rather than by asking the user to find it.
+   * Cleared straight away, so re-rendering for any other reason does not drag them back. */
+  useEffect(() => {
+    if (requestedMode === null) return
+    if (isModeId(requestedMode)) {
+      setPrevSegment(segmentIndexOf(mode))
+      setMode(requestedMode)
+    }
+    onModeApplied?.()
+    // `mode` is read, not depended on: re-running when the mode changes would fight the user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedMode, onModeApplied])
 
   const onSegmentChange = useCallback(
     (next: SegmentId) => {
       setPrevSegment(segmentIndexOf(mode))
       setMode(defaultModeOfSegment(next))
+      emitTour({ type: 'segment:change', segment: next })
       // Keep the viewport anchored — prevents the page-jump feel on mobile.
       if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
     },
@@ -168,8 +221,11 @@ export function CalculatorView({
     (kind: ProfitKind) => {
       if (kind === 'cash') {
         setMode('profit')
+        emitTour({ type: 'mode:change', mode: 'profit' })
         return
       }
+      // First time anyone prices an instalment deal, offer the one line that explains it.
+      learn?.tip('installments')
       const lastProfit = lastComputed.current.profit
       setStates((prev) => {
         if ((prev.installment['cash'] ?? '') !== '' || !lastProfit) return prev
@@ -181,8 +237,9 @@ export function CalculatorView({
         }
       })
       setMode('installment')
+      emitTour({ type: 'mode:change', mode: 'installment' })
     },
-    [],
+    [learn],
   )
 
   const translate = useCallback<Translate>((key, vars) => t(key, vars ?? {}), [t])
@@ -192,6 +249,7 @@ export function CalculatorView({
   const calculate = useCallback(
     async (saveToHistory = true) => {
       vibrate()
+      emitTour({ type: 'action', name: 'calculate' })
       const state = states[mode]
       // Instalment maths is a separate chunk; load it before validating so the
       // cross-field rules (down payment, whole instalment count) actually run.
@@ -208,7 +266,7 @@ export function CalculatorView({
       const { display, snapshot } = runMode(
         behaviour,
         values,
-        { annualInflationPercent, roundingStep, now, state },
+        { monthlyInflationPercent, roundingStep, now, state },
         {
           t: translate,
           lang,
@@ -222,20 +280,34 @@ export function CalculatorView({
 
       setResults((prev) => ({ ...prev, [mode]: display }))
       lastComputed.current[mode] = { ...snapshot, unit }
-      if (saveToHistory) {
-        const { addHistoryEntry } = await import('../lib/db')
-        await addHistoryEntry({ mode, inputs: snapshot.inputs, results: snapshot.results, unit, createdAt: now })
+      emitTour({ type: 'result:shown', mode })
+      if (!saveToHistory) return
+      const row = { mode, inputs: snapshot.inputs, results: snapshot.results, unit, createdAt: now }
+      if (practiceDb !== null) {
+        // The demo store's own history: lesson 7 opens it and exports what the learner just did.
+        await practiceDb.history.add(row as HistoryEntry)
+        return
       }
+      const { addHistoryEntry } = await import('../lib/db')
+      await addHistoryEntry(row)
     },
-    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, annualInflationPercent, roundingStep],
+    [mode, states, translate, lang, unit, fmtMoney, fmtNumber, monthlyInflationPercent, roundingStep, practiceDb],
   )
 
   const addToBasket = useCallback(async () => {
     const snap = lastComputed.current[mode]
     if (!snap) return
+    emitTour({ type: 'action', name: 'add-to-basket' })
+    const row = { mode, inputs: snap.inputs, results: snap.results, unit: snap.unit, createdAt: Date.now() }
+    if (practiceDb !== null) {
+      /* Straight to the table, not through `addBasketItem`: that helper re-publishes the header
+       * badge from the real basket, and a lesson must not move the number on the app icon. */
+      await practiceDb.basket.add(row as BasketItem)
+      return
+    }
     const { addBasketItem } = await import('../lib/db')
-    await addBasketItem({ mode, inputs: snap.inputs, results: snap.results, unit: snap.unit, createdAt: Date.now() })
-  }, [mode])
+    await addBasketItem(row)
+  }, [mode, practiceDb])
 
   // Auto-compute a shared link once (after the language is known), then clean the URL.
   useEffect(() => {
@@ -278,7 +350,13 @@ export function CalculatorView({
 
   const directionOptions = useMemo(
     () => [
-      { value: 'discount' as ModeId, label: (<><IconTag size={14} /> {t('discountDirection.forward')}</>) },
+      {
+        value: 'discount' as ModeId,
+        label: (<><IconTag size={14} /> {t('discountDirection.forward')}</>),
+        /* The top segmented control already owns `seg-discount`; two elements with one name
+           would leave the coach pointing at whichever the query found first. */
+        tour: null,
+      },
       { value: 'rdiscount' as ModeId, label: (<><IconTagReverse size={14} /> {t('discountDirection.reverse')}</>) },
     ],
     [t],
@@ -295,11 +373,14 @@ export function CalculatorView({
         value={SEGMENTS[segmentIndex] as SegmentId}
         onChange={onSegmentChange}
         options={modeOptions}
+        tourPrefix="seg-"
       />
 
       <AnimatePresence initial={false}>
         {isProfitSegment && (
           <SubControl key="profit-kind" reducedMotion={!!reducedMotion}>
+            <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
             <SegmentedControl<ProfitKind>
               layoutId="profit-kind"
               ariaLabel={t('modes.profit')}
@@ -307,7 +388,11 @@ export function CalculatorView({
               onChange={onProfitKindChange}
               options={profitKindOptions}
               size="sm"
+              tourPrefix="seg-"
             />
+            </div>
+            <HelpButton lesson="installments" />
+            </div>
           </SubControl>
         )}
         {isProfitSegment && isInstallment && (
@@ -316,9 +401,13 @@ export function CalculatorView({
               layoutId="installment-direction"
               ariaLabel={t('modes.installment')}
               value={mode}
-              onChange={setMode}
+              onChange={(next) => {
+                setMode(next)
+                emitTour({ type: 'mode:change', mode: next })
+              }}
               options={installmentDirectionOptions}
               size="sm"
+              tourPrefix="seg-"
             />
           </SubControl>
         )}
@@ -328,9 +417,13 @@ export function CalculatorView({
               layoutId="discount-direction"
               ariaLabel={t('modes.discount')}
               value={mode}
-              onChange={setMode}
+              onChange={(next) => {
+                setMode(next)
+                emitTour({ type: 'mode:change', mode: next })
+              }}
               options={directionOptions}
               size="sm"
+              tourPrefix="seg-"
             />
           </SubControl>
         )}
@@ -356,7 +449,7 @@ export function CalculatorView({
                 state={states[mode]}
                 errors={errors[mode]}
                 lang={lang}
-                annualInflationPercent={annualInflationPercent}
+                monthlyInflationPercent={monthlyInflationPercent}
                 onChange={setField}
                 onOpenInflationSetting={onOpenSettings}
               />
@@ -364,6 +457,7 @@ export function CalculatorView({
 
             <motion.button
               type="button"
+              data-tour="btn-calculate"
               onClick={() => void calculate()}
               whileTap={reducedMotion ? undefined : { scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}

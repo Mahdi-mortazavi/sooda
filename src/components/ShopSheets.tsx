@@ -3,6 +3,8 @@ import type { CheckInItem } from './CheckInSheet'
 import type { StoreProfile } from '../lib/db'
 import type { AppLanguage } from '../lib/numbers'
 import type { Unit } from '../lib/units'
+import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
 
 const CheckInSheet = lazy(() => import('./CheckInSheet').then((m) => ({ default: m.CheckInSheet })))
 const StoreProfileSheet = lazy(() => import('./StoreProfileSheet').then((m) => ({ default: m.StoreProfileSheet })))
@@ -40,25 +42,30 @@ export function ShopSheets({
   onChanged,
   onReprice,
 }: ShopSheetsProps) {
+  /* The profile is a row like any other, so it goes through the injected repository too — a
+   * lesson that asks the shopkeeper to set up their shop must set up the demo one. */
+  const { repository } = useRepository()
+
   const saveProfile = useCallback(
     async (draft: Omit<StoreProfile, 'id'>) => {
-      const { writeStoreProfile } = await import('../lib/observations')
-      await writeStoreProfile({ id: 'me', ...draft })
+      await repository.writeStoreProfile({ id: 'me', ...draft })
+      emitTour({ type: 'sheet:close', sheet: 'store-profile' })
       onCloseProfile()
       // Every estimate in the app just changed its prior, so the stale list is recomputed.
       onChanged()
     },
-    [onCloseProfile, onChanged],
+    [repository, onCloseProfile, onChanged],
   )
 
   /* Skipping still writes the neutral default. Remembering the skip is the point: an optional
    * question that reappears on every launch is not optional in practice. */
   const skipProfile = useCallback(async () => {
-    const { writeStoreProfile, DEFAULT_PROFILE } = await import('../lib/observations')
-    await writeStoreProfile(DEFAULT_PROFILE)
+    const { DEFAULT_PROFILE } = await import('../lib/observations')
+    await repository.writeStoreProfile(DEFAULT_PROFILE)
+    emitTour({ type: 'sheet:close', sheet: 'store-profile' })
     onCloseProfile()
     onChanged()
-  }, [onCloseProfile, onChanged])
+  }, [repository, onCloseProfile, onChanged])
 
   return (
     <Suspense fallback={null}>
@@ -66,6 +73,7 @@ export function ShopSheets({
         <CheckInSheet
           open={checkInOpen}
           onClose={() => {
+            emitTour({ type: 'sheet:close', sheet: 'check-in' })
             onCloseCheckIn()
             // Whatever was recorded changes both the estimates and the badge.
             onChanged()

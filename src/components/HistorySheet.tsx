@@ -5,7 +5,10 @@ import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
 import type { Mode } from '../lib/calc'
 import { buildHistoryCsv, downloadCsv } from '../lib/csv'
-import { clearHistory, db, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
+import { clearHistory, deleteHistoryEntry, type HistoryEntry } from '../lib/db'
+import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
+import { LessonLink } from '../learn/ui/LessonLink'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, normalizeDigits, type AppLanguage } from '../lib/numbers'
 import { formatAmountWithUnit } from '../lib/units'
@@ -26,7 +29,10 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
   const [confirmingClear, setConfirmingClear] = useState(false)
   const reducedMotion = useReducedMotion()
 
-  const entries = useLiveQuery(() => db.history.orderBy('createdAt').reverse().toArray(), [], undefined)
+  /* The practice shop's history during a lesson. Lesson 7 calculates twice and then exports the
+   * result — on the real store that would have handed the learner a CSV of their own trading. */
+  const { db, practice } = useRepository()
+  const entries = useLiveQuery(() => db.history.orderBy('createdAt').reverse().toArray(), [db], undefined)
 
   const modeLabels: Record<Mode, string> = {
     profit: t('modes.profit'),
@@ -64,14 +70,26 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
   const onExport = () => {
     if (!entries?.length) return
     vibrate()
+    emitTour({ type: 'action', name: 'export-csv' })
     const headers = t('history.csvHeaders', { returnObjects: true }) as string[]
-    downloadCsv(buildHistoryCsv(entries, headers, modeLabels), 'sooda-history.csv')
+    /* A practice export under the real name is the kind of file someone opens a year later
+     * believing it is their own trading history. It is the demo shop's. */
+    downloadCsv(
+      buildHistoryCsv(entries, headers, modeLabels),
+      practice ? 'sooda-practice-history.csv' : 'sooda-history.csv',
+    )
   }
 
   const onClearAll = async () => {
     vibrate()
-    await clearHistory()
+    emitTour({ type: 'action', name: 'clear-history' })
+    await (practice ? db.history.clear() : clearHistory())
     setConfirmingClear(false)
+  }
+
+  /* One row, deleted from whichever store the sheet is showing. */
+  const deleteEntry = async (id: number): Promise<void> => {
+    await (practice ? db.history.delete(id) : deleteHistoryEntry(id))
   }
 
   const hasEntries = (entries?.length ?? 0) > 0
@@ -107,6 +125,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
                 index={i}
                 modeLabel={modeLabels[entry.mode]}
                 dateFormatter={dateFormatter}
+                onDelete={deleteEntry}
                 reducedMotion={!!reducedMotion}
               />
             ))}
@@ -118,6 +137,7 @@ export function HistorySheet({ open, onClose, lang }: HistorySheetProps) {
         <div className="mt-5 flex items-center gap-3">
           <button
             type="button"
+            data-tour="btn-export-csv"
             onClick={onExport}
             className="glass glass-ring flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold text-[var(--accent-text)]"
           >
@@ -168,6 +188,7 @@ function EmptyState() {
       <p className="mt-1.5 max-w-[300px] text-[15px] leading-relaxed text-[var(--text-secondary)]">
         {t('history.empty.body')}
       </p>
+      <LessonLink lesson="everyday" />
     </div>
   )
 }
@@ -178,6 +199,7 @@ function HistoryItem({
   index,
   modeLabel,
   dateFormatter,
+  onDelete,
   reducedMotion,
 }: {
   entry: HistoryEntry
@@ -185,6 +207,7 @@ function HistoryItem({
   index: number
   modeLabel: string
   dateFormatter: Intl.DateTimeFormat
+  onDelete: (id: number) => Promise<void>
   reducedMotion: boolean
 }) {
   const { t } = useTranslation()
@@ -233,7 +256,7 @@ function HistoryItem({
         type="button"
         onClick={() => {
           vibrate()
-          void deleteHistoryEntry(entry.id)
+          void onDelete(entry.id)
         }}
         aria-label={t('history.deleteEntry')}
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-tertiary)] transition-colors hover:bg-loss-500/12 hover:text-loss-600 dark:hover:text-loss-400"

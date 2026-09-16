@@ -3,9 +3,9 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import '../i18n/sheets'
-import { db, type Product, type StoreProfile } from '../lib/db'
+import type { Product, StoreProfile } from '../lib/db'
 import { vibrate } from '../lib/haptics'
-import { readAnnualInflationPercent } from '../lib/inflation'
+import { readMonthlyInflationPercent } from '../lib/inflation'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
 import {
   buildProductsCsv,
@@ -23,6 +23,10 @@ import { IconBox, IconCheck, IconDownload, IconSearch, IconTrendUp } from './Ico
 import { HealthChip, ProductSheet } from './ProductSheet'
 import { SegmentedControl } from './SegmentedControl'
 import { Toast } from './Toast'
+import { emitTour } from '../learn/coach/events'
+import { HelpButton, useLearn } from '../learn/ui/entry'
+import { LessonLink } from '../learn/ui/LessonLink'
+import { useRepository } from '../learn/ui/useRepository'
 
 interface ProductsViewProps {
   lang: AppLanguage
@@ -40,6 +44,13 @@ interface ProductsViewProps {
   onRepriceConsumed: () => void
   /** Lets the app recompute staleness and the badge after a write on this tab. */
   onProductsChanged: () => void
+  /**
+   * A sheet a lesson step asked for before it runs: `'product'` opens the first row under the
+   * current sort, `'bulk-reprice'` opens the reprice sheet, anything else closes both. App owns
+   * the other sheets and cannot reach these two, so it relays the request and this tab acts.
+   */
+  tourSheet?: string | null
+  onTourSheetHandled?: () => void
 }
 
 interface ToastState {
@@ -59,11 +70,17 @@ export function ProductsView({
   repriceIds,
   onRepriceConsumed,
   onProductsChanged,
+  tourSheet = null,
+  onTourSheetHandled,
 }: ProductsViewProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
+  const learn = useLearn()
+  /* The demo shop during a lesson, the real one otherwise. Reading from the bound `db` directly
+   * would show the shopkeeper's own price list inside the tutorial. */
+  const { db, pinned, practice } = useRepository()
 
-  const items = useLiveQuery(() => db.products.toArray(), [], undefined)
+  const items = useLiveQuery(() => db.products.toArray(), [db], undefined)
   const all = useMemo(() => items ?? [], [items])
 
   const [query, setQuery] = useState('')
@@ -80,11 +97,12 @@ export function ProductsView({
   // One status per product, from one inflation read and one clock reading per pass.
   const statuses = useMemo(() => {
     const now = Date.now()
-    const annualInflationPercent = readAnnualInflationPercent()
+    /* A lesson pins the rate, so the health chips agree with the figures the lesson quotes. */
+    const monthlyInflationPercent = pinned?.monthlyInflationPercent ?? readMonthlyInflationPercent()
     const map = new Map<number, ProductStatus>()
-    for (const p of all) map.set(p.id, productStatus(p, annualInflationPercent, now))
+    for (const p of all) map.set(p.id, productStatus(p, monthlyInflationPercent, now))
     return map
-  }, [all])
+  }, [all, pinned])
 
   const visible = useMemo(() => sortProducts(searchProducts(all, query), sort, statuses), [all, query, sort, statuses])
 
@@ -96,11 +114,39 @@ export function ProductsView({
     if (repriceIds.length > 0) {
       setSelecting(true)
       setSelectedIds(repriceIds)
+      emitTour({ type: 'sheet:open', sheet: 'bulk-reprice' })
       setBulkMounted(true)
       setBulkOpen(true)
     }
     onRepriceConsumed()
   }, [repriceIds, onRepriceConsumed])
+
+  /* The row a «show me the first product» step means, depended on by the effect below rather than
+   * read out of a ref. The request arrives on the same tick as the tab switch — before Dexie has
+   * handed the practice products back — and answering it against an empty list still marked it
+   * handled, so `smartRates` spent its whole second step pointing at a rate card that was never
+   * on the page. Re-running when the first row appears costs nothing: the effect returns on its
+   * first line whenever no step has asked for a sheet, which is every render outside a lesson. */
+  const firstVisibleId = visible[0]?.id
+
+  useEffect(() => {
+    if (tourSheet === null) return
+    if (tourSheet === 'product') {
+      setBulkOpen(false)
+      // Not consumed yet: the list is still loading, and the step is waiting for the sheet.
+      if (firstVisibleId === undefined) return
+      setDetailId(firstVisibleId)
+      setDetailOpen(true)
+    } else if (tourSheet === 'bulk-reprice') {
+      setDetailOpen(false)
+      setBulkMounted(true)
+      setBulkOpen(true)
+    } else {
+      setDetailOpen(false)
+      setBulkOpen(false)
+    }
+    onTourSheetHandled?.()
+  }, [tourSheet, firstVisibleId, onTourSheetHandled])
 
   const showToast = useCallback((message: string, action?: { label: string; onAction: () => void }) => {
     setToast({ message, action })
@@ -128,14 +174,26 @@ export function ProductsView({
   const onExport = () => {
     if (all.length === 0) return
     vibrate()
+    emitTour({ type: 'action', name: 'export-csv' })
     const headers = t('products.csvHeaders', { returnObjects: true }) as string[]
-    downloadCsv(buildProductsCsv(all, headers), 'sooda-products.csv')
+    // Same reason as the history export: a demo file must not wear the real file's name.
+    downloadCsv(buildProductsCsv(all, headers), practice ? 'sooda-practice-products.csv' : 'sooda-products.csv')
   }
 
   const openRow = (product: Product) => {
     vibrate()
+    emitTour({ type: 'sheet:open', sheet: 'product' })
     setDetailId(product.id)
     setDetailOpen(true)
+  }
+
+  /* One place for both ways into the bulk sheet, so the tip and the event cannot come from one
+   * of them and not the other. */
+  const openBulk = () => {
+    learn?.tip('bulk')
+    emitTour({ type: 'sheet:open', sheet: 'bulk-reprice' })
+    setBulkMounted(true)
+    setBulkOpen(true)
   }
 
   const hasItems = all.length > 0
@@ -144,6 +202,7 @@ export function ProductsView({
     <section aria-label={t('products.title')} className="flex flex-col pb-28">
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h2 className="text-[22px] font-bold tracking-tight">{t('products.title')}</h2>
+        <HelpButton lesson="products" className="self-center" />
         {hasItems ? (
           <span className="shrink-0 text-[13px] text-[var(--text-tertiary)]">
             {t('products.count', { replace: { count: formatNumber(all.length, lang, 0) } })}
@@ -154,10 +213,12 @@ export function ProductsView({
       {hasItems && checkInCount > 0 ? (
         <motion.button
           type="button"
+          data-tour="checkin-card"
           layout={reducedMotion ? false : undefined}
           whileTap={reducedMotion ? undefined : { scale: 0.99 }}
           onClick={() => {
             vibrate()
+            emitTour({ type: 'sheet:open', sheet: 'check-in' })
             onStartCheckIn()
           }}
           className="glass glass-ring mb-3 flex w-full items-center gap-3 rounded-[22px] px-4 py-3.5 text-start"
@@ -194,6 +255,9 @@ export function ProductsView({
           >
             {t('products.empty.cta')}
           </motion.button>
+          {/* The empty state is the one screen where a lesson is unambiguously the most useful
+            * thing on it: there is nothing else here to do. */}
+          <LessonLink lesson="products" />
         </div>
       ) : (
         <>
@@ -248,6 +312,9 @@ export function ProductsView({
                   <ProductRow
                     key={product.id}
                     product={product}
+                    /* Only the first: a lesson points at «the riskiest product», and eight rows
+                       sharing one name would leave the coach highlighting an arbitrary one. */
+                    tour={i === 0 ? 'product-row' : undefined}
                     status={statuses.get(product.id)}
                     lang={lang}
                     unit={unit}
@@ -280,8 +347,7 @@ export function ProductsView({
                   type="button"
                   onClick={() => {
                     vibrate()
-                    setBulkMounted(true)
-                    setBulkOpen(true)
+                    openBulk()
                   }}
                   className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--accent-fill-strong)] px-4 py-3 text-[15px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
                 >
@@ -318,7 +384,10 @@ export function ProductsView({
 
       <ProductSheet
         open={detailOpen}
-        onClose={() => setDetailOpen(false)}
+        onClose={() => {
+          setDetailOpen(false)
+          emitTour({ type: 'sheet:close', sheet: 'product' })
+        }}
         product={detailProduct}
         lang={lang}
         unit={unit}
@@ -331,7 +400,10 @@ export function ProductsView({
       {(bulkOpen || bulkMounted) && (
         <BulkRepriceSheet
           open={bulkOpen}
-          onClose={() => setBulkOpen(false)}
+          onClose={() => {
+            setBulkOpen(false)
+            emitTour({ type: 'sheet:close', sheet: 'bulk-reprice' })
+          }}
           products={bulkTargets}
           lang={lang}
           unit={unit}
@@ -353,6 +425,7 @@ export function ProductsView({
 
 function ProductRow({
   product,
+  tour,
   status,
   lang,
   unit,
@@ -364,6 +437,7 @@ function ProductRow({
   reducedMotion,
 }: {
   product: Product
+  tour?: string
   status: ProductStatus | undefined
   lang: AppLanguage
   unit: Unit
@@ -388,6 +462,7 @@ function ProductRow({
 
   return (
     <motion.li
+      data-tour={tour}
       layout={!reducedMotion}
       initial={reducedMotion ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}

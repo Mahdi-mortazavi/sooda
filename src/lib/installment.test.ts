@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths } from './dates'
-import { monthlyRateFromPercent } from './inflation'
+import { annualToMonthlyPercent, monthlyRateFromPercent } from './inflation'
 import {
   INSTALLMENT_COUNTS,
   MAX_INSTALLMENTS,
@@ -11,7 +11,9 @@ import {
 } from './installment'
 import { buildSchedule } from './schedule'
 
-const r40 = monthlyRateFromPercent(40)
+/* The briefed vectors are quoted at 40% ANNUAL. Since v1.5 the engine takes a monthly
+ * percent, so the same economics is expressed by converting first. */
+const r40 = monthlyRateFromPercent(annualToMonthlyPercent(40))
 const P = 10_000_000
 
 describe('annuityFactor', () => {

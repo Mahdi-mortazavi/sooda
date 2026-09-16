@@ -1,19 +1,23 @@
 {
   "schema": 1,
-  "updatedAt": null,
+  "updatedAt": "2026-09-15",
   "cpi": {
-    "source": { "name": "", "url": "" },
-    "asOf": null,
-    "overallMonthlyPercent": null,
+    "source": {
+      "name": "Statistical Center of Iran — CPI, Mordad 1405",
+      "url": "https://www.amar.org.ir/"
+    },
+    "asOf": "1405-05",
+    "confidence": "secondary",
+    "overallMonthlyPercent": 3.4,
     "categories": {
-      "food": null,
-      "apparel": null,
-      "home": null,
-      "digital": null,
-      "beauty": null,
-      "health": null,
-      "auto": null,
-      "stationery": null
+      "food": 3.6,
+      "apparel": 3.3,
+      "home": 3.3,
+      "digital": 3.3,
+      "beauty": 3.3,
+      "health": 3.3,
+      "auto": 3.3,
+      "stationery": 3.3
     }
   },
   "fx": {

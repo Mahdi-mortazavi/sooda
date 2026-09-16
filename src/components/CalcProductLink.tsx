@@ -2,10 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { motion, useReducedMotion } from 'motion/react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { db } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import type { AppLanguage } from '../lib/numbers'
-import { recordCost } from '../lib/observations'
+import { emitTour } from '../learn/coach/events'
+import { useRepository } from '../learn/ui/useRepository'
 import { fxAt } from '../lib/rates'
 import type { RatesFile } from '../lib/rates/schema'
 import type { Unit } from '../lib/units'
@@ -39,7 +39,10 @@ interface CalcProductLinkProps {
 export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProductLinkProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
-  const products = useLiveQuery(() => db.products.toArray(), [], undefined)
+  /* The practice shop while a lesson is running, the real one otherwise — reads included, or the
+   * calculator would offer to link a demo calculation to the shopkeeper's own products. */
+  const { repository, db } = useRepository()
+  const products = useLiveQuery(() => db.products.toArray(), [db], undefined)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   // Cleared on a successful write so the prompt does not reappear for a reading already taken.
@@ -70,13 +73,14 @@ export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProd
     if (!selected) return
     const observedAt = Date.now()
     const fxToday = rates ? fxAt(rates.fx.series, observedAt) : null
-    await recordCost({
+    await repository.recordCost({
       productId: selected.id,
       cost,
       observedAt,
       ...(fxToday === null ? {} : { fxAtDate: fxToday }),
       source: 'calc',
     })
+    emitTour({ type: 'action', name: 'record-cost' })
     setRecordedFor(`${selected.id}:${cost}`)
     setConfirmed(true)
     onChanged()
@@ -92,6 +96,7 @@ export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProd
         whileTap={reducedMotion ? undefined : { scale: 0.99 }}
         onClick={() => {
           vibrate()
+          emitTour({ type: 'sheet:open', sheet: 'product-picker' })
           setPickerOpen(true)
         }}
         className="glass glass-ring flex w-full items-center gap-2.5 rounded-[20px] px-3.5 py-3 text-start"
@@ -125,7 +130,10 @@ export function CalcProductLink({ cost, lang, unit, rates, onChanged }: CalcProd
         {pickerOpen && (
           <ProductPicker
             open={pickerOpen}
-            onClose={() => setPickerOpen(false)}
+            onClose={() => {
+              setPickerOpen(false)
+              emitTour({ type: 'sheet:close', sheet: 'product-picker' })
+            }}
             products={all}
             selectedId={selectedId}
             lang={lang}

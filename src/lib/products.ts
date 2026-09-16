@@ -2,55 +2,12 @@
 
 import { round2 } from './calc'
 import { monthsBetween } from './dates'
-import { db, type Observation, type Product } from './db'
+import { db, type Observation, type Product, type SoodaDb } from './db'
 import { monthlyRateFromPercent, profitStatus, realProfitPercent, replacementCost } from './inflation'
 import { normalizeDigits } from './numbers'
 import { roundUpTo, type RoundingStep } from './rounding'
 
 /* ── repository ─────────────────────────────────────────────────────────── */
-
-/** Adds a product with its first price observation, stamping both timestamps. Returns the new id. */
-export async function addProduct(p: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
-  const now = Date.now()
-  return db.transaction('rw', db.products, db.observations, async () => {
-    const id = await db.products.add({ ...p, createdAt: now, updatedAt: now })
-    /* The very first save is already evidence. Dated `costUpdatedAt` rather than now, because the
-     * user may be recording a price they paid last month. */
-    const first = { productId: id, cost: p.cost, observedAt: p.costUpdatedAt, source: 'save' as const }
-    await db.observations.add(first as Observation)
-    return id
-  })
-}
-
-/** Patches a product and stamps `updatedAt`, so the "recently changed" sort stays honest. */
-export async function updateProduct(id: number, patch: Partial<Omit<Product, 'id'>>): Promise<void> {
-  const now = Date.now()
-  await db.transaction('rw', db.products, db.observations, async () => {
-    const before = await db.products.get(id)
-    await db.products.update(id, { ...patch, updatedAt: now })
-    /* Only a cost that actually MOVED is a new reading. Re-saving the same figure after editing a
-     * note would otherwise stack duplicate points and flatten the product's estimated growth. */
-    if (before === undefined || patch.cost === undefined || patch.cost === before.cost) return
-    await db.observations.add({
-      productId: id,
-      cost: patch.cost,
-      observedAt: patch.costUpdatedAt ?? now,
-      source: 'update',
-    } as Observation)
-  })
-}
-
-/** Deletes a product and the whole private history behind it — orphan readings help nobody. */
-export async function deleteProduct(id: number): Promise<void> {
-  await db.transaction('rw', db.products, db.observations, async () => {
-    await db.products.delete(id)
-    await db.observations.where('productId').equals(id).delete()
-  })
-}
-
-export async function listProducts(): Promise<Product[]> {
-  return db.products.toArray()
-}
 
 /** One change a bulk reprice wants to commit. `cost`/`costUpdatedAt` only move on a cost-up run. */
 export interface ProductChange {
@@ -66,47 +23,125 @@ export interface BulkApplyResult {
   observationIds: number[]
 }
 
-/** Applies every change inside ONE Dexie transaction so a bulk reprice is all-or-nothing. */
-export async function bulkApply(changes: ProductChange[]): Promise<BulkApplyResult> {
-  const now = Date.now()
-  return db.transaction('rw', db.products, db.observations, async () => {
-    const observationIds: number[] = []
-    for (const c of changes) {
-      /* Read before write: a 'retarget' run moves only the price, and a 'costUp' run can land on
-       * the figure already stored. Neither is a new reading about what the product costs. */
-      const before = await db.products.get(c.id)
-      await db.products.update(c.id, {
-        price: c.price,
-        updatedAt: now,
-        ...(c.cost === undefined ? {} : { cost: c.cost }),
-        ...(c.costUpdatedAt === undefined ? {} : { costUpdatedAt: c.costUpdatedAt }),
-      })
-      if (before === undefined || c.cost === undefined || c.cost === before.cost) continue
-      const id = await db.observations.add({
-        productId: c.id,
-        cost: c.cost,
-        observedAt: c.costUpdatedAt ?? now,
-        source: 'update',
-      } as Observation)
-      observationIds.push(id)
-    }
-    return { observationIds }
-  })
+export interface ProductRepository {
+  addProduct(p: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<number>
+  updateProduct(id: number, patch: Partial<Omit<Product, 'id'>>): Promise<void>
+  deleteProduct(id: number): Promise<void>
+  listProducts(): Promise<Product[]>
+  bulkApply(changes: ProductChange[]): Promise<BulkApplyResult>
+  restoreProducts(snapshot: Product[], observationIds?: number[]): Promise<void>
 }
 
 /**
- * Undo path — writes the given rows back verbatim (ids and timestamps included) and deletes the
- * observations the matching `bulkApply` created, in one transaction.
+ * The saved products, bound to whichever database it is given — and to whichever clock.
  *
- * The ids are passed in rather than re-derived: deleting "every observation newer than X" would
- * also swallow a reading the user recorded by hand between the reprice and the undo.
+ * The clock is injectable so a lesson can pin an instant and get the same answer every time it
+ * is run. Without it the seed would be dated at one moment and a row the learner writes at
+ * another, and a challenge that asks how old something is would drift with the wall clock.
+ *
+ * Taking the database as an argument rather than importing the singleton is what makes practice
+ * mode honest: a lesson runs this exact logic — including which writes count as a new price
+ * reading — against a throwaway store, without touching a row of the shopkeeper's own. Every
+ * existing caller keeps using the bound exports below and is unaffected.
  */
-export async function restoreProducts(snapshot: Product[], observationIds: number[] = []): Promise<void> {
-  await db.transaction('rw', db.products, db.observations, async () => {
-    await db.products.bulkPut(snapshot)
-    if (observationIds.length > 0) await db.observations.bulkDelete(observationIds)
-  })
+export function createProductRepository(database: SoodaDb, clock: () => number = Date.now): ProductRepository {
+  return {
+    /** Adds a product with its first price observation, stamping both timestamps. Returns the new id. */
+    async addProduct(p) {
+      const now = clock()
+      return database.transaction('rw', database.products, database.observations, async () => {
+        const id = await database.products.add({ ...p, createdAt: now, updatedAt: now })
+        /* The very first save is already evidence. Dated `costUpdatedAt` rather than now, because the
+         * user may be recording a price they paid last month. */
+        const first = { productId: id, cost: p.cost, observedAt: p.costUpdatedAt, source: 'save' as const }
+        await database.observations.add(first as Observation)
+        return id
+      })
+    },
+
+    /** Patches a product and stamps `updatedAt`, so the "recently changed" sort stays honest. */
+    async updateProduct(id, patch) {
+      const now = clock()
+      await database.transaction('rw', database.products, database.observations, async () => {
+        const before = await database.products.get(id)
+        await database.products.update(id, { ...patch, updatedAt: now })
+        /* Only a cost that actually MOVED is a new reading. Re-saving the same figure after editing a
+         * note would otherwise stack duplicate points and flatten the product's estimated growth. */
+        if (before === undefined || patch.cost === undefined || patch.cost === before.cost) return
+        await database.observations.add({
+          productId: id,
+          cost: patch.cost,
+          observedAt: patch.costUpdatedAt ?? now,
+          source: 'update',
+        } as Observation)
+      })
+    },
+
+    /** Deletes a product and the whole private history behind it — orphan readings help nobody. */
+    async deleteProduct(id) {
+      await database.transaction('rw', database.products, database.observations, async () => {
+        await database.products.delete(id)
+        await database.observations.where('productId').equals(id).delete()
+      })
+    },
+
+    async listProducts() {
+      return database.products.toArray()
+    },
+
+    /** Applies every change inside ONE Dexie transaction so a bulk reprice is all-or-nothing. */
+    async bulkApply(changes) {
+      const now = clock()
+      return database.transaction('rw', database.products, database.observations, async () => {
+        const observationIds: number[] = []
+        for (const c of changes) {
+          /* Read before write: a 'retarget' run moves only the price, and a 'costUp' run can land on
+           * the figure already stored. Neither is a new reading about what the product costs. */
+          const before = await database.products.get(c.id)
+          await database.products.update(c.id, {
+            price: c.price,
+            updatedAt: now,
+            ...(c.cost === undefined ? {} : { cost: c.cost }),
+            ...(c.costUpdatedAt === undefined ? {} : { costUpdatedAt: c.costUpdatedAt }),
+          })
+          if (before === undefined || c.cost === undefined || c.cost === before.cost) continue
+          const id = await database.observations.add({
+            productId: c.id,
+            cost: c.cost,
+            observedAt: c.costUpdatedAt ?? now,
+            source: 'update',
+          } as Observation)
+          observationIds.push(id)
+        }
+        return { observationIds }
+      })
+    },
+
+    /**
+     * Undo path — writes the given rows back verbatim (ids and timestamps included) and deletes the
+     * observations the matching `bulkApply` created, in one transaction.
+     *
+     * The ids are passed in rather than re-derived: deleting "every observation newer than X" would
+     * also swallow a reading the user recorded by hand between the reprice and the undo.
+     */
+    async restoreProducts(snapshot, observationIds = []) {
+      await database.transaction('rw', database.products, database.observations, async () => {
+        await database.products.bulkPut(snapshot)
+        if (observationIds.length > 0) await database.observations.bulkDelete(observationIds)
+      })
+    },
+  }
 }
+
+/* The real shop. Every component that is not running a lesson uses these. */
+const real = createProductRepository(db)
+
+export const addProduct = real.addProduct
+export const updateProduct = real.updateProduct
+export const deleteProduct = real.deleteProduct
+export const listProducts = real.listProducts
+export const bulkApply = real.bulkApply
+export const restoreProducts = real.restoreProducts
 
 /**
  * Best-effort `navigator.storage.persist()`, called on the first product save: a price list is the
@@ -137,9 +172,9 @@ export interface ProductStatus {
 }
 
 /** Estimates today's restock cost from `cost`, the months since `costUpdatedAt`, and inflation. */
-export function productStatus(p: Product, annualInflationPercent: number, now: number): ProductStatus {
+export function productStatus(p: Product, monthlyInflationPercent: number, now: number): ProductStatus {
   const costAgeMonths = monthsBetween(p.costUpdatedAt, now)
-  const replacement = replacementCost(p.cost, monthlyRateFromPercent(annualInflationPercent), costAgeMonths)
+  const replacement = replacementCost(p.cost, monthlyRateFromPercent(monthlyInflationPercent), costAgeMonths)
   // A row with no recorded purchase price cannot be judged; dividing by it would yield
   // Infinity or NaN, and NaN silently reads as 'thin'. Flag it instead.
   const realMarginPercent = replacement > 0 ? realProfitPercent(p.price, replacement) : 0
@@ -214,13 +249,13 @@ export function previewBulk(
   items: Product[],
   op: BulkOp,
   step: RoundingStep,
-  annualInflationPercent: number,
+  monthlyInflationPercent: number,
   now: number,
 ): BulkPreviewRow[] {
   const percent = op.kind === 'costUp' ? Math.max(op.percent, MIN_COST_CHANGE_PERCENT) : 0
   return items.map((p) => {
     const newCost = op.kind === 'costUp' ? round2(p.cost * (1 + percent / 100)) : p.cost
-    const basis = op.kind === 'costUp' ? newCost : productStatus(p, annualInflationPercent, now).replacement
+    const basis = op.kind === 'costUp' ? newCost : productStatus(p, monthlyInflationPercent, now).replacement
     return {
       id: p.id,
       name: p.name,

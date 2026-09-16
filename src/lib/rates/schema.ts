@@ -8,8 +8,14 @@ export interface RatesSource {
 
 export interface RatesCpi {
   source: RatesSource
-  /** The Gregorian month the figures describe, e.g. '2026-08'. */
+  /**
+   * The month the figures describe, 'YYYY-MM'. Iran's statistics are published by Jalali month,
+   * so this is usually Jalali ('1405-05' = Mordad 1405). It is metadata, shown and never parsed
+   * as a date — do not feed it to Date.parse, which would read 1405 as a Gregorian year.
+   */
   asOf: string | null
+  /** How much to trust these figures: 'primary' straight from the source, 'secondary' relayed. */
+  confidence: 'primary' | 'secondary' | null
   overallMonthlyPercent: number | null
   /** 'other' is never keyed here — it uses the overall figure. */
   categories: Partial<Record<Exclude<CategoryId, 'other'>, number | null>>
@@ -78,6 +84,13 @@ export function validateRates(raw: unknown): RatesCheck {
   const cpiSource = parseSource(cpiRaw.source)
   if (!cpiSource) return { ok: false, problem: 'badCpi' }
   if (!optionalString(cpiRaw.asOf, MONTH_RE)) return { ok: false, problem: 'badCpi' }
+  /* Absent is fine and means "unstated"; a value that is neither label is a malformed file
+   * rather than something to quietly coerce. */
+  const confidenceRaw = cpiRaw.confidence
+  if (confidenceRaw !== undefined && confidenceRaw !== null && confidenceRaw !== 'primary' && confidenceRaw !== 'secondary') {
+    return { ok: false, problem: 'badCpi' }
+  }
+  const confidence: RatesCpi['confidence'] = confidenceRaw === 'primary' || confidenceRaw === 'secondary' ? confidenceRaw : null
   if (!optionalNumber(cpiRaw.overallMonthlyPercent)) return { ok: false, problem: 'badCpi' }
   if (!isObject(cpiRaw.categories)) return { ok: false, problem: 'badCpi' }
 
@@ -115,6 +128,7 @@ export function validateRates(raw: unknown): RatesCheck {
       cpi: {
         source: cpiSource,
         asOf: cpiRaw.asOf,
+        confidence,
         overallMonthlyPercent: cpiRaw.overallMonthlyPercent,
         categories,
       },

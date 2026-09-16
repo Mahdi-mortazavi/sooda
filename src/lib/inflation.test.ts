@@ -5,13 +5,14 @@ import {
   INFLATION_STORAGE_KEY,
   LENS_MONTHS,
   hasInflationOverride,
-  monthlyRate,
+  annualToMonthlyPercent,
   monthlyRateFromPercent,
   profitStatus,
-  readAnnualInflationPercent,
+  LEGACY_ANNUAL_STORAGE_KEY,
+  readMonthlyInflationPercent,
   realProfitPercent,
   replacementCost,
-  storeAnnualInflationPercent,
+  storeMonthlyInflationPercent,
   suggestedPrice,
 } from './inflation'
 
@@ -47,23 +48,37 @@ afterEach(() => {
   Reflect.deleteProperty(globalThis, 'localStorage')
 })
 
-const r40 = monthlyRateFromPercent(40)
+/* The reference vectors are quoted at 40% ANNUAL. Converted exactly, not via a truncated
+ * literal — 2.8436 instead of the full value moves replacementCost by five cents. */
+const r40 = monthlyRateFromPercent(annualToMonthlyPercent(40))
 
-describe('monthlyRate', () => {
-  it('matches the reference vector for 40% annual', () => {
-    expect(monthlyRate(0.4)).toBeCloseTo(0.028436, 6)
-    expect(monthlyRateFromPercent(40)).toBeCloseTo(0.028436, 6)
+describe('monthlyRateFromPercent', () => {
+  it('is the monthly percent as a fraction — no twelfth root any more', () => {
+    /* Until v1.5 this took an ANNUAL percent. Iran's CPI is published monthly, and deriving a
+     * monthly pace from a point-to-point annual figure overstates it while inflation slows. */
+    expect(monthlyRateFromPercent(3.4)).toBeCloseTo(0.034, 12)
+    expect(monthlyRateFromPercent(2.8436)).toBeCloseTo(0.028436, 12)
   })
-  it('compounds back to the annual figure over 12 months', () => {
-    expect(Math.pow(1 + r40, 12)).toBeCloseTo(1.4, 10)
-  })
-  it('is exactly 0 at 0% annual', () => {
-    expect(monthlyRate(0)).toBe(0)
+  it('is exactly 0 at 0%', () => {
     expect(monthlyRateFromPercent(0)).toBe(0)
   })
   it('goes negative under deflation', () => {
     expect(monthlyRateFromPercent(-10)).toBeLessThan(0)
     expect(Number.isFinite(monthlyRateFromPercent(-10))).toBe(true)
+  })
+})
+
+describe('annualToMonthlyPercent', () => {
+  it('converts a v1.4 annual override to the equivalent monthly pace', () => {
+    expect(annualToMonthlyPercent(40)).toBeCloseTo(2.8436156, 6)
+    // The old bundled default: 89%/yr really is 5.45%/mo, which is why it overstated things.
+    expect(annualToMonthlyPercent(89)).toBeCloseTo(5.448033, 6)
+  })
+  it('compounds back to where it came from', () => {
+    expect(Math.pow(1 + annualToMonthlyPercent(89) / 100, 12)).toBeCloseTo(1.89, 10)
+  })
+  it('is 0 at 0', () => {
+    expect(annualToMonthlyPercent(0)).toBe(0)
   })
 })
 
@@ -81,7 +96,8 @@ describe('replacementCost', () => {
     expect(replacementCost(100000, r0, 240)).toBe(100000)
   })
   it('falls below cost under deflation and stays finite', () => {
-    const deflating = replacementCost(100000, monthlyRateFromPercent(-10), 6)
+    // Still −10% a YEAR, expressed monthly.
+    const deflating = replacementCost(100000, monthlyRateFromPercent(annualToMonthlyPercent(-10)), 6)
     expect(deflating).toBeLessThan(100000)
     expect(deflating).toBeCloseTo(94868.33, 2)
     expect(Number.isFinite(deflating)).toBe(true)
@@ -133,44 +149,71 @@ describe('profitStatus', () => {
 
 describe('inflation source and storage', () => {
   it('bundles the static CPI figure with its provenance', () => {
-    expect(INFLATION_DEFAULT.annualPercent).toBe(89)
+    expect(INFLATION_DEFAULT.monthlyPercent).toBe(3.4)
     expect(INFLATION_DEFAULT.sourceUrl).toBe('https://www.amar.org.ir/')
     expect(INFLATION_DEFAULT.confidence).toBe('secondary')
     expect(INFLATION_DEFAULT.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
   it('falls back to the default when storage is empty', () => {
     installStorage()
-    expect(readAnnualInflationPercent()).toBe(INFLATION_DEFAULT.annualPercent)
+    expect(readMonthlyInflationPercent()).toBe(INFLATION_DEFAULT.monthlyPercent)
     expect(hasInflationOverride()).toBe(false)
   })
   it('falls back to the default when storage holds garbage', () => {
     for (const junk of ['', '  ', 'abc', 'NaN', 'Infinity', '-100', '-250']) {
       installStorage({ [INFLATION_STORAGE_KEY]: junk })
-      expect(readAnnualInflationPercent()).toBe(INFLATION_DEFAULT.annualPercent)
+      expect(readMonthlyInflationPercent()).toBe(INFLATION_DEFAULT.monthlyPercent)
       expect(hasInflationOverride()).toBe(false)
     }
   })
   it('falls back to the default when storage throws', () => {
     installStorage({ [INFLATION_STORAGE_KEY]: '45' }, true)
-    expect(readAnnualInflationPercent()).toBe(INFLATION_DEFAULT.annualPercent)
+    expect(readMonthlyInflationPercent()).toBe(INFLATION_DEFAULT.monthlyPercent)
     expect(hasInflationOverride()).toBe(false)
-    expect(() => storeAnnualInflationPercent(45)).not.toThrow()
+    expect(() => storeMonthlyInflationPercent(45)).not.toThrow()
   })
   it('falls back to the default when there is no localStorage at all', () => {
-    expect(readAnnualInflationPercent()).toBe(INFLATION_DEFAULT.annualPercent)
+    expect(readMonthlyInflationPercent()).toBe(INFLATION_DEFAULT.monthlyPercent)
     expect(hasInflationOverride()).toBe(false)
   })
   it('reads back a stored override', () => {
     installStorage()
-    storeAnnualInflationPercent(45)
-    expect(readAnnualInflationPercent()).toBe(45)
+    storeMonthlyInflationPercent(45)
+    expect(readMonthlyInflationPercent()).toBe(45)
     expect(hasInflationOverride()).toBe(true)
   })
   it('clears the override with null', () => {
     installStorage({ [INFLATION_STORAGE_KEY]: '45' })
     expect(hasInflationOverride()).toBe(true)
-    storeAnnualInflationPercent(null)
-    expect(readAnnualInflationPercent()).toBe(INFLATION_DEFAULT.annualPercent)
+    storeMonthlyInflationPercent(null)
+    expect(readMonthlyInflationPercent()).toBe(INFLATION_DEFAULT.monthlyPercent)
+    expect(hasInflationOverride()).toBe(false)
+  })
+})
+
+describe('the v1.4 annual override migration', () => {
+  it('converts a legacy annual value once and retires the old key', () => {
+    /* Without this, a shopkeeper's "89% a year" would be read as 89% a MONTH — a factor of
+     * 1.89^12 on every restock figure they see. */
+    installStorage({ [LEGACY_ANNUAL_STORAGE_KEY]: '89' })
+    expect(readMonthlyInflationPercent()).toBeCloseTo(5.448033, 6)
+    expect(localStorage.getItem(LEGACY_ANNUAL_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(INFLATION_STORAGE_KEY)).not.toBeNull()
+    expect(hasInflationOverride()).toBe(true)
+  })
+  it('prefers an existing monthly value over a stale legacy one', () => {
+    installStorage({ [INFLATION_STORAGE_KEY]: '2.5', [LEGACY_ANNUAL_STORAGE_KEY]: '89' })
+    expect(readMonthlyInflationPercent()).toBe(2.5)
+  })
+  it('ignores legacy garbage rather than migrating it', () => {
+    installStorage({ [LEGACY_ANNUAL_STORAGE_KEY]: 'abc' })
+    expect(readMonthlyInflationPercent()).toBe(INFLATION_DEFAULT.monthlyPercent)
+    expect(hasInflationOverride()).toBe(false)
+  })
+  it('clearing the override also clears the legacy key, so it cannot come back', () => {
+    installStorage({ [LEGACY_ANNUAL_STORAGE_KEY]: '89' })
+    storeMonthlyInflationPercent(null)
+    expect(readMonthlyInflationPercent()).toBe(INFLATION_DEFAULT.monthlyPercent)
     expect(hasInflationOverride()).toBe(false)
   })
 })

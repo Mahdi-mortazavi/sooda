@@ -1,7 +1,7 @@
 {
   "name": "sooda",
   "private": true,
-  "version": "1.4.1",
+  "version": "1.5.0",
   "type": "module",
   "description": "Know whether your profit survives restocking. Sooda is a profit, price and discount calculator for sellers: real profit after inflation, instalment pricing, your own product list, and a smart per-product price-growth estimate. Works offline, private, bilingual English/Persian.",
   "license": "MIT",
@@ -16,7 +16,7 @@
     "screenshots": "node scripts/screenshots.mjs",
     "budget": "node scripts/bundle-budget.mjs",
     "i18n:check": "node scripts/i18n-parity.mjs",
-    "verify": "npm run typecheck && npm run test && npm run build",
+    "verify": "npm run typecheck && npm run test && npm run i18n:check && npm run docs:examples -- --check && npm run lesson:examples -- --check && npm run build && npm run smoke",
     "smoke": "node scripts/smoke.mjs",
     "shots:diff": "node scripts/screenshot-diff.mjs",
     "rates:update": "node scripts/rates/update.mjs",
@@ -24,7 +24,8 @@
     "rates:cpi": "node scripts/rates/cpi.mjs",
     "rates:fallback": "node scripts/rates/fallback.mjs",
     "rates:test": "node --test scripts/rates/update.test.mjs",
-    "docs:examples": "node scripts/docs-examples.mjs"
+    "docs:examples": "node scripts/docs-examples.mjs",
+    "lesson:examples": "node scripts/lesson-examples.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

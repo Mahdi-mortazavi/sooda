@@ -6,13 +6,14 @@ import { formatNumber, type AppLanguage } from '../lib/numbers'
 import { ChipRow } from './ChipRow'
 import { NumberField } from './NumberField'
 import { SegmentedControl } from './SegmentedControl'
+import { HelpButton, useLearn } from '../learn/ui/entry'
 
 interface LensRowProps {
   fields: FieldSpec[]
   state: ModeState
   errors: Record<string, ValidationError>
   lang: AppLanguage
-  annualInflationPercent: number
+  monthlyInflationPercent: number
   onChange: (key: string, value: string) => void
   /** The inflation chip is a shortcut into Settings, where the rate lives. */
   onOpenInflationSetting: () => void
@@ -27,12 +28,13 @@ export function LensRow({
   state,
   errors,
   lang,
-  annualInflationPercent,
+  monthlyInflationPercent,
   onChange,
   onOpenInflationSetting,
 }: LensRowProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
+  const learn = useLearn()
 
   const monthsField = fields.find((f) => f.key === 'months')
   const sourceField = fields.find((f) => f.key === 'src')
@@ -48,14 +50,26 @@ export function LensRow({
   }))
 
   return (
-    <div className="glass glass-ring rounded-3xl px-5 py-3.5">
-      <p className="mb-2 text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">{t('lens.title')}</p>
+    <div data-tour="lens-row" className="glass glass-ring rounded-3xl px-5 py-3.5">
+      <div className="mb-2 flex items-center gap-2">
+        <p className="min-w-0 flex-1 text-[13px] font-semibold tracking-wide text-[var(--text-secondary)]">
+          {t('lens.title')}
+        </p>
+        <HelpButton lesson="realProfit" />
+      </div>
       <ChipRow
         options={monthOptions}
         value={months}
-        onChange={(value) => onChange('months', value)}
+        onChange={(value) => {
+          /* The lens is the one control in the calculator whose answer surprises people, so the
+           * first time it is actually moved off «now» it earns a single line of explanation. */
+          if (value !== '0') learn?.tip('lens')
+          onChange('months', value)
+        }}
         layoutId="lens-months"
         ariaLabel={t('lens.title')}
+        tour="field-months"
+        tourKey="months"
       />
 
       <AnimatePresence initial={false}>
@@ -75,6 +89,7 @@ export function LensRow({
                 value={source}
                 onChange={(value) => onChange('src', value)}
                 size="sm"
+                tourPrefix="chip-src-"
                 options={(sourceField.options ?? []).map((value, index) => ({
                   value,
                   label: t(sourceField.optionLabelKeys?.[index] ?? value),
@@ -92,6 +107,8 @@ export function LensRow({
                   placeholder={t('fields.amountPlaceholder')}
                   lang={lang}
                   error={errors['replacement'] ? t(`errors.${errors['replacement']}`) : null}
+                  tourField="replacement"
+                  tour="field-replacement"
                 />
               </div>
             ) : (
@@ -101,7 +118,7 @@ export function LensRow({
                 className="mt-3 flex w-full items-center justify-center gap-1 rounded-2xl bg-accent-500/12 px-3.5 py-2 text-[13.5px] font-semibold text-[var(--accent-text)] transition-colors hover:bg-accent-500/20"
               >
                 {t('lens.inflationChip', {
-                  percent: `${formatNumber(annualInflationPercent, lang)}${t('fields.percentUnit')}`,
+                  percent: `${formatNumber(monthlyInflationPercent, lang)}${t('fields.percentUnit')}`,
                 })}
                 {/* Baked into the string it pointed the wrong way in Persian. */}
                 <span aria-hidden className="rtl:rotate-180">

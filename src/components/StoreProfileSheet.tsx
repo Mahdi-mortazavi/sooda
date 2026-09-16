@@ -67,6 +67,7 @@ export function StoreProfileSheet({ open, onClose, initial, onSave, onSkip }: St
 
   return (
     <Sheet open={open} onClose={onClose} title={t('profile.title')}>
+      <div data-tour="profile-panel">
       <p className="mb-3 text-[14px] leading-relaxed text-[var(--text-secondary)]">{t('profile.hint')}</p>
 
       <div role="group" aria-label={t('profile.title')} className="flex flex-wrap gap-2">
@@ -134,12 +135,14 @@ export function StoreProfileSheet({ open, onClose, initial, onSave, onSkip }: St
         </button>
         <motion.button
           type="button"
+          data-tour="btn-profile-save"
           onClick={save}
           whileTap={reducedMotion ? undefined : { scale: 0.97 }}
           className="min-w-0 flex-1 rounded-2xl bg-[var(--accent-fill-strong)] px-4 py-3 text-[15px] font-bold text-white dark:text-[hsl(168_90%_8%)]"
         >
           {t('profile.save')}
         </motion.button>
+      </div>
       </div>
     </Sheet>
   )

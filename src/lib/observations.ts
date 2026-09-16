@@ -4,95 +4,136 @@
  */
 
 import Dexie from 'dexie'
-import { db, type Observation, type ObservationSource, type Product, type StoreProfile } from './db'
+import { db, type Observation, type ObservationSource, type Product, type SoodaDb, type StoreProfile } from './db'
 import { MS_PER_MONTH, usableObservations } from './rates'
 
 /* ── observations ───────────────────────────────────────────────────────── */
 
-/** Adds one reading. Returns the new id, so an undoable bulk run can name exactly what it wrote. */
-export async function addObservation(o: Omit<Observation, 'id'>): Promise<number> {
-  return db.observations.add(o as Observation)
+export interface ObservationRepository {
+  addObservation(o: Omit<Observation, 'id'>): Promise<number>
+  listObservations(productId: number): Promise<Observation[]>
+  listAllObservations(): Promise<Observation[]>
+  setObservationExcluded(id: number, excluded: boolean): Promise<void>
+  deleteObservationsFor(productId: number): Promise<void>
+  observationsByProduct(): Promise<Map<number, Observation[]>>
+  recordCost(args: {
+    productId: number
+    cost: number
+    observedAt: number
+    fxAtDate?: number
+    source: ObservationSource
+  }): Promise<void>
+  readStoreProfile(): Promise<StoreProfile>
+  writeStoreProfile(p: StoreProfile): Promise<void>
+  hasStoreProfile(): Promise<boolean>
 }
 
-/** One product's readings, oldest first. */
-export async function listObservations(productId: number): Promise<Observation[]> {
-  /* The [productId+observedAt] index hands these back already ordered, so the estimator never
-   * pays for an in-memory sort on the hot path. */
-  return db.observations
-    .where('[productId+observedAt]')
-    .between([productId, Dexie.minKey], [productId, Dexie.maxKey])
-    .toArray()
-}
+/**
+ * The price history, bound to whichever database it is given.
+ *
+ * The clock is injectable for the same reason: a lesson pins an instant so its challenge answer
+ * is the same every run. Taking the database as an argument rather than importing the singleton
+ * is what makes practice mode honest: the tutorial runs this exact logic against a throwaway store, so what a learner
+ * does behaves identically to the real thing without touching a row of it. Every existing caller
+ * keeps using the bound exports below and is unaffected.
+ */
+export function createObservationRepository(
+  database: SoodaDb,
+  clock: () => number = Date.now,
+): ObservationRepository {
+  return {
+    /** Adds one reading. Returns the new id, so an undoable bulk run can name exactly what it wrote. */
+    async addObservation(o) {
+      return database.observations.add(o as Observation)
+    },
 
-export async function listAllObservations(): Promise<Observation[]> {
-  return db.observations.toArray()
-}
+    /** One product's readings, oldest first. */
+    async listObservations(productId) {
+      /* The [productId+observedAt] index hands these back already ordered, so the estimator never
+       * pays for an in-memory sort on the hot path. */
+      return database.observations
+        .where('[productId+observedAt]')
+        .between([productId, Dexie.minKey], [productId, Dexie.maxKey])
+        .toArray()
+    },
 
-/** Marks a reading as a one-off (or un-marks it). The row is kept either way — the user may be wrong. */
-export async function setObservationExcluded(id: number, excluded: boolean): Promise<void> {
-  await db.observations.update(id, { excluded })
-}
+    async listAllObservations() {
+      return database.observations.toArray()
+    },
 
-export async function deleteObservationsFor(productId: number): Promise<void> {
-  await db.observations.where('productId').equals(productId).delete()
-}
+    /** Marks a reading as a one-off (or un-marks it). The row is kept either way — the user may be wrong. */
+    async setObservationExcluded(id, excluded) {
+      await database.observations.update(id, { excluded })
+    },
 
-/** One query, then grouped in memory — the products list needs every product's history at once. */
-export async function observationsByProduct(): Promise<Map<number, Observation[]>> {
-  const all = await db.observations.toArray()
-  const out = new Map<number, Observation[]>()
-  for (const o of all) {
-    const bucket = out.get(o.productId)
-    if (bucket === undefined) out.set(o.productId, [o])
-    else bucket.push(o)
+    async deleteObservationsFor(productId) {
+      await database.observations.where('productId').equals(productId).delete()
+    },
+
+    /** One query, then grouped in memory — the products list needs every product's history at once. */
+    async observationsByProduct() {
+      const all = await database.observations.toArray()
+      const out = new Map<number, Observation[]>()
+      for (const o of all) {
+        const bucket = out.get(o.productId)
+        if (bucket === undefined) out.set(o.productId, [o])
+        else bucket.push(o)
+      }
+      // A single full-table read cannot use the compound index, so each bucket is ordered here instead.
+      for (const bucket of out.values()) bucket.sort((a, b) => a.observedAt - b.observedAt)
+      return out
+    },
+
+    /** Records a cost and stamps the product, in one transaction. Used by save, update, calc and check-in. */
+    async recordCost(args) {
+      const { productId, cost, observedAt, fxAtDate, source } = args
+      await database.transaction('rw', database.products, database.observations, async () => {
+        await database.observations.add({
+          productId,
+          cost,
+          observedAt,
+          ...(fxAtDate === undefined ? {} : { fxAtDate }),
+          source,
+        } as Observation)
+        /* The reading and the product's own `cost` must never disagree: a reader that trusted one and
+         * not the other would show two different "today's cost" figures on the same screen. */
+        await database.products.update(productId, { cost, costUpdatedAt: observedAt, updatedAt: clock() })
+      })
+    },
+
+    /** The user's store setup, or a neutral default when they have not been asked yet. */
+    async readStoreProfile() {
+      const stored = await database.storeProfile.get('me')
+      // A fresh copy every time: callers edit what they are handed, and the default is module state.
+      return stored ?? { ...DEFAULT_PROFILE, categories: [...DEFAULT_PROFILE.categories] }
+    },
+
+    async writeStoreProfile(p) {
+      await database.storeProfile.put({ ...p, id: 'me' })
+    },
+
+    /** Whether the user has actually been through setup — `readStoreProfile` cannot tell you, it defaults. */
+    async hasStoreProfile() {
+      return (await database.storeProfile.get('me')) !== undefined
+    },
   }
-  // A single full-table read cannot use the compound index, so each bucket is ordered here instead.
-  for (const bucket of out.values()) bucket.sort((a, b) => a.observedAt - b.observedAt)
-  return out
 }
-
-/** Records a cost and stamps the product, in one transaction. Used by save, update, calc and check-in. */
-export async function recordCost(args: {
-  productId: number
-  cost: number
-  observedAt: number
-  fxAtDate?: number
-  source: ObservationSource
-}): Promise<void> {
-  const { productId, cost, observedAt, fxAtDate, source } = args
-  await db.transaction('rw', db.products, db.observations, async () => {
-    await db.observations.add({
-      productId,
-      cost,
-      observedAt,
-      ...(fxAtDate === undefined ? {} : { fxAtDate }),
-      source,
-    } as Observation)
-    /* The reading and the product's own `cost` must never disagree: a reader that trusted one and
-     * not the other would show two different "today's cost" figures on the same screen. */
-    await db.products.update(productId, { cost, costUpdatedAt: observedAt, updatedAt: Date.now() })
-  })
-}
-
-/* ── the single-row store profile ───────────────────────────────────────── */
 
 export const DEFAULT_PROFILE: StoreProfile = { id: 'me', categories: ['other'], importDependency: 0.5 }
 
-/** The user's store setup, or a neutral default when they have not been asked yet. */
-export async function readStoreProfile(): Promise<StoreProfile> {
-  const stored = await db.storeProfile.get('me')
-  // A fresh copy every time: callers edit what they are handed, and the default is module state.
-  return stored ?? { ...DEFAULT_PROFILE, categories: [...DEFAULT_PROFILE.categories] }
-}
+/* The real shop's history. Every component that is not running a lesson uses these. */
+const real = createObservationRepository(db)
 
-export async function writeStoreProfile(p: StoreProfile): Promise<void> {
-  await db.storeProfile.put({ ...p, id: 'me' })
-}
-
-/** Whether the user has actually been through setup — `readStoreProfile` cannot tell you, it defaults. */
-export async function hasStoreProfile(): Promise<boolean> {
-  return (await db.storeProfile.get('me')) !== undefined
-}
+export const addObservation = real.addObservation
+export const listObservations = real.listObservations
+export const listAllObservations = real.listAllObservations
+export const setObservationExcluded = real.setObservationExcluded
+export const deleteObservationsFor = real.deleteObservationsFor
+export const observationsByProduct = real.observationsByProduct
+export const recordCost = real.recordCost
+export const readStoreProfile = real.readStoreProfile
+export const writeStoreProfile = real.writeStoreProfile
+export const hasStoreProfile = real.hasStoreProfile
 
 /* ── pure helpers (no `db` access — unit-testable in the node environment) ─ */
 

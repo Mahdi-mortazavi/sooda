@@ -1,0 +1,219 @@
+/**
+ * The guard that makes «the engine decides» true rather than aspirational.
+ *
+ * `scripts/lesson-examples.mjs --check` says the same thing with esbuild in the loop; this says it
+ * in the suite, where a maintainer changing `round2` or a margin in the demo shop will see it.
+ * The last test is the important one: every challenge answer is recomputed here from the plain
+ * engine functions, not from `expected.source.ts`, so a lesson that quotes the profit *amount*
+ * where it meant the *price* is caught by something other than the code that produced it.
+ */
+
+import { describe, expect, it } from 'vitest'
+import { computeBasketTotals } from '../../lib/basket'
+import { calcDiscount, calcFromProfitPercent, calcFromSellingPrice, calcReverseDiscount } from '../../lib/calc'
+import {
+  monthlyRateFromPercent,
+  profitStatus,
+  realProfitPercent,
+  replacementCost,
+} from '../../lib/inflation'
+import { calcInstallmentForward, calcInstallmentReverse } from '../../lib/installment'
+import { previewBulk } from '../../lib/products'
+import { roundUpTo } from '../../lib/rounding'
+import { buildSeed, SEED_PRODUCTS } from '../sandbox/seed'
+import { LESSON_EXPECTED, LESSON_INPUTS } from './expected.generated'
+import { computeLessonExpected, computeLessonInputs, PINNED_NOW } from './expected.source'
+import { discountLesson } from './discount'
+import { everydayLesson } from './everyday'
+import { installmentsLesson } from './installments'
+import { profitLesson } from './profit'
+import { realProfitLesson } from './realProfit'
+import { TUTORIAL_MONTHLY_PERCENT, TUTORIAL_ROUNDING_STEP } from './rate'
+import type { Challenge, ChoiceChallenge, NumberChallenge } from './types'
+
+const RATE = monthlyRateFromPercent(TUTORIAL_MONTHLY_PERCENT)
+
+function numberChallenge(challenges: Challenge[], id: string): NumberChallenge {
+  const found = challenges.find((c) => c.id === id)
+  if (found?.kind !== 'number') throw new Error(`no number challenge ${id}`)
+  return found
+}
+
+function choiceChallenge(challenges: Challenge[], id: string): ChoiceChallenge {
+  const found = challenges.find((c) => c.id === id)
+  if (found?.kind !== 'choice') throw new Error(`no choice challenge ${id}`)
+  return found
+}
+
+function correctOption(challenge: ChoiceChallenge): string {
+  const correct = challenge.options.filter((o) => o.correct)
+  expect(correct).toHaveLength(1)
+  return correct[0]?.id ?? ''
+}
+
+describe('the committed snapshot', () => {
+  it('is what the engine says today', () => {
+    expect(LESSON_EXPECTED).toEqual(computeLessonExpected())
+    expect(LESSON_INPUTS).toEqual(computeLessonInputs())
+  })
+
+  it('does not move when only the clock does', () => {
+    // A year on, and half a day on: nothing a challenge asks may depend on when it is taken.
+    expect(computeLessonExpected(PINNED_NOW + 365 * 86_400_000)).toEqual(LESSON_EXPECTED)
+    expect(computeLessonExpected(PINNED_NOW + 43_200_000)).toEqual(LESSON_EXPECTED)
+    expect(computeLessonInputs(PINNED_NOW + 365 * 86_400_000)).toEqual(LESSON_INPUTS)
+  })
+})
+
+describe('every challenge answer, recomputed from the engine itself', () => {
+  it('mission 1 — 20% on 100,000, and what three months leaves of it', () => {
+    const cost = Number(LESSON_INPUTS.mission.cost)
+    const margin = Number(LESSON_INPUTS.mission.margin)
+    const months = Number(LESSON_INPUTS.mission.months)
+
+    const naive = calcFromProfitPercent(cost, margin)
+    const price = roundUpTo(naive.sellingPrice, TUTORIAL_ROUNDING_STEP)
+    expect(LESSON_EXPECTED.mission.sellingPrice).toBe(price)
+    expect(LESSON_EXPECTED.mission.profitAmount).toBe(price - cost)
+
+    /* The lens judges the price the shopkeeper would otherwise have charged — the 120,000, not
+     * the suggestion the second calculation puts in its place. Reading the suggestion's own
+     * margin back would report a healthy 20% and lose the entire point of the mission. */
+    const restock = replacementCost(cost, RATE, months)
+    const real = realProfitPercent(price, restock)
+    expect(LESSON_EXPECTED.mission.replacement).toBe(restock)
+    expect(LESSON_EXPECTED.mission.realPercent).toBe(real)
+    expect(LESSON_EXPECTED.mission.verdict).toBe(profitStatus(real, margin))
+
+    // The payoff, in one line: a fifth of the sale on paper, under a tenth once it is restocked.
+    expect(real).toBeGreaterThan(0)
+    expect(real).toBeLessThan(margin / 2)
+    expect(LESSON_EXPECTED.mission.suggested).toBe(roundUpTo(restock * (1 + margin / 100), TUTORIAL_ROUNDING_STEP))
+  })
+
+  it('profit — 25% on 150,000, rounded the way the card rounds it', () => {
+    const naive = calcFromProfitPercent(150_000, 25)
+    const price = roundUpTo(naive.sellingPrice, TUTORIAL_ROUNDING_STEP)
+    expect(numberChallenge(profitLesson.challenges, 'price').answer).toBe(price)
+    // And the figure the lesson types in is the one the question is about.
+    expect(Number(LESSON_INPUTS.profit.cost)).toBe(150_000)
+  })
+
+  it('discount — the lesson works its own answer back, and the challenge works a different sale', () => {
+    const forward = calcDiscount(500_000, 30)
+    expect(Number(LESSON_INPUTS.discount.final)).toBe(forward.finalPrice)
+    // What the lesson's last step puts on the screen: the price it started from, recovered.
+    expect(calcReverseDiscount(forward.finalPrice, 30).originalPrice).toBe(500_000)
+
+    const premise = LESSON_EXPECTED.discount.challenge
+    const back = calcReverseDiscount(premise.finalPrice, premise.offPercent)
+    expect(numberChallenge(discountLesson.challenges, 'original').answer).toBe(back.originalPrice)
+
+    /* The point of the premise. Every figure the lesson says out loud — the 500,000 it starts
+     * from, the 350,000 it arrives at, the 30% it uses both ways — must be absent from the
+     * question, or the question can be answered by remembering rather than by reversing. */
+    expect(premise.finalPrice).not.toBe(forward.finalPrice)
+    expect(premise.offPercent).not.toBe(30)
+    expect(back.originalPrice).not.toBe(500_000)
+    expect(back.originalPrice).not.toBe(forward.finalPrice)
+  })
+
+  it('realProfit — the oil is a profit today, a profit in a month, and a loss in three', () => {
+    const oil = buildSeed(PINNED_NOW).products.find((p) => p.id === SEED_PRODUCTS.oil)
+    if (oil === undefined) throw new Error('the demo shop has no oil')
+    expect(Number(LESSON_INPUTS.realProfit.cost)).toBe(oil.cost)
+    expect(Number(LESSON_INPUTS.realProfit.price)).toBe(oil.price)
+
+    // Nominally in profit — otherwise the lens has nothing to reveal.
+    const nominal = calcFromSellingPrice(oil.cost, oil.price).profitPercent
+    expect(nominal).toBeGreaterThan(0)
+
+    // What the lesson runs, and what its card is still showing when the question is asked.
+    const months = Number(LESSON_INPUTS.realProfit.months)
+    const restock = replacementCost(oil.cost, RATE, months)
+    const real = realProfitPercent(oil.price, restock)
+    expect(real).toBe(LESSON_EXPECTED.realProfit.realPercent)
+    expect(real).toBeLessThan(0)
+
+    /* What the challenge asks about: the same oil at a horizon the lesson never ran, where the
+     * answer is the other one. A learner who reads the verdict off the screen gets it wrong,
+     * which is the whole reason the question is worth asking. */
+    const sooner = LESSON_EXPECTED.realProfit.challenge
+    expect(sooner.months).toBeLessThan(months)
+    const soonerRestock = replacementCost(oil.cost, RATE, sooner.months)
+    const soonerReal = realProfitPercent(oil.price, soonerRestock)
+    expect(sooner.replacement).toBe(soonerRestock)
+    expect(sooner.realPercent).toBe(soonerReal)
+    expect(sooner.verdict).toBe(profitStatus(soonerReal, nominal))
+    expect(soonerReal).toBeGreaterThan(0)
+    expect(sooner.verdict).not.toBe(LESSON_EXPECTED.realProfit.verdict)
+
+    // The learner is asked to pick between two verdicts; the engine picked one of them already.
+    expect(correctOption(choiceChallenge(realProfitLesson.challenges, 'verdict'))).toBe('stillProfit')
+  })
+
+  it('installments — the instalment, and whether a flat 2% beats cash', () => {
+    const cash = Number(LESSON_INPUTS.installments.cash)
+    const count = Number(LESSON_INPUTS.installments.count)
+    const forward = calcInstallmentForward(cash, 0, count, RATE)
+    expect(numberChallenge(installmentsLesson.challenges, 'monthly').answer).toBe(forward.installment)
+
+    const reverse = calcInstallmentReverse(cash, 0, count, Number(LESSON_INPUTS.installments.flat), RATE)
+    const verdict = profitStatus(reverse.realGainPercent, 0)
+    expect(verdict).toBe(LESSON_EXPECTED.installments.reverseVerdict)
+    expect(correctOption(choiceChallenge(installmentsLesson.challenges, 'verdict'))).toBe(
+      verdict === 'losing' ? 'worse' : 'better',
+    )
+  })
+
+  it('products — a +10% cost-up run, on the rows the lesson never touches', () => {
+    const untouched = buildSeed(PINNED_NOW).products.filter((p) => p.id !== SEED_PRODUCTS.rice)
+    const preview = previewBulk(
+      untouched,
+      { kind: 'costUp', percent: Number(LESSON_INPUTS.products.bulkPercent) },
+      TUTORIAL_ROUNDING_STEP,
+      TUTORIAL_MONTHLY_PERCENT,
+      PINNED_NOW,
+    )
+    expect(LESSON_EXPECTED.products.newCosts).toEqual(preview.map((row) => ({ id: row.id, cost: row.newCost })))
+    expect(LESSON_EXPECTED.products.newCosts.length).toBeGreaterThan(0)
+  })
+
+  it('installments — the monthly figure is remembered, so its tolerance is a remembering’s width', () => {
+    const monthly = numberChallenge(installmentsLesson.challenges, 'monthly')
+    /* Asked with the practice shop already gone, off a figure with seven significant digits.
+     * The slack has to cover "a bit over 2.2 million" and still reject the answer somebody
+     * reaches for when they have not understood the question: the cash price split six ways. */
+    const naive = Number(LESSON_INPUTS.installments.cash) / Number(LESSON_INPUTS.installments.count)
+    expect(Math.abs(naive - monthly.answer)).toBeGreaterThan(monthly.tolerance * 4)
+    expect(monthly.tolerance).toBeGreaterThanOrEqual(TUTORIAL_ROUNDING_STEP)
+  })
+
+  it('everyday — the two basket lines, totalled by the basket', () => {
+    const seed = buildSeed(PINNED_NOW).products
+    const lines = [SEED_PRODUCTS.rice, SEED_PRODUCTS.oil].map((id) => {
+      const product = seed.find((p) => p.id === id)
+      if (product === undefined) throw new Error(`the demo shop has no product ${id}`)
+      const naive = calcFromProfitPercent(product.cost, product.targetMarginPercent)
+      const price = roundUpTo(naive.sellingPrice, TUTORIAL_ROUNDING_STEP)
+      return { mode: 'profit' as const, inputs: [product.cost], results: [price, price - product.cost] }
+    })
+    const totals = computeBasketTotals(lines)
+    const combined = numberChallenge(everydayLesson.challenges, 'combined')
+    expect(combined.answer).toBe(totals[0]?.profit)
+
+    /* The answer is what the app shows, off two prices it rounded up; a learner doing the same
+     * two sums exactly lands a little under it. Both roundings have to be inside the tolerance,
+     * or the challenge marks the arithmetic wrong for being right. */
+    const exact = [SEED_PRODUCTS.rice, SEED_PRODUCTS.oil].reduce((sum, id) => {
+      const product = seed.find((p) => p.id === id)
+      if (product === undefined) throw new Error(`the demo shop has no product ${id}`)
+      return sum + calcFromProfitPercent(product.cost, product.targetMarginPercent).profitAmount
+    }, 0)
+    expect(Math.abs(combined.answer - exact)).toBeLessThan(combined.tolerance)
+  })
+
+  it('leaves the seeded reading count where the check-in challenge expects it', () => {
+    expect(LESSON_EXPECTED.smartRates.seedObservationCount).toBe(buildSeed(PINNED_NOW).observations.length)
+  })
+})

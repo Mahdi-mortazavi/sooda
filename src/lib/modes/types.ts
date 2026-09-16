@@ -41,7 +41,7 @@ export interface FieldSpec {
 
 /** Everything a pure `compute` needs beyond the field values themselves. */
 export interface CalcContext {
-  annualInflationPercent: number
+  monthlyInflationPercent: number
   roundingStep: RoundingStep
   now: number
   /** Raw field state, so a mode can read its 'toggle' fields — those carry no numeric value. */
