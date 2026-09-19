@@ -212,6 +212,16 @@ export function CalculatorView({
         delete next[key]
         return { ...prev, [mode]: next }
       })
+      /*
+       * The card on screen answered a question the fields no longer ask: editing anything after
+       * Calculate left the previous figure showing, unchanged and with nothing marking it stale,
+       * until Calculate was pressed again — and "Save to my products" / "Add to basket" both read
+       * straight from it, so a shopkeeper could act on a number that no longer matched what was
+       * in front of them. Clearing it here is the same thing an invalid input already does in
+       * `calculate()`; the answer is either exactly what was asked for, or there is no answer
+       * shown at all, never one quietly describing an input that has since changed.
+       */
+      setResults((prev) => (prev[mode] === null ? prev : { ...prev, [mode]: null }))
     },
     [mode, warmResultCard],
   )
@@ -432,7 +442,16 @@ export function CalculatorView({
       {/* overflow-x is clipped here so the slide transition can never widen the page (mobile shake fix) */}
       <div className="relative -mx-5 overflow-x-clip px-5">
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-          <motion.div
+          {/*
+           * A `<form>`, not a `<div>`: none of the number fields had any way to submit on
+           * Enter — no `<form>` to submit, no `onKeyDown` on any of them — so typing the last
+           * field and pressing Enter (the ordinary way to finish a form on both a physical and a
+           * software keyboard) silently did nothing until Calculate was found and tapped by hand.
+           * A real `<form>` with the Calculate button as its submit button gives every field that
+           * for free, natively, in both languages and with no per-field wiring — the same way
+           * `SaveProductSheet`'s single name field already did it by hand.
+           */}
+          <motion.form
             key={mode}
             custom={direction}
             initial={reducedMotion ? false : { opacity: 0, x: 28 * direction }}
@@ -440,6 +459,10 @@ export function CalculatorView({
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -28 * direction }}
             transition={{ type: 'spring', stiffness: 380, damping: 34 }}
             className="flex flex-col gap-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void calculate()
+            }}
           >
             <ModeFields mode={mode} state={states[mode]} errors={errors[mode]} lang={lang} onChange={setField} />
 
@@ -456,9 +479,8 @@ export function CalculatorView({
             )}
 
             <motion.button
-              type="button"
+              type="submit"
               data-tour="btn-calculate"
-              onClick={() => void calculate()}
               whileTap={reducedMotion ? undefined : { scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               className="w-full rounded-full bg-[var(--accent-fill-strong)] py-4 text-[17px] font-bold text-white shadow-[0_10px_30px_-6px_hsl(165_80%_30%/0.55),inset_0_1px_0_rgba(255,255,255,0.25)] dark:text-[hsl(168_90%_8%)] dark:shadow-[0_10px_34px_-6px_hsl(165_85%_45%/0.4),inset_0_1px_0_rgba(255,255,255,0.4)]"
@@ -502,7 +524,7 @@ export function CalculatorView({
                 </ErrorBoundary>
               </Suspense>
             ) : null}
-          </motion.div>
+          </motion.form>
         </AnimatePresence>
       </div>
 

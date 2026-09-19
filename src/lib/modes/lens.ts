@@ -40,8 +40,12 @@ export const LENS_FIELDS: FieldSpec[] = [
     labelKey: 'lens.replacementField',
     kind: 'money',
     group: 'lens',
-    rule: { nonNegative: true },
-    optional: true,
+    // Not optional: `resolveReplacement` below only trusts a *supplied* figure (`supplied > 0`),
+    // so an optional field left blank — silently resolved to 0 by the generic validator, with no
+    // error shown — used to fall straight through to the inflation estimate, as if the shopkeeper
+    // had never chosen "I know today's price" at all. Once this field is on screen the choice was
+    // made and a value is required, exactly like any other field a mode cannot compute without.
+    rule: { positive: true },
     visibleWhen: (state) => lensMonths(state) > 0 && state['src'] === 'known',
   },
 ]

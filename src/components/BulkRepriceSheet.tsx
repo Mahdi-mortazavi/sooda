@@ -6,7 +6,7 @@ import type { Product } from '../lib/db'
 import { vibrate } from '../lib/haptics'
 import { formatNumber, parseAmount, type AppLanguage } from '../lib/numbers'
 import { readMonthlyInflationPercent } from '../lib/inflation'
-import { previewBulk, type BulkOp, type ProductChange } from '../lib/products'
+import { MIN_COST_CHANGE_PERCENT, previewBulk, type BulkOp, type ProductChange } from '../lib/products'
 import { readRoundingStep } from '../lib/rounding'
 import { formatAmountWithUnit, type Unit } from '../lib/units'
 import { IconCheck, IconSigma } from './Icons'
@@ -52,11 +52,29 @@ export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast,
     return previewBulk(products, op, step, pinned?.monthlyInflationPercent ?? readMonthlyInflationPercent(), Date.now())
   }, [products, kind, percentValue, step, pinned])
 
+  /*
+   * `previewBulk` clamps anything below `MIN_COST_CHANGE_PERCENT` up to it, silently — the right
+   * thing for a pure engine function nothing should trust with a nonsense result (a cost below
+   * zero), but the wrong thing for the field a shopkeeper is typing into: -500 and -100 produced
+   * byte-identical previews with no error anywhere, so a fat-fingered extra digit read as if it
+   * had been entered correctly. The field itself refuses it instead.
+   */
+  const percentError =
+    kind === 'costUp' && Number.isFinite(parsedPercent) && parsedPercent < MIN_COST_CHANGE_PERCENT
+      ? t('errors.bulkCostChangeTooLow')
+      : null
+
   const changed = rows.filter((r) => r.newPrice !== r.oldPrice || r.newCost !== r.oldCost)
-  const canApply = changed.length > 0 && !applying
+  const canApply = changed.length > 0 && !applying && !percentError
 
   const pct = t('fields.percentUnit')
+  // Full sentence, for the standalone hint below the toggle — never truncated there.
   const costUpLabel = t('products.bulkCostUp', { percent: formatNumber(percentValue, lang) })
+  // Short form for the toggle's own tab: the full sentence (with a live, changing percent in
+  // it) truncated to "Purchase price went u…" on a 360px phone, silently hiding the one figure
+  // the shopkeeper is actively choosing. A tab name does not need to be the whole explanation —
+  // the sentence above still carries it, just somewhere with room not to cut it off.
+  const costUpLabelShort = t('products.bulkCostUpShort', { percent: formatNumber(percentValue, lang) })
 
   const onApply = async () => {
     if (!canApply) return
@@ -119,17 +137,23 @@ export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast,
           options={[
             {
               value: 'costUp',
-              label: <span className="min-w-0 truncate">{costUpLabel}</span>,
+              // Short label on the tab; the accessible name and the hint below stay full-length.
+              label: <span className="min-w-0 truncate">{costUpLabelShort}</span>,
               ariaLabel: costUpLabel,
               tour: 'chip-bulk-costup',
             },
             {
               value: 'retarget',
-              label: <span className="min-w-0 truncate">{t('products.bulkRetarget')}</span>,
+              label: <span className="min-w-0 truncate">{t('products.bulkRetargetShort')}</span>,
               ariaLabel: t('products.bulkRetarget'),
             },
           ]}
         />
+
+        {/* The sentence a short tab name can no longer carry — always full, never truncated. */}
+        <p className="px-1 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+          {kind === 'costUp' ? costUpLabel : t('products.bulkRetarget')}
+        </p>
 
         <AnimatePresence initial={false}>
           {kind === 'costUp' && (
@@ -150,6 +174,7 @@ export function BulkRepriceSheet({ open, onClose, products, lang, unit, onToast,
                   placeholder={t('fields.percentPlaceholder')}
                   lang={lang}
                   unit={pct}
+                  error={percentError}
                   tourField="bulk-percent"
                   tour="field-bulk-percent"
                 />

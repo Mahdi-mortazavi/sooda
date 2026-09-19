@@ -94,8 +94,21 @@ export function ProductSheet({
     : costValue <= 0
       ? t('errors.notPositive')
       : null
-  const priceError = !Number.isFinite(priceValue) ? t('errors.invalid') : null
-  const marginError = !Number.isFinite(marginValue) ? t('errors.invalid') : null
+  // Same rules the calculator itself applies to these fields (`profit.ts`/`sell.ts`): a selling
+  // price and a target margin may be exactly 0 (giving something away, a breakeven line) but
+  // never negative. This sheet used to only check `Number.isFinite`, so a shopkeeper could type
+  // -5000/-50%, see no error anywhere, save, and only find out from the health chip afterwards
+  // — reading "Losing -105%" on a product whose numbers were never valid in the first place.
+  const priceError = !Number.isFinite(priceValue)
+    ? t('errors.invalid')
+    : priceValue < 0
+      ? t('errors.negative')
+      : null
+  const marginError = !Number.isFinite(marginValue)
+    ? t('errors.invalid')
+    : marginValue < 0
+      ? t('errors.negative')
+      : null
 
   // The chip reflects what is on screen right now, not what is stored.
   const status: ProductStatus | null = useMemo(() => {

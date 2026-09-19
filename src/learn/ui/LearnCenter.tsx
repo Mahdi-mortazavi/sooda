@@ -16,6 +16,7 @@ import {
   IconBox,
   IconCalculator,
   IconCheck,
+  IconChevronForward,
   IconPercent,
   IconSparkle,
   IconTag,
@@ -141,9 +142,7 @@ export function LearnCenter({ open, onClose, lang, progress, onStart, available,
               <span className="block text-[15px] font-bold leading-tight">{t(lessonTitleKey(next))}</span>
               <span className="mt-0.5 block text-[13px] leading-snug opacity-85">{t(lessonBodyKey(next))}</span>
             </span>
-            <span aria-hidden className="shrink-0 text-[18px] font-bold rtl:rotate-180">
-              ›
-            </span>
+            <IconChevronForward aria-hidden size={18} className="shrink-0 rtl:rotate-180" />
           </motion.button>
         </section>
       ) : null}
@@ -189,14 +188,13 @@ export function LearnCenter({ open, onClose, lang, progress, onStart, available,
                   <span className="min-w-0 flex-1 text-[14.5px] font-semibold leading-snug">
                     {t(`learn.faq.${id}.q`)}
                   </span>
-                  <span
+                  <IconChevronForward
                     aria-hidden
-                    className={`shrink-0 text-[15px] text-[var(--text-tertiary)] transition-transform ${
+                    size={15}
+                    className={`shrink-0 text-[var(--text-tertiary)] transition-transform ${
                       expanded ? 'rotate-90' : 'rtl:rotate-180'
                     }`}
-                  >
-                    ›
-                  </span>
+                  />
                 </button>
                 {expanded ? (
                   <p className="border-t border-[var(--separator)] px-4 py-3 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
@@ -281,9 +279,7 @@ function LessonCard({
             </span>
           </span>
         </span>
-        <span aria-hidden className="shrink-0 text-[16px] text-[var(--text-tertiary)] rtl:rotate-180">
-          ›
-        </span>
+        <IconChevronForward aria-hidden size={16} className="shrink-0 text-[var(--text-tertiary)] rtl:rotate-180" />
       </button>
     </motion.li>
   )

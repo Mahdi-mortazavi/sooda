@@ -23,6 +23,26 @@ export function IconClock(props: IconProps) {
   )
 }
 
+/**
+ * The "this opens something" disclosure mark, drawn rather than typed.
+ *
+ * The character `›` (and `>`) is on Unicode's own bidi-mirroring list, so a browser under
+ * `dir="rtl"` silently flips it before any CSS ever runs — which then cancels out the
+ * `rtl:rotate-180` a caller adds to point it the other way, and the glyph ends up facing its
+ * original direction regardless. `→`/`←` happen not to be mirrored and so `rtl:rotate-180`
+ * genuinely flips them (see the lens block), but relying on which characters a text-shaping
+ * engine chooses to auto-mirror is not something to build a UI convention on. A path has no
+ * bidi properties at all: `rtl:rotate-180` on this one is the only thing that ever turns it,
+ * on every browser, forever.
+ */
+export function IconChevronForward(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9.5 6.5 15 12l-5.5 5.5" />
+    </svg>
+  )
+}
+
 export function IconGear(props: IconProps) {
   return (
     <svg {...base(props)}>

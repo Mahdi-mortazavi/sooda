@@ -57,6 +57,12 @@ export function SegmentedControl<T extends string>({
         const tour = opt.tour ?? (tourPrefix === null ? undefined : `${tourPrefix}${opt.value}`)
         return (
           <button
+            // A `<button>` with no explicit type defaults to `submit` the instant it ends up
+            // inside a `<form>` — and two of these (the down-payment Amount/Percent toggle, the
+            // lens's estimate/known-price toggle) sit inside the calculator's fields, which are
+            // now a real form so Enter can submit it. Without this, tapping either toggle would
+            // have silently triggered Calculate on every tap.
+            type="button"
             key={opt.value}
             data-tour={tour ?? undefined}
             role={radio ? 'radio' : 'tab'}

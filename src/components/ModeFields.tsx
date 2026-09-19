@@ -69,7 +69,13 @@ function ModeField({
           layoutId={`${mode}-${field.key}`}
           ariaLabel={label}
           value={value || (field.defaultValue ?? '')}
-          onChange={(next) => onChange(field.key, next)}
+          onChange={(next) => {
+            // Before the toggle's own value changes, so a sibling conversion still reads the
+            // old value under its old meaning — see `FieldSpec.onToggle`.
+            const sibling = field.onToggle?.(next, state)
+            if (sibling) onChange(sibling.key, sibling.value)
+            onChange(field.key, next)
+          }}
           size="sm"
           tourPrefix={`chip-${field.key}-`}
           options={(field.options ?? []).map((option, index) => ({ value: option, label: optionLabel(index, option) }))}
@@ -126,7 +132,7 @@ function ModeField({
     )
   }
 
-  const isPercent = field.kind === 'percent'
+  const isPercent = (field.kindWhen?.(state) ?? field.kind) === 'percent'
   return (
     <NumberField
       id={`${mode}-${field.key}`}

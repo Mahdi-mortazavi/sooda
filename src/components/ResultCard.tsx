@@ -15,6 +15,32 @@ import { IconAlert, IconBasketPlus, IconBookmarkPlus, IconCalendar, IconCheck, I
  * rendered here, so it lives with the other mode types. Re-exported for existing importers. */
 export type { ResultDisplay }
 
+/**
+ * Steps the headline figure down as its formatted text gets longer.
+ *
+ * The field this feeds accepts anything up to `MAX_VALUE` (999,999,999,999 — see
+ * `lib/calc.ts`), and a fixed 38px was never checked against that: a nine-figure sell price
+ * ran past the left edge of a 320–390px phone and was clipped, not wrapped — the actual digits
+ * were missing from the screen, not just cramped. The steps below keep every ordinary retail
+ * price (the overwhelming case) at the original size and only shrink for the values the app
+ * itself calls valid but rare. `[overflow-wrap:anywhere]` on the element is the fallback for
+ * whatever is left after shrinking — the separator characters aren't a break opportunity on
+ * their own, so without it a long enough run still overflows its box instead of wrapping.
+ */
+function primarySizeClass(formatted: string): string {
+  const len = formatted.length
+  if (len <= 10) return 'text-[38px]'
+  if (len <= 13) return 'text-[30px]'
+  return 'text-[24px]'
+}
+
+function secondarySizeClass(formatted: string): string {
+  const len = formatted.length
+  if (len <= 10) return 'text-[21px]'
+  if (len <= 13) return 'text-[17px]'
+  return 'text-[15px]'
+}
+
 /** Subtle SVG refraction shine that sweeps across the glass. */
 function RefractionShine() {
   return (
@@ -217,9 +243,9 @@ export function ResultCard({
       </div>
 
       <p
-        className={`relative mt-1 text-[38px] font-bold leading-tight tracking-tight tabular-nums ${
-          result.isLoss ? lossClass : 'text-[var(--accent-text)]'
-        }`}
+        className={`relative mt-1 font-bold leading-tight tracking-tight tabular-nums [overflow-wrap:anywhere] ${primarySizeClass(
+          fmtPrimary(result.primaryValue),
+        )} ${result.isLoss ? lossClass : 'text-[var(--accent-text)]'}`}
       >
         <CountUp value={result.primaryValue} format={fmtPrimary} />
         {result.primaryUnit ? <span className="ms-1 text-[25px] font-semibold">{result.primaryUnit}</span> : null}
@@ -230,11 +256,11 @@ export function ResultCard({
 
       <div className="relative mt-4 border-t border-[var(--separator)] pt-3.5">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-[15px] font-medium text-[var(--text-secondary)]">{result.secondaryLabel}</p>
+          <p className="shrink-0 text-[15px] font-medium text-[var(--text-secondary)]">{result.secondaryLabel}</p>
           <p
-            className={`text-[21px] font-bold tabular-nums ${
-              result.isLoss && !result.secondaryNeutral ? lossClass : 'text-[var(--text-primary)]'
-            }`}
+            className={`min-w-0 text-end font-bold tabular-nums [overflow-wrap:anywhere] ${secondarySizeClass(
+              fmtSecondary(result.secondaryValue),
+            )} ${result.isLoss && !result.secondaryNeutral ? lossClass : 'text-[var(--text-primary)]'}`}
           >
             <CountUp value={result.secondaryValue} format={fmtSecondary} />
             {result.secondaryUnit ? <span className="ms-0.5 text-[15px] font-semibold">{result.secondaryUnit}</span> : null}

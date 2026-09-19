@@ -69,7 +69,9 @@
     "bulkSelectAll": "Select all",
     "bulkSelected": "{{count}} selected",
     "bulkCostUp": "Purchase price went up {{percent}}%",
+    "bulkCostUpShort": "Cost +{{percent}}%",
     "bulkRetarget": "Bring selling price back to target margin",
+    "bulkRetargetShort": "Restore margin",
     "bulkPercent": "Percent increase",
     "bulkPreview": "Preview",
     "bulkApply": "Apply",
@@ -128,7 +130,12 @@
     "backupMergeHint": "Keeps what you have and adds what is missing.",
     "backupReplaceHint": "Erases what is on this device first.",
     "backupDone": "Restored",
-    "backupInvalid": "That file isn’t a Sooda backup.",
+    "backupProblem": {
+      "notJson": "That file isn’t readable — pick the .json file Sooda exported.",
+      "notSooda": "That file isn’t a Sooda backup.",
+      "unsupportedVersion": "This backup is from a newer version of Sooda — update the app first.",
+      "malformed": "This backup file is damaged and can’t be restored."
+    },
     "upToDate": "Up to date",
     "ratesAuto": "Update rates automatically",
     "ratesAutoHint": "Downloads a small public rates file from Sooda’s own site. Nothing from your device is sent.",

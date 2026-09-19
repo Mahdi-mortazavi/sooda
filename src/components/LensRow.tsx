@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
+import { IconChevronForward } from './Icons'
 import type { ValidationError } from '../lib/calc'
 import type { FieldSpec, ModeState } from '../lib/modes/types'
 import { formatNumber, type AppLanguage } from '../lib/numbers'
@@ -120,10 +121,10 @@ export function LensRow({
                 {t('lens.inflationChip', {
                   percent: `${formatNumber(monthlyInflationPercent, lang)}${t('fields.percentUnit')}`,
                 })}
-                {/* Baked into the string it pointed the wrong way in Persian. */}
-                <span aria-hidden className="rtl:rotate-180">
-                  ›
-                </span>
+                {/* A drawn chevron, not a character: `›` is on Unicode's bidi-mirror list, so the
+                    browser flips it under RTL before `rtl:rotate-180` runs, and the two cancel
+                    out — this is the "wrong way in Persian" the previous fix here only half-fixed. */}
+                <IconChevronForward aria-hidden size={16} className="rtl:rotate-180" />
               </button>
             )}
           </motion.div>

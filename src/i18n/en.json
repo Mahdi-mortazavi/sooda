@@ -58,7 +58,8 @@
     "discountRange": "Discount must be between 0 and 100",
     "reverseDiscountRange": "Discount must be from 0 up to (not including) 100",
     "downPaymentTooHigh": "Down payment must be less than the cash price",
-    "installmentCountInvalid": "Enter a whole number of installments"
+    "installmentCountInvalid": "Enter a whole number of installments",
+    "bulkCostChangeTooLow": "Cost cannot be reduced by more than 100%"
   },
   "settings": {
     "title": "Settings",

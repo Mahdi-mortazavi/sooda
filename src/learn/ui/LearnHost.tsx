@@ -515,7 +515,10 @@ export function LearnHost({
         <div
           role="status"
           data-coach-keep=""
-          className="glass-sheet glass-ring pointer-events-none fixed inset-x-3 z-[70] mx-auto max-w-[480px] rounded-2xl px-3.5 py-2 text-center"
+          // `.glass-floating`, not `.glass-sheet`: this sits over the live header with no scrim
+          // of its own — exactly the case a sheet's own tuning isn't opaque enough for. See
+          // `.glass-floating`'s comment in index.css, found from the same bleed-through in TipBar.
+          className="glass-floating glass-ring pointer-events-none fixed inset-x-3 z-[70] mx-auto max-w-[480px] rounded-2xl px-3.5 py-2 text-center"
           style={{ top: 'calc(0.5rem + env(safe-area-inset-top))' }}
         >
           <p className="text-[12px] font-semibold leading-snug text-[var(--text-secondary)]">

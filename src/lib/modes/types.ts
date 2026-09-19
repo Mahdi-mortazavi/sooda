@@ -37,6 +37,21 @@ export interface FieldSpec {
   defaultValue?: string
   /** Hides the field until the rest of the state calls for it (e.g. the lens amount). */
   visibleWhen?: (state: ModeState) => boolean
+  /**
+   * Overrides `kind` (unit shown, placeholder) when a sibling toggle changes what this field
+   * means — the instalment down payment is 'money' by default and 'percent' once its own
+   * Amount/Percent toggle is switched. Without this the field kept showing a bare number with
+   * no unit at all while quietly being read as a percentage.
+   */
+  kindWhen?: (state: ModeState) => FieldKind
+  /**
+   * A 'toggle' field only: when it changes, recompute a named sibling field's own raw value so
+   * it keeps meaning the same thing under the new choice, instead of the digits the shopkeeper
+   * already typed being silently re-read under a different unit. `next` is the value the toggle
+   * is about to take; `values` is the state as it stood the instant before that, so the sibling's
+   * current value is still read under its old meaning. Return `undefined` to leave it untouched.
+   */
+  onToggle?: (next: string, values: ModeState) => { key: string; value: string } | undefined
 }
 
 /** Everything a pure `compute` needs beyond the field values themselves. */

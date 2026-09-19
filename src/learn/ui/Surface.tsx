@@ -67,17 +67,29 @@ export function LearnSurface({ open, onClose, title, aside, children }: LearnSur
           }}
         >
           <div className="mx-auto flex min-h-0 w-full max-w-[520px] flex-1 flex-col">
-            <div className="flex shrink-0 items-center gap-2 px-5 pb-2 pt-4">
-              <h2 className="min-w-0 flex-1 truncate text-[22px] font-bold tracking-tight">{title}</h2>
-              {aside}
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label={t('actions.close')}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/8 text-[var(--text-secondary)] transition-colors hover:bg-black/12 dark:bg-white/12 dark:hover:bg-white/18"
-              >
-                <IconClose size={18} />
-              </button>
+            {/*
+             * `items-start`, not `items-center`, and no `truncate`: this header is shared by the
+             * Learning Centre ("آموزش سودا", always short) and every onboarding stage, and one of
+             * those — the goals question — is a full sentence that, combined with the "رد شدن"
+             * aside sitting in the same row, was cut down to "بیشتر برای چه از سودا ا…", losing
+             * the question itself. A title this shared has no length any caller can promise, so it
+             * wraps instead of being told to lose its own words; the buttons pin to the first line.
+             */}
+            <div className="flex shrink-0 items-start gap-2 px-5 pb-2 pt-4">
+              <h2 className="min-w-0 flex-1 text-[22px] font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">
+                {title}
+              </h2>
+              <div className="flex shrink-0 items-center gap-2">
+                {aside}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label={t('actions.close')}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/8 text-[var(--text-secondary)] transition-colors hover:bg-black/12 dark:bg-white/12 dark:hover:bg-white/18"
+                >
+                  <IconClose size={18} />
+                </button>
+              </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-8">{children}</div>
           </div>
