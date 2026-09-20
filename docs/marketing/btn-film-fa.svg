@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 52" width="236" height="52" role="img"
+     aria-label="تماشای ویدیو">
+  <!--
+    The Persian twin of btn-film.svg, same 236x52 shape.
+
+    Drawn rather than fetched because badge services do not shape Arabic
+    script: the label would arrive as isolated letters running the wrong way.
+    Here the play glyph sits on the right, where a reader of this line arrives
+    first, and the text is laid out right-to-left. The render is checked, not
+    assumed.
+  -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16271F"/>
+      <stop offset="100%" stop-color="#0B1611"/>
+    </linearGradient>
+  </defs>
+  <rect width="236" height="52" rx="11" fill="url(#g)"/>
+  <rect x="0.5" y="0.5" width="235" height="51" rx="10.5" fill="none" stroke="#24473A"/>
+  <circle cx="176" cy="26" r="13" fill="none" stroke="#2FD3A0" stroke-width="2"/>
+  <polygon points="172,19.5 172,32.5 183,26" fill="#2FD3A0"/>
+  <text x="106" y="33" text-anchor="middle" direction="rtl"
+        font-family="Vazirmatn, 'Segoe UI', Tahoma, 'Noto Naskh Arabic', sans-serif"
+        font-size="17" font-weight="600" fill="#FFFFFF">تماشای ویدیو</text>
+</svg>

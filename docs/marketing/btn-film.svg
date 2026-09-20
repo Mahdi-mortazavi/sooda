@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 52" width="236" height="52" role="img"
+     aria-label="Watch the film">
+  <!--
+    The quiet third button in the header row.
+
+    The badge beside it is what most visitors came for — the app itself, one
+    click away. This one is for the visitor who has not decided yet and wants
+    to watch the thing move first, so it is graphite rather than the brand
+    green, with the play glyph carrying the only accent.
+
+    Drawn rather than fetched from a badge service so the shape, the weight and
+    the accent are the repo's own, and so the Persian twin beside it can be an
+    exact mirror instead of an approximation.
+  -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16271F"/>
+      <stop offset="100%" stop-color="#0B1611"/>
+    </linearGradient>
+  </defs>
+  <rect width="236" height="52" rx="11" fill="url(#g)"/>
+  <rect x="0.5" y="0.5" width="235" height="51" rx="10.5" fill="none" stroke="#24473A"/>
+  <circle cx="60" cy="26" r="13" fill="none" stroke="#2FD3A0" stroke-width="2"/>
+  <polygon points="56,19.5 56,32.5 67,26" fill="#2FD3A0"/>
+  <text x="130" y="32" text-anchor="middle"
+        font-family="'Segoe UI', Inter, system-ui, sans-serif"
+        font-size="16" font-weight="600" fill="#FFFFFF">Watch the film</text>
+</svg>
