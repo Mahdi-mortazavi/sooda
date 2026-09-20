@@ -17,10 +17,10 @@
 
 <br />
 
-<a href="https://mahdi-mortazavi.github.io/sooda/"><img src="https://img.shields.io/badge/▶%20باز%20کردن%20سودا-mahdi--mortazavi.github.io%2Fsooda-0f7a5f?style=for-the-badge" alt="باز کردن سودا" /></a>&nbsp;<a href="#-ببین-چطور-کار-می‌کند"><img src="docs/marketing/btn-film-fa.svg" alt="تماشای ویدیو" height="30" /></a>
+<a href="https://mahdi-mortazavi.github.io/sooda/"><img src="docs/marketing/btn-open-fa.svg" alt="باز کردن سودا — mahdi-mortazavi.github.io/sooda" height="30" /></a>&nbsp;<a href="#-ببین-چطور-کار-می‌کند"><img src="docs/marketing/btn-film-fa.svg" alt="تماشای ویدیو" height="30" /></a>
 
 [![Deploy](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml)
-[![PWA](https://img.shields.io/badge/PWA-قابل%20نصب-5A0FC8)](https://mahdi-mortazavi.github.io/sooda/)
+[<img src="docs/marketing/badge-pwa-fa.svg" alt="PWA: قابل نصب" height="20" />](https://mahdi-mortazavi.github.io/sooda/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981)](./LICENSE)
 
 <br />
