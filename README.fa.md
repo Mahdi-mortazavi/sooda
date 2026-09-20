@@ -17,7 +17,7 @@
 
 <br />
 
-<a href="https://mahdi-mortazavi.github.io/sooda/"><img src="https://img.shields.io/badge/▶%20باز%20کردن%20سودا-mahdi--mortazavi.github.io%2Fsooda-0f7a5f?style=for-the-badge" alt="باز کردن سودا" /></a>
+<a href="https://mahdi-mortazavi.github.io/sooda/"><img src="https://img.shields.io/badge/▶%20باز%20کردن%20سودا-mahdi--mortazavi.github.io%2Fsooda-0f7a5f?style=for-the-badge" alt="باز کردن سودا" /></a>&nbsp;<a href="#-ببین-چطور-کار-می‌کند"><img src="docs/marketing/btn-film-fa.svg" alt="تماشای ویدیو" height="30" /></a>
 
 [![Deploy](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml)
 [![PWA](https://img.shields.io/badge/PWA-قابل%20نصب-5A0FC8)](https://mahdi-mortazavi.github.io/sooda/)
@@ -30,6 +30,32 @@
 </div>
 
 <br />
+
+<div dir="rtl">
+
+## 🎬 ببین چطور کار می‌کند
+
+شصت ثانیه، بدون روایت: آن ۲۰٪ سودی که وقت خرید دوباره می‌بینی ۱۰٫۳۲٪ بوده، قیمت
+پیشنهادی‌ای که قفسه را همان‌طور که بود برمی‌گرداند، و نشان سلامتی که می‌گوید یک
+کالا هنوز می‌ارزد یا نه.
+
+</div>
+
+<div align="center">
+
+<img src="docs/marketing/sooda-film.gif" alt="سودا ۲۰٪ سود را به ۱۰٫۳۲٪‌ای که واقعاً مانده برمی‌گرداند: قیمت خرید و فروش کنار هم، یک قیمت پیشنهادی که قفسه را پر نگه می‌دارد، و نشان سلامت روی هر کالای ذخیره‌شده — کامل آفلاین، فارسی و انگلیسی" width="760">
+
+</div>
+
+https://github.com/user-attachments/assets/3dbf0248-3ff3-4caf-a576-fc36ea4ead07
+
+<div align="center">
+
+<sub>لوپ بالا بی‌صداست — <b>پلی را بزن تا کل شصت ثانیه با صدا پخش شود.</b> رابطی که در آن می‌بینی کشیده شده، نه فیلم‌برداری‌شده؛ خودِ برنامه یک کلیک فاصله دارد: <a href="https://mahdi-mortazavi.github.io/sooda/">mahdi-mortazavi.github.io/sooda</a> — بدون حساب کاربری و بدون نصب باز می‌شود. فایلش در مخزن هست: <a href="docs/marketing/sooda-film.mp4"><code>docs/marketing/sooda-film.mp4</code></a>.</sub>
+
+</div>
+
+<br>
 
 <div dir="rtl">
 

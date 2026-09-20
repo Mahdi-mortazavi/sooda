@@ -17,7 +17,7 @@ speaks English and فارسی, and tracks nothing.
 
 <br />
 
-<a href="https://mahdi-mortazavi.github.io/sooda/"><img src="https://img.shields.io/badge/▶%20Open%20Sooda-mahdi--mortazavi.github.io%2Fsooda-0f7a5f?style=for-the-badge" alt="Open Sooda" /></a>
+<a href="https://mahdi-mortazavi.github.io/sooda/"><img src="https://img.shields.io/badge/▶%20Open%20Sooda-mahdi--mortazavi.github.io%2Fsooda-0f7a5f?style=for-the-badge" alt="Open Sooda" /></a>&nbsp;<a href="#-watch-it-work"><img src="docs/marketing/btn-film.svg" alt="Watch the film" height="30" /></a>
 
 [![Deploy](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mahdi-mortazavi/sooda/actions/workflows/deploy.yml)
 [![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8)](https://mahdi-mortazavi.github.io/sooda/)
@@ -31,6 +31,28 @@ speaks English and فارسی, and tracks nothing.
 </div>
 
 <br />
+
+## 🎬 Watch it work
+
+Sixty seconds, no narration: the 20% that turns out to be 10.32% once you try to
+restock, the suggested price that puts the shelf back the way it was, and the
+health chip that tells you whether a product is still worth selling.
+
+<div align="center">
+
+<img src="docs/marketing/sooda-film.gif" alt="Sooda turning a 20% profit into the 10.32% that is actually left: the calculator shows purchase and selling price side by side, a suggested price that keeps the shelf stocked, and a health chip on each saved product — all offline, in English and فارسی" width="760">
+
+</div>
+
+https://github.com/user-attachments/assets/3dbf0248-3ff3-4caf-a576-fc36ea4ead07
+
+<div align="center">
+
+<sub>The loop above is silent — <b>press play for the whole sixty seconds, with sound.</b> The interface in it is drawn rather than screen-recorded; the real thing is one click away at <a href="https://mahdi-mortazavi.github.io/sooda/">mahdi-mortazavi.github.io/sooda</a>, and it opens with no account and no install. The file is in the repo as <a href="docs/marketing/sooda-film.mp4"><code>docs/marketing/sooda-film.mp4</code></a>.</sub>
+
+</div>
+
+<br>
 
 ## 📖 The story
 
