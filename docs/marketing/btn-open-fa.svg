@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 886 56" width="886" height="56" role="img"
+     aria-label="باز کردن سودا — mahdi-mortazavi.github.io/sooda">
+  <!--
+    The primary call to action on the Persian README, drawn rather than fetched
+    from a badge service.
+
+    The badge service version of this button rendered the Persian label as
+    isolated letters running left to right: "د ا ز  ک ر د ن  س و د ا" instead
+    of "باز کردن سودا". Arabic script is cursive and bidirectional, and the
+    service rasterises text without shaping it, so there is no query string
+    that fixes it. Drawing the button is the only way to get the label right.
+
+    The shape copies the badge service's for-the-badge style on purpose, so it
+    still sits in a row with the Deploy, PWA and License badges beside it:
+    56 units tall (28 on screen), square corners, uppercase Latin with wide
+    letter-spacing, a neutral left segment and the brand green on the right.
+  -->
+  <rect width="310" height="56" fill="#555555"/>
+  <rect x="310" width="576" height="56" fill="#0F7A5F"/>
+  <polygon points="272,18 272,38 290,28" fill="#FFFFFF"/>
+  <text x="135" y="37" text-anchor="middle" direction="rtl"
+        font-family="Vazirmatn, 'Segoe UI', Tahoma, 'Noto Naskh Arabic', sans-serif"
+        font-size="25" font-weight="700" fill="#FFFFFF">باز کردن سودا</text>
+  <text x="598" y="36" text-anchor="middle"
+        font-family="Verdana, 'DejaVu Sans', Geneva, sans-serif"
+        font-size="21" font-weight="700" letter-spacing="1.6"
+        fill="#FFFFFF">MAHDI-MORTAZAVI.GITHUB.IO/SOODA</text>
+</svg>

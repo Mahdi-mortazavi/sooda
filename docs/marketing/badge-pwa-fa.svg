@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 242 40" width="242" height="40" role="img"
+     aria-label="PWA: قابل نصب">
+  <!--
+    Drawn for the same reason as btn-open-fa.svg: the badge service rendered
+    "قابل نصب" as isolated letters running the wrong way. Flat style and 40
+    units tall (20 on screen) so it matches the Deploy and License badges it
+    sits between.
+  -->
+  <defs>
+    <clipPath id="r"><rect width="242" height="40" rx="6" fill="#fff"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <rect width="96" height="40" fill="#555555"/>
+    <rect x="96" width="146" height="40" fill="#5A0FC8"/>
+  </g>
+  <text x="48" y="27" text-anchor="middle"
+        font-family="Verdana, 'DejaVu Sans', Geneva, sans-serif"
+        font-size="20" fill="#FFFFFF">PWA</text>
+  <text x="169" y="28" text-anchor="middle" direction="rtl"
+        font-family="Vazirmatn, 'Segoe UI', Tahoma, 'Noto Naskh Arabic', sans-serif"
+        font-size="20" fill="#FFFFFF">قابل نصب</text>
+</svg>
